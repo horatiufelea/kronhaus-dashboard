@@ -167,16 +167,11 @@
     <!-- ===== COMENZI ===== -->
     <div id="viewOrders">
       <div class="toolbar">
-        <input class="grow" type="text" id="search" placeholder="Caută după nume / oraș / număr factură…">
-        <div class="seg" id="segScope">
-          <button data-scope="real" class="on">Reale (TM7)</button>
-          <button data-scope="all">Toate</button>
-          <button data-scope="test">Test</button>
-        </div>
+        <input class="grow" type="text" id="search" placeholder="Caută după nume / oraș / factură…">
         <div class="seg" id="segStatus">
-          <button data-st="all" class="on">Toate stările</button>
-          <button data-st="confirmed">Confirmate</button>
-          <button data-st="pending">În așteptare</button>
+          <button data-st="all" class="on">Toate</button>
+          <button data-st="confirmed">Încasate</button>
+          <button data-st="pending">Neîncasate</button>
         </div>
       </div>
       <div id="tableWrap"></div>
@@ -185,18 +180,18 @@
     <!-- ===== STATISTICI ===== -->
     <div id="viewStats" class="hidden">
       <div class="chart-card" style="margin-bottom:14px">
-        <h3>Ce înseamnă „Stare reală"?</h3>
+        <h3>Ce înseamnă „încasată"?</h3>
         <p class="cnote" style="margin:0;line-height:1.5">
-          O vânzare e <b style="color:var(--ok)">confirmată</b> dacă are cel puțin o dovadă de încasare:
-          <b>factură plătită</b> (Számlázz), <b>plată cu card</b> (SimplePay/UNAS) sau <b>transfer bancar confirmat</b> manual de o colegă.
-          „Status UNAS" (livrare, comandă închisă…) e setat manual în shop și <b>nu</b> dovedește plata — de aceea e ținut separat.
+          O comandă e <b style="color:var(--ok)">încasată</b> când avem dovada că au intrat banii:
+          <b>factură plătită</b>, <b>plată cu cardul</b> sau <b>transfer confirmat</b> de o colegă.
+          Statusul din shop (livrare, comandă închisă…) se pune manual și <b>nu</b> dovedește plata — de aceea îl ținem separat.
         </p>
       </div>
       <div class="chart-grid">
-        <div class="chart-card"><h3>Pâlnia vânzării</h3><div class="cbox"><canvas id="chFunnel"></canvas></div></div>
-        <div class="chart-card"><h3>Cum s-a confirmat plata</h3><div class="cbox"><canvas id="chMethod"></canvas></div></div>
-        <div class="chart-card wide"><h3>Vânzări confirmate pe zi</h3><div class="cbox"><canvas id="chDaily"></canvas></div></div>
-        <div class="chart-card wide"><h3>Comenzi pe oraș (reale)</h3><div class="cbox"><canvas id="chCity"></canvas></div></div>
+        <div class="chart-card"><h3>De la comandă la bani în cont</h3><div class="cbox"><canvas id="chFunnel"></canvas></div></div>
+        <div class="chart-card"><h3>Cum s-a plătit</h3><div class="cbox"><canvas id="chMethod"></canvas></div></div>
+        <div class="chart-card wide"><h3>Încasări pe zi</h3><div class="cbox"><canvas id="chDaily"></canvas></div></div>
+        <div class="chart-card wide"><h3>Comenzi pe oraș</h3><div class="cbox"><canvas id="chCity"></canvas></div></div>
       </div>
     </div>
 
@@ -239,7 +234,7 @@ const C_GREEN="#00653e", C_BLUE="#1256a0", C_AMBER="#9a6b00", C_GRID="#eef1ef", 
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 let EUR = FALLBACK_RATE;
 let ROWS = [];
-let STATE = { scope:"real", status:"all", q:"" };
+let STATE = { status:"all", q:"" };
 
 /* ===================== HELPERS ===================== */
 const $ = s => document.querySelector(s);
@@ -327,8 +322,7 @@ async function loadOrders(){
 function filtered(){
   const q = STATE.q.trim().toLowerCase();
   return ROWS.filter(r=>{
-    if(STATE.scope==="real" && !r.is_real) return false;
-    if(STATE.scope==="test" && r.is_real) return false;
+    if(!r.is_real) return false;
     if(STATE.status==="confirmed" && !r.is_confirmed_sale) return false;
     if(STATE.status==="pending" && r.is_confirmed_sale) return false;
     if(q){
@@ -339,9 +333,8 @@ function filtered(){
   });
 }
 function statusChip(r){
-  if(!r.is_real) return '<span class="chip c-grey">Test</span>';
-  if(r.is_confirmed_sale) return '<span class="chip c-ok">Vânzare confirmată</span>';
-  return '<span class="chip c-warn">Plată în așteptare</span>';
+  if(r.is_confirmed_sale) return '<span class="chip c-ok">Încasată</span>';
+  return '<span class="chip c-warn">Neîncasată</span>';
 }
 function badges(r){
   const b=[];
@@ -357,10 +350,10 @@ function kpis(list){
   const rev = conf.reduce((s,r)=>s+Number(r.sum_gross||0),0);
   const pend = real.length-conf.length;
   const html = [
-    {n:real.length, l:"Comenzi reale (TM7)", e:""},
-    {n:conf.length, l:"Vânzări confirmate", e:""},
-    {n:ft(rev), l:"Venit confirmat", e:eur(rev)},
-    {n:pend, l:"Plată în așteptare", e:""},
+    {n:real.length, l:"Comenzi Thermomix", e:""},
+    {n:conf.length, l:"Vândute și încasate", e:""},
+    {n:ft(rev), l:"Bani încasați", e:eur(rev)},
+    {n:pend, l:"Încă neîncasate", e:""},
   ].map(k=>`<div class="kpi"><div class="n">${k.n}</div><div class="l">${k.l}</div>${k.e?`<div class="e">${k.e}</div>`:''}</div>`).join("");
   $("#kpis").innerHTML=html;
 }
@@ -378,7 +371,7 @@ function render(){
     </tr>`).join("");
   $("#tableWrap").innerHTML = `<table>
     <thead><tr><th>Client</th><th>Dată / Oraș</th><th>Sumă</th>
-      <th class="col-status">Stare reală</th><th class="col-unas">Status UNAS</th></tr></thead>
+      <th class="col-status">Încasare</th><th class="col-unas">Status shop</th></tr></thead>
     <tbody>${rows}</tbody></table>`;
   document.querySelectorAll("tbody tr").forEach(tr=>tr.addEventListener("click",()=>openDetail(tr.dataset.key)));
 }
@@ -430,7 +423,7 @@ async function openDetail(key){
 
       <div class="sect"><h4>Plată</h4>
         <div class="kv">
-          <span class="k">Status UNAS</span><span>${trStatus(d.unas_status)}</span>
+          <span class="k">Status shop</span><span>${trStatus(d.unas_status)}</span>
           <span class="k">Metodă de plată</span><span>${esc(d.payment_name)||'—'} (${trPay(d.payment_status)})</span>
           <span class="k">Factură</span><span>${d.invoice_number?esc(d.invoice_number):'fără'} ${r.invoice_paid?'· <b style="color:var(--ok)">plătită</b>':(r.is_invoiced?'· <b style="color:var(--warn)">neplătită</b>':'')}</span>
           <span class="k">Plată cu card</span><span>${r.card_paid?'<b style="color:var(--ok)">da (SimplePay/UNAS)</b>':'neconfirmată'}</span>
@@ -512,8 +505,6 @@ $("#refreshBtn").addEventListener("click", async ()=>{
 
 /* ===================== FILTER WIRING ===================== */
 $("#search").addEventListener("input", e=>{ STATE.q=e.target.value; render(); });
-$("#segScope").addEventListener("click", e=>{ const b=e.target.closest("button"); if(!b)return;
-  STATE.scope=b.dataset.scope; $("#segScope").querySelectorAll("button").forEach(x=>x.classList.toggle("on",x===b)); render(); });
 $("#segStatus").addEventListener("click", e=>{ const b=e.target.closest("button"); if(!b)return;
   STATE.status=b.dataset.st; $("#segStatus").querySelectorAll("button").forEach(x=>x.classList.toggle("on",x===b)); render(); });
 
@@ -551,7 +542,7 @@ function buildStats(){
   // 1) Pâlnia: Reale → Facturate → Confirmate
   const fReale=real.length, fFact=real.filter(r=>r.is_invoiced).length, fConf=real.filter(r=>r.is_confirmed_sale).length;
   if(cctx("chFunnel")) CH.funnel=new Chart(cctx("chFunnel"),{type:"bar",
-    data:{labels:["Reale","Facturate","Confirmate"],datasets:[{data:[fReale,fFact,fConf],backgroundColor:C_GREEN,borderRadius:4,barThickness:34}]},
+    data:{labels:["Comandate","Cu factură","Încasate"],datasets:[{data:[fReale,fFact,fConf],backgroundColor:C_GREEN,borderRadius:4,barThickness:34}]},
     options:optHbar()});
 
   // 2) Cum s-a confirmat plata (prioritate: card > factură > transfer)
