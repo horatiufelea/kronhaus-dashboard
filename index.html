@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>KronHaus · Comenzi</title>
+<title>KronHaus Hub</title>
 <style>
   :root{
     --green:#00653e; --green-d:#004c2e; --green-l:#e7f1ec;
@@ -119,7 +119,63 @@
   .chart-card .cnote{font-size:12px;color:var(--muted);margin:-6px 0 10px}
   .chart-card.wide{grid-column:1 / -1}
   .cbox{position:relative;height:260px}
+
+  /* ---- Module nav ---- */
+  .modnav{display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap}
+  .modnav button{display:flex;align-items:center;gap:8px;border:1px solid var(--line);background:#fff;color:var(--ink);
+                 padding:10px 18px;border-radius:12px;font-size:15px;font-weight:800}
+  .modnav button:hover{background:var(--green-l)}
+  .modnav button.on{background:var(--green);border-color:var(--green);color:#fff}
+  .modnav .ic{font-size:17px}
+
+  /* ---- Proiecte ---- */
+  .projbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
+  .pchip{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line);background:#fff;border-radius:999px;
+         padding:7px 13px;font-size:13px;font-weight:700;color:var(--ink)}
+  .pchip .pd{width:10px;height:10px;border-radius:50%}
+  .pchip .cnt{background:var(--greybg);color:var(--grey);border-radius:999px;padding:1px 7px;font-size:11px}
+  .pchip.on{border-color:var(--ink);box-shadow:0 0 0 2px var(--ink) inset}
+  .pchip.arch{opacity:.6}
+  .phead{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+  .phead h2{margin:0;font-size:20px;display:flex;align-items:center;gap:9px}
+  .phead h2 .pd{width:14px;height:14px;border-radius:4px}
+  .phead .spacer{flex:1}
+  .phead select{width:auto;padding:7px 10px;font-size:13px}
+  .board{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;align-items:start}
+  .col{background:#eaf0ec;border-radius:var(--radius);padding:10px;min-height:160px;transition:background .15s}
+  .col.over{background:var(--green-l);box-shadow:0 0 0 2px var(--green) inset}
+  .col h3{margin:2px 4px 10px;font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);display:flex;gap:6px;align-items:center}
+  .col h3 .cnt{background:#fff;border-radius:999px;padding:1px 8px;font-size:11px}
+  .col .add{width:100%;border:1px dashed #b9c6bf;background:transparent;border-radius:10px;padding:8px;color:var(--muted);font-weight:700;font-size:13px;margin-top:4px}
+  .col .add:hover{background:#fff;color:var(--green)}
+  .card{background:#fff;border:1px solid var(--line);border-radius:11px;padding:10px 12px;margin-bottom:8px;cursor:grab;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+  .card:hover{border-color:var(--green)}
+  .card.dragging{opacity:.45}
+  .card .t{font-weight:700;font-size:14px}
+  .card.done .t{text-decoration:line-through;color:var(--muted)}
+  .card .meta{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:7px;font-size:12px;color:var(--muted)}
+  .card .who{background:var(--bluebg);color:var(--blue);font-weight:800;border-radius:6px;padding:1px 7px}
+  .card .due.late{color:#b3261e;font-weight:800}
+  .pr-high{background:#fbe4e2;color:#b3261e} .pr-med{background:var(--warnbg);color:var(--warn)} .pr-low{background:var(--greybg);color:var(--grey)}
+  .swatches{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px}
+  .swatches button{width:30px;height:30px;border-radius:8px;border:2px solid #fff;box-shadow:0 0 0 1px var(--line)}
+  .swatches button.on{box-shadow:0 0 0 2px var(--ink)}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:0 12px}
+  input[type=date]{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:10px;font-size:15px;font-family:inherit}
+
+  /* ---- Marketing ---- */
+  .hint{background:var(--warnbg);border:1px solid #efd9a8;color:#5c4300;border-radius:var(--radius);padding:12px 16px;font-size:13px;margin-bottom:14px}
+  .hint b{color:#5c4300}
+  .mtable td,.mtable th{font-size:13px}
+  .mtable tbody tr{cursor:default}
+  .utm-out{display:flex;gap:8px;margin-top:12px}
+  .utm-out input{font-family:ui-monospace,Consolas,monospace;font-size:13px}
+  .utm-grid{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:0 12px}
+
   @media(max-width:720px){
+    .board{grid-template-columns:1fr}
+    .utm-grid{grid-template-columns:1fr 1fr}
+    .modnav button{flex:1;justify-content:center;padding:10px 8px;font-size:14px}
     .kpis{grid-template-columns:repeat(2,1fr)}
     .chart-grid{grid-template-columns:1fr}
     .col-status,.col-unas{display:none}
@@ -132,7 +188,7 @@
 <!-- ============ LOGIN ============ -->
 <div id="login">
   <form class="loginbox" id="loginForm">
-    <div class="brand"><span class="dot">TM</span><b>KronHaus · Comenzi</b></div>
+    <div class="brand"><span class="dot">TM</span><b>KronHaus Hub</b></div>
     <p class="sub">Thermomix Ungaria — platformă internă</p>
     <label>Email</label>
     <input type="email" id="email" autocomplete="username" required placeholder="nume@kronhaus.hu">
@@ -146,7 +202,7 @@
 <!-- ============ APP ============ -->
 <div id="app" class="hidden">
   <header class="top">
-    <span class="dot">TM</span><b>KronHaus · Comenzi</b>
+    <span class="dot">TM</span><b>KronHaus Hub</b>
     <span class="spacer"></span>
     <span class="rate" id="rateTag">1 € = … Ft</span>
     <span class="who" id="whoTag"></span>
@@ -156,6 +212,14 @@
   </header>
 
   <div class="wrap">
+    <nav class="modnav" id="modnav">
+      <button data-mod="comenzi" class="on"><span class="ic">🛒</span>Comenzi</button>
+      <button data-mod="proiecte"><span class="ic">📋</span>Proiecte</button>
+      <button data-mod="marketing"><span class="ic">📣</span>Marketing</button>
+    </nav>
+
+  <!-- ################ MODUL COMENZI ################ -->
+  <div id="modComenzi">
     <div class="tabs">
       <button data-tab="orders" class="on">Comenzi</button>
       <button data-tab="stats">Statistici</button>
@@ -200,6 +264,65 @@
       <div id="historyWrap"></div>
     </div>
   </div>
+
+  <!-- ################ MODUL PROIECTE ################ -->
+  <div id="modProiecte" class="hidden">
+    <div class="projbar" id="projBar"></div>
+    <div id="projWrap"><div class="empty">Se încarcă…</div></div>
+  </div>
+
+  <!-- ################ MODUL MARKETING ################ -->
+  <div id="modMarketing" class="hidden">
+    <div class="toolbar">
+      <div class="seg" id="segPeriod">
+        <button data-p="all" class="on">Tot</button>
+        <button data-p="30">Ultimele 30 zile</button>
+        <button data-p="month">Luna aceasta</button>
+      </div>
+    </div>
+    <div class="kpis" id="mKpis"></div>
+    <div id="mHint"></div>
+    <div class="chart-grid">
+      <div class="chart-card"><h3>De unde vin comenzile (sursă)</h3><div class="cbox"><canvas id="mSource"></canvas></div></div>
+      <div class="chart-card"><h3>Metoda de plată aleasă</h3><div class="cbox"><canvas id="mPay"></canvas></div></div>
+      <div class="chart-card wide"><h3>Vânzări pe lună</h3><p class="cnote">Comenzi Thermomix (bare) și bani încasați (linie)</p><div class="cbox"><canvas id="mMonthly"></canvas></div></div>
+      <div class="chart-card wide"><h3>Campanii</h3><div id="mCampaigns"></div></div>
+      <div class="chart-card"><h3>Cupoane folosite</h3><div id="mCoupons"></div></div>
+      <div class="chart-card"><h3>Orașe (top 10)</h3><div class="cbox"><canvas id="mCity"></canvas></div></div>
+      <div class="chart-card wide">
+        <h3>Generator link de campanie (UTM)</h3>
+        <p class="cnote">Puneți acest link în postări / reclame / emailuri — comenzile venite pe el apar mai sus la „Sursă” și „Campanii”.</p>
+        <div class="utm-grid">
+          <div><label>Link pagină</label><input type="text" id="uBase" placeholder="https://… (pagina din shop)"></div>
+          <div><label>Sursă</label><select id="uSrc">
+            <option>facebook</option><option>instagram</option><option>google</option><option>tiktok</option>
+            <option>email</option><option>whatsapp</option><option>youtube</option><option>partener</option></select></div>
+          <div><label>Mediu</label><select id="uMed">
+            <option value="social">social (organic)</option><option value="cpc">cpc (plătit)</option><option value="email">email</option>
+            <option value="referral">referral</option><option value="sms">sms</option></select></div>
+          <div><label>Campanie</label><input type="text" id="uCamp" placeholder="ex. tm7-noiembrie"></div>
+        </div>
+        <div class="utm-out"><input type="text" id="uOut" readonly placeholder="Linkul apare aici"><button class="btn sm" id="uCopy" type="button">Copiază</button></div>
+      </div>
+    </div>
+  </div>
+  </div>
+</div>
+
+<!-- ============ MODAL PROIECT ============ -->
+<div id="projModal" class="scrim hidden" style="display:flex;align-items:center;justify-content:center;z-index:70;padding:20px">
+  <form class="loginbox" id="projForm" style="max-width:400px" onsubmit="return false">
+    <div class="brand"><span class="dot">📋</span><b id="projModalTitle">Proiect nou</b></div>
+    <label>Nume proiect</label>
+    <input type="text" id="projName" maxlength="80" placeholder="ex. Lansare TM7 Debrecen">
+    <label>Culoare</label>
+    <div class="swatches" id="projSw"></div>
+    <div style="display:flex;gap:8px;margin-top:18px">
+      <button class="btn" id="projSave" style="flex:1">Salvează</button>
+      <button class="btn ghost" id="projCancel" type="button">Renunță</button>
+    </div>
+    <div class="err" id="projErr"></div>
+  </form>
 </div>
 
 <!-- ============ SCHIMBĂ PAROLA ============ -->
@@ -235,6 +358,8 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 let EUR = FALLBACK_RATE;
 let ROWS = [];
 let STATE = { status:"all", q:"" };
+let ME = { id:null, name:"" };
+let activeMod = "comenzi";
 
 /* ===================== HELPERS ===================== */
 const $ = s => document.querySelector(s);
@@ -304,8 +429,11 @@ async function boot(){
   if(!session){ $("#login").classList.remove("hidden"); $("#app").classList.add("hidden"); return; }
   $("#login").classList.add("hidden"); $("#app").classList.remove("hidden");
   $("#whoTag").textContent = session.user.email;
+  const md = session.user.user_metadata||{};
+  ME = { id:session.user.id, name: md.full_name || md.name || session.user.email.split("@")[0] };
   await loadRate();
   await loadOrders();
+  showModule(modFromHash(), true);
 }
 
 /* ===================== DATA ===================== */
@@ -314,8 +442,9 @@ async function loadOrders(){
   if(error){ toast("Eroare la încărcare: "+error.message); return; }
   ROWS = data||[];
   render();
-  if(activeTab==="stats") buildStats();
-  if(activeTab==="history") loadHistory();
+  if(activeMod==="comenzi" && activeTab==="stats") buildStats();
+  if(activeMod==="comenzi" && activeTab==="history") loadHistory();
+  if(activeMod==="marketing") loadMarketing(true);
 }
 
 /* ===================== RENDER LIST ===================== */
@@ -586,6 +715,334 @@ async function loadHistory(){
      <th>Când</th><th>Acțiune</th><th>Comandă</th><th>Cine</th><th>Notă</th>
    </tr></thead><tbody>${rows}</tbody></table>`;
 }
+
+/* ===================== MODULE (Comenzi / Proiecte / Marketing) ===================== */
+const MODS = { comenzi:"#modComenzi", proiecte:"#modProiecte", marketing:"#modMarketing" };
+function modFromHash(){ const h=(location.hash||"").replace("#",""); return MODS[h]?h:"comenzi"; }
+function showModule(m, fromBoot){
+  activeMod = MODS[m]?m:"comenzi";
+  Object.entries(MODS).forEach(([k,sel])=>$(sel).classList.toggle("hidden", k!==activeMod));
+  document.querySelectorAll("#modnav button").forEach(b=>b.classList.toggle("on", b.dataset.mod===activeMod));
+  if(location.hash!=="#"+activeMod) history.replaceState(null,"","#"+activeMod);
+  if(activeMod==="comenzi" && activeTab==="stats") buildStats();
+  if(activeMod==="proiecte") loadProjects();
+  if(activeMod==="marketing") loadMarketing(false);
+}
+$("#modnav").addEventListener("click", e=>{ const b=e.target.closest("button"); if(b) showModule(b.dataset.mod); });
+window.addEventListener("hashchange", ()=>{ if(!$("#app").classList.contains("hidden")) showModule(modFromHash()); });
+
+/* ===================== PROIECTE ===================== */
+const P_COLORS = ["#00653e","#1256a0","#9a6b00","#b3261e","#6b3fa0","#0f7c86","#c2410c","#5d6b63"];
+const T_STATUS = [ {k:"todo",l:"De făcut"}, {k:"doing",l:"În lucru"}, {k:"done",l:"Gata"} ];
+const T_PRIO = { high:"Urgent", med:"Normal", low:"Scăzut" };
+let PROJ=[], TASKS=[], CUR_PROJ=null, SHOW_ARCH=false, F_WHO="";
+const safeColor = c => /^#[0-9a-f]{6}$/i.test(c||"") ? c : "#00653e";
+const todayISO = () => { const d=new Date(); d.setMinutes(d.getMinutes()-d.getTimezoneOffset()); return d.toISOString().slice(0,10); };
+const fmtDay = d => d ? new Date(d+"T00:00:00").toLocaleDateString("ro-RO",{day:"numeric",month:"short"}) : "";
+
+async function loadProjects(){
+  const [p,t] = await Promise.all([
+    sb.from("projects").select("*").order("created_at"),
+    sb.from("tasks").select("*").order("position").order("created_at")
+  ]);
+  if(p.error||t.error){ $("#projWrap").innerHTML='<div class="empty">Eroare: '+esc((p.error||t.error).message)+'</div>'; return; }
+  PROJ=p.data||[]; TASKS=t.data||[];
+  if(!CUR_PROJ || !PROJ.find(x=>x.id===CUR_PROJ)) CUR_PROJ=(PROJ.find(x=>!x.archived)||PROJ[0]||{}).id||null;
+  renderProjects();
+}
+
+function renderProjects(){
+  const visible = PROJ.filter(p=>SHOW_ARCH || !p.archived || p.id===CUR_PROJ);
+  const nArch = PROJ.filter(p=>p.archived).length;
+  $("#projBar").innerHTML = visible.map(p=>{
+    const open = TASKS.filter(t=>t.project_id===p.id && t.status!=="done").length;
+    return `<button class="pchip ${p.id===CUR_PROJ?'on':''} ${p.archived?'arch':''}" data-id="${p.id}">
+      <span class="pd" style="background:${safeColor(p.color)}"></span>${esc(p.name)}<span class="cnt">${open}</span></button>`;
+  }).join("") + `<button class="btn sm" id="newProj">+ Proiect nou</button>`
+    + (nArch?`<button class="btn ghost sm" id="togArch">${SHOW_ARCH?'Ascunde arhivate':'Arhivate ('+nArch+')'}</button>`:'');
+  $("#projBar").querySelectorAll(".pchip").forEach(b=>b.onclick=()=>{ CUR_PROJ=b.dataset.id; F_WHO=""; renderProjects(); });
+  $("#newProj").onclick=()=>openProjModal(null);
+  const ta=$("#togArch"); if(ta) ta.onclick=()=>{ SHOW_ARCH=!SHOW_ARCH; renderProjects(); };
+
+  const p = PROJ.find(x=>x.id===CUR_PROJ);
+  if(!p){ $("#projWrap").innerHTML='<div class="empty">Niciun proiect încă. Apăsați „+ Proiect nou”.</div>'; return; }
+
+  const all = TASKS.filter(t=>t.project_id===p.id);
+  const people = [...new Set(all.map(t=>t.assignee_name).filter(Boolean))].sort();
+  const tasks = F_WHO ? all.filter(t=>t.assignee_name===F_WHO) : all;
+  const done = all.filter(t=>t.status==="done").length;
+  const pct = all.length ? Math.round(done*100/all.length) : 0;
+
+  const today = todayISO();
+  const card = t => {
+    const late = t.due_date && t.status!=="done" && t.due_date < today;
+    return `<div class="card ${t.status==='done'?'done':''}" draggable="true" data-id="${t.id}">
+      <div class="t">${esc(t.title)}</div>
+      <div class="meta">
+        <span class="chip pr-${esc(t.priority||'med')}">${T_PRIO[t.priority]||'Normal'}</span>
+        ${t.assignee_name?`<span class="who">${esc(t.assignee_name)}</span>`:''}
+        ${t.due_date?`<span class="due ${late?'late':''}">📅 ${fmtDay(t.due_date)}${late?' · întârziat':''}</span>`:''}
+        ${t.description?'<span title="are descriere">📝</span>':''}
+      </div></div>`;
+  };
+  const cols = T_STATUS.map(s=>{
+    const list = tasks.filter(t=>(t.status||"todo")===s.k).sort((a,b)=>(a.position||0)-(b.position||0));
+    return `<div class="col" data-st="${s.k}"><h3>${s.l}<span class="cnt">${list.length}</span></h3>
+      ${list.map(card).join("")}
+      <button class="add" data-st="${s.k}">+ Adaugă sarcină</button></div>`;
+  }).join("");
+
+  $("#projWrap").innerHTML = `
+    <div class="phead">
+      <h2><span class="pd" style="background:${safeColor(p.color)}"></span>${esc(p.name)}${p.archived?' <span class="chip c-grey">arhivat</span>':''}</h2>
+      <span class="chip c-ok">${done}/${all.length} gata · ${pct}%</span>
+      <span class="spacer"></span>
+      <select id="fWho"><option value="">Toți colegii</option>${people.map(n=>`<option ${n===F_WHO?'selected':''}>${esc(n)}</option>`).join("")}</select>
+      <button class="btn ghost sm" id="editProj">Editează</button>
+      <button class="btn ghost sm" id="archProj">${p.archived?'Restaurează':'Arhivează'}</button>
+    </div>
+    <div class="board">${cols}</div>`;
+
+  $("#fWho").onchange=e=>{ F_WHO=e.target.value; renderProjects(); };
+  $("#editProj").onclick=()=>openProjModal(p);
+  $("#archProj").onclick=async()=>{
+    if(!p.archived && !confirm(`Arhivați proiectul „${p.name}”? Îl puteți restaura oricând.`)) return;
+    const { error } = await sb.from("projects").update({ archived:!p.archived }).eq("id",p.id);
+    if(error){ toast("Eroare: "+error.message); return; }
+    toast(p.archived?"Proiect restaurat":"Proiect arhivat"); await loadProjects();
+  };
+  $("#projWrap").querySelectorAll(".add").forEach(b=>b.onclick=()=>openTask(null,b.dataset.st));
+  $("#projWrap").querySelectorAll(".card").forEach(c=>{
+    c.onclick=()=>openTask(TASKS.find(t=>t.id===c.dataset.id));
+    c.addEventListener("dragstart",e=>{ e.dataTransfer.setData("text/plain",c.dataset.id); c.classList.add("dragging"); });
+    c.addEventListener("dragend",()=>c.classList.remove("dragging"));
+  });
+  $("#projWrap").querySelectorAll(".col").forEach(col=>{
+    col.addEventListener("dragover",e=>{ e.preventDefault(); col.classList.add("over"); });
+    col.addEventListener("dragleave",()=>col.classList.remove("over"));
+    col.addEventListener("drop",async e=>{
+      e.preventDefault(); col.classList.remove("over");
+      const id=e.dataTransfer.getData("text/plain"); const t=TASKS.find(x=>x.id===id);
+      if(!t || t.status===col.dataset.st) return;
+      await moveTask(t, col.dataset.st);
+    });
+  });
+}
+
+function nextPos(projectId, st){
+  const l=TASKS.filter(t=>t.project_id===projectId && t.status===st);
+  return l.length ? Math.max(...l.map(t=>t.position||0))+1 : 0;
+}
+async function moveTask(t, st){
+  const pos = nextPos(t.project_id, st);
+  const old = t.status; t.status=st; t.position=pos; renderProjects();      // optimist
+  const { error } = await sb.from("tasks").update({ status:st, position:pos, updated_at:new Date().toISOString() }).eq("id",t.id);
+  if(error){ t.status=old; renderProjects(); toast("Eroare: "+error.message); return; }
+  toast(st==="done" ? "Gata ✓" : "Mutat în „"+T_STATUS.find(s=>s.k===st).l+"”");
+}
+
+/* ---- modal proiect ---- */
+let projEditing=null, projColor=P_COLORS[0];
+function openProjModal(p){
+  projEditing=p; projColor=p?safeColor(p.color):P_COLORS[PROJ.length % P_COLORS.length];
+  $("#projModalTitle").textContent = p?"Editează proiectul":"Proiect nou";
+  $("#projName").value = p?p.name:""; $("#projErr").textContent="";
+  $("#projSw").innerHTML = P_COLORS.map(c=>`<button type="button" data-c="${c}" style="background:${c}" class="${c===projColor?'on':''}"></button>`).join("");
+  $("#projSw").querySelectorAll("button").forEach(b=>b.onclick=()=>{ projColor=b.dataset.c; $("#projSw").querySelectorAll("button").forEach(x=>x.classList.toggle("on",x===b)); });
+  $("#projModal").classList.remove("hidden"); setTimeout(()=>$("#projName").focus(),50);
+}
+$("#projCancel").addEventListener("click",()=>$("#projModal").classList.add("hidden"));
+$("#projSave").addEventListener("click", async ()=>{
+  const name=$("#projName").value.trim();
+  if(!name){ $("#projErr").textContent="Scrieți un nume."; return; }
+  $("#projSave").disabled=true;
+  const res = projEditing
+    ? await sb.from("projects").update({ name, color:projColor }).eq("id",projEditing.id).select().single()
+    : await sb.from("projects").insert({ name, color:projColor, created_by:ME.id, created_by_name:ME.name }).select().single();
+  $("#projSave").disabled=false;
+  if(res.error){ $("#projErr").textContent="Eroare: "+res.error.message; return; }
+  $("#projModal").classList.add("hidden");
+  CUR_PROJ=res.data.id; toast(projEditing?"Proiect salvat ✓":"Proiect creat ✓");
+  await loadProjects();
+});
+
+/* ---- drawer sarcină ---- */
+function openTask(t, st){
+  const isNew=!t;
+  const people=[...new Set(TASKS.map(x=>x.assignee_name).filter(Boolean))].sort();
+  const scrim=document.createElement("div"); scrim.className="scrim";
+  const dr=document.createElement("div"); dr.className="drawer";
+  dr.innerHTML=`
+    <header><div><p class="dtitle">${isNew?'Sarcină nouă':'Sarcină'}</p>
+      <p class="dsub">${esc((PROJ.find(p=>p.id===(t?t.project_id:CUR_PROJ))||{}).name||'')}</p></div>
+      <button class="x" id="closeDr">×</button></header>
+    <div class="body">
+      <label>Titlu</label><input type="text" id="tTitle" maxlength="200" value="${esc(t?t.title:'')}" placeholder="ce trebuie făcut">
+      <label>Descriere</label><textarea id="tDesc" rows="4" placeholder="detalii, linkuri, pași…">${esc(t?t.description||'':'')}</textarea>
+      <div class="row2">
+        <div><label>Stare</label><select id="tSt">${T_STATUS.map(s=>`<option value="${s.k}" ${(t?t.status:st)===s.k?'selected':''}>${s.l}</option>`).join("")}</select></div>
+        <div><label>Prioritate</label><select id="tPr">${Object.entries(T_PRIO).map(([k,l])=>`<option value="${k}" ${((t&&t.priority)||'med')===k?'selected':''}>${l}</option>`).join("")}</select></div>
+        <div><label>Responsabil</label><input type="text" id="tWho" list="whoList" value="${esc(t?t.assignee_name||'':'')}" placeholder="nume coleg">
+          <datalist id="whoList">${people.map(n=>`<option value="${esc(n)}">`).join("")}</datalist></div>
+        <div><label>Termen</label><input type="date" id="tDue" value="${esc(t?t.due_date||'':'')}"></div>
+      </div>
+      <div class="actions" style="margin-top:20px">
+        <button class="btn" id="tSave">${isNew?'Adaugă':'Salvează'}</button>
+        ${isNew?'':'<button class="btn ghost" id="tDel" style="color:#b3261e">Șterge</button>'}
+      </div>
+      ${isNew?'':`<p class="dsub">Creată ${t.created_at?new Date(t.created_at).toLocaleString("ro-RO"):''}${t.updated_at?' · modificată '+new Date(t.updated_at).toLocaleString("ro-RO"):''}</p>`}
+      <div class="err" id="tErr"></div>
+    </div>`;
+  document.body.append(scrim,dr);
+  const close=()=>{ scrim.remove(); dr.remove(); };
+  scrim.onclick=close; dr.querySelector("#closeDr").onclick=close;
+  setTimeout(()=>dr.querySelector("#tTitle").focus(),50);
+
+  dr.querySelector("#tSave").onclick=async()=>{
+    const title=dr.querySelector("#tTitle").value.trim();
+    if(!title){ dr.querySelector("#tErr").textContent="Scrieți un titlu."; return; }
+    const newSt=dr.querySelector("#tSt").value;
+    const rec={ title, description:dr.querySelector("#tDesc").value.trim()||null, status:newSt,
+      priority:dr.querySelector("#tPr").value, assignee_name:dr.querySelector("#tWho").value.trim()||null,
+      due_date:dr.querySelector("#tDue").value||null, updated_at:new Date().toISOString() };
+    const pid = t?t.project_id:CUR_PROJ;
+    if(isNew || t.status!==newSt) rec.position=nextPos(pid,newSt);
+    const btn=dr.querySelector("#tSave"); btn.disabled=true;
+    const { error } = isNew
+      ? await sb.from("tasks").insert({ ...rec, project_id:pid, created_by:ME.id })
+      : await sb.from("tasks").update(rec).eq("id",t.id);
+    btn.disabled=false;
+    if(error){ dr.querySelector("#tErr").textContent="Eroare: "+error.message; return; }
+    close(); toast(isNew?"Sarcină adăugată ✓":"Salvat ✓"); await loadProjects();
+  };
+  const del=dr.querySelector("#tDel");
+  if(del) del.onclick=async()=>{
+    if(!confirm(`Ștergeți sarcina „${t.title}”?`)) return;
+    const { error } = await sb.from("tasks").delete().eq("id",t.id);
+    if(error){ toast("Eroare: "+error.message); return; }
+    close(); toast("Sarcină ștearsă"); await loadProjects();
+  };
+}
+
+/* ===================== MARKETING ===================== */
+let MKT_DETAIL=null, MPERIOD="all", MCH={};
+async function loadMarketing(force){
+  if(!MKT_DETAIL || force){
+    const { data, error } = await sb.from("v_order_detail").select("key,utm_source,utm_medium,utm_campaign,coupon");
+    if(error){ $("#mKpis").innerHTML=""; $("#mHint").innerHTML='<div class="hint">Eroare: '+esc(error.message)+'</div>'; return; }
+    MKT_DETAIL = {}; (data||[]).forEach(d=>MKT_DETAIL[d.key]=d);
+  }
+  renderMarketing();
+}
+function mRows(){
+  const now=new Date(); const from30=new Date(now.getTime()-30*864e5).toISOString().slice(0,10);
+  const mStart=todayISO().slice(0,7)+"-01";
+  return ROWS.filter(r=>r.is_real).filter(r=>{
+    if(MPERIOD==="30") return r.order_day && r.order_day>=from30;
+    if(MPERIOD==="month") return r.order_day && r.order_day>=mStart;
+    return true;
+  }).map(r=>({ ...r, ...(MKT_DETAIL[r.key]||{}) }));
+}
+const srcLabel = s => { s=(s||"").trim().toLowerCase(); return s ? s.charAt(0).toUpperCase()+s.slice(1) : "Direct / necunoscut"; };
+function countBy(list, fn){ const m={}; list.forEach(r=>{ const k=fn(r); m[k]=(m[k]||0)+1; }); return Object.entries(m).sort((a,b)=>b[1]-a[1]); }
+
+function renderMarketing(){
+  const L = mRows();
+  const conf = L.filter(r=>r.is_confirmed_sale);
+  const rev = conf.reduce((s,r)=>s+Number(r.sum_gross||0),0);
+  const avg = L.length ? L.reduce((s,r)=>s+Number(r.sum_gross||0),0)/L.length : 0;
+  const tracked = L.filter(r=>r.utm_source||r.utm_campaign||r.coupon).length;
+  const conv = L.length ? Math.round(conf.length*100/L.length) : 0;
+  $("#mKpis").innerHTML = [
+    {n:L.length, l:"Comenzi Thermomix", e:""},
+    {n:conv+"%", l:"Comenzi încasate", e:conf.length+" din "+L.length},
+    {n:ft(Math.round(avg)), l:"Valoare medie comandă", e:eur(avg)},
+    {n:(L.length?Math.round(tracked*100/L.length):0)+"%", l:"Cu sursă cunoscută", e:tracked+" comenzi cu UTM / cupon"},
+  ].map(k=>`<div class="kpi"><div class="n">${k.n}</div><div class="l">${k.l}</div>${k.e?`<div class="e">${k.e}</div>`:''}</div>`).join("");
+
+  $("#mHint").innerHTML = (L.length && !tracked) ? `<div class="hint">
+    <b>Încă nu știm de unde vin clienții.</b> Nicio comandă din perioada aleasă nu are sursă (UTM) sau cupon.
+    Folosiți <b>generatorul de link</b> de mai jos pentru fiecare postare, reclamă sau email — de la următoarea comandă
+    vom vedea aici ce canal aduce vânzări.</div>` : "";
+
+  // tabel campanii
+  const camp={};
+  L.filter(r=>r.utm_campaign||r.utm_source).forEach(r=>{
+    const k=(r.utm_campaign||"(fără nume)")+"|"+srcLabel(r.utm_source)+(r.utm_medium?" / "+r.utm_medium:"");
+    camp[k]=camp[k]||{n:0,c:0,rev:0}; camp[k].n++;
+    if(r.is_confirmed_sale){ camp[k].c++; camp[k].rev+=Number(r.sum_gross||0); }
+  });
+  const cRows=Object.entries(camp).sort((a,b)=>b[1].rev-a[1].rev||b[1].n-a[1].n);
+  $("#mCampaigns").innerHTML = cRows.length ? `<table class="mtable"><thead><tr><th>Campanie</th><th>Sursă / mediu</th><th>Comenzi</th><th>Încasate</th><th>Bani încasați</th></tr></thead><tbody>
+    ${cRows.map(([k,v])=>{ const [c,s]=k.split("|"); return `<tr><td class="nm">${esc(c)}</td><td>${esc(s)}</td><td>${v.n}</td><td>${v.c}</td><td class="amt">${ft(v.rev)}<span class="eu">${eur(v.rev)}</span></td></tr>`; }).join("")}
+    </tbody></table>` : '<div class="empty" style="padding:20px">Nicio campanie urmărită încă.</div>';
+
+  const coup=countBy(L.filter(r=>r.coupon), r=>r.coupon.trim().toUpperCase());
+  $("#mCoupons").innerHTML = coup.length ? `<table class="mtable"><thead><tr><th>Cupon</th><th>Comenzi</th></tr></thead><tbody>
+    ${coup.map(([c,n])=>`<tr><td class="nm">${esc(c)}</td><td>${n}</td></tr>`).join("")}</tbody></table>`
+    : '<div class="empty" style="padding:20px">Niciun cupon folosit în perioada aleasă.</div>';
+
+  buildMarketingCharts(L);
+}
+
+function buildMarketingCharts(L){
+  if(typeof Chart==="undefined") return;
+  Object.values(MCH).forEach(c=>{try{c&&c.destroy();}catch(e){}}); MCH={};
+  Chart.defaults.font.family="-apple-system,Segoe UI,Roboto,Arial,sans-serif"; Chart.defaults.color=C_MUT;
+  const PAL=[C_GREEN,C_BLUE,C_AMBER,"#b3261e","#6b3fa0","#0f7c86","#c2410c","#9aa5a0"];
+  const top = (arr,n)=>{ if(arr.length<=n) return arr; const rest=arr.slice(n-1).reduce((s,x)=>s+x[1],0); return [...arr.slice(0,n-1),["Altele",rest]]; };
+
+  const src=top(countBy(L, r=>srcLabel(r.utm_source)),7);
+  if(cctx("mSource")) MCH.src=new Chart(cctx("mSource"),{type:"doughnut",
+    data:{labels:src.length?src.map(x=>x[0]):["Fără date"],datasets:[{data:src.length?src.map(x=>x[1]):[1],backgroundColor:src.length?PAL:["#e3e8e5"],borderColor:"#fff",borderWidth:2}]},
+    options:optDonut()});
+
+  const pay=top(countBy(L, r=>(r.payment_name||"—").trim()),6);
+  if(cctx("mPay")) MCH.pay=new Chart(cctx("mPay"),{type:"doughnut",
+    data:{labels:pay.length?pay.map(x=>x[0]):["Fără date"],datasets:[{data:pay.length?pay.map(x=>x[1]):[1],backgroundColor:pay.length?PAL:["#e3e8e5"],borderColor:"#fff",borderWidth:2}]},
+    options:optDonut()});
+
+  const byM={}; L.forEach(r=>{ const m=(r.order_day||"").slice(0,7); if(!m) return; byM[m]=byM[m]||{n:0,rev:0}; byM[m].n++; if(r.is_confirmed_sale) byM[m].rev+=Number(r.sum_gross||0); });
+  const months=Object.keys(byM).sort();
+  const mLabel=m=>{ const [y,mm]=m.split("-"); return new Date(+y,+mm-1,1).toLocaleDateString("ro-RO",{month:"short",year:"numeric"}); };
+  if(cctx("mMonthly")) MCH.monthly=new Chart(cctx("mMonthly"),{
+    data:{labels:months.length?months.map(mLabel):["—"],datasets:[
+      {type:"bar",label:"Comenzi",data:months.map(m=>byM[m].n),backgroundColor:C_GREEN,borderRadius:4,maxBarThickness:46,yAxisID:"y"},
+      {type:"line",label:"Bani încasați (Ft)",data:months.map(m=>byM[m].rev),borderColor:C_BLUE,backgroundColor:C_BLUE,tension:.3,yAxisID:"y1"}]},
+    options:{maintainAspectRatio:false,responsive:true,plugins:{legend:{position:"bottom",labels:{boxWidth:12}},
+      tooltip:{callbacks:{label:c=>c.dataset.yAxisID==="y1"?" "+ft(c.raw)+" "+eur(c.raw):" "+c.raw+" comenzi"}}},
+      scales:{y:{beginAtZero:true,grid:{color:C_GRID},ticks:{precision:0},title:{display:true,text:"comenzi"}},
+              y1:{beginAtZero:true,position:"right",grid:{display:false},ticks:{callback:v=>Math.round(v/1000).toLocaleString("hu-HU")+"k"}},
+              x:{grid:{display:false}}}}});
+
+  const city=countBy(L, r=>(r.inv_city&&r.inv_city.trim())||"—").slice(0,10);
+  if(cctx("mCity")) MCH.city=new Chart(cctx("mCity"),{type:"bar",
+    data:{labels:city.map(c=>c[0]),datasets:[{data:city.map(c=>c[1]),backgroundColor:C_GREEN,borderRadius:4,barThickness:16}]},
+    options:optHbar()});
+}
+
+$("#segPeriod").addEventListener("click", e=>{ const b=e.target.closest("button"); if(!b) return;
+  MPERIOD=b.dataset.p; $("#segPeriod").querySelectorAll("button").forEach(x=>x.classList.toggle("on",x===b)); renderMarketing(); });
+
+/* ---- generator UTM ---- */
+function buildUtm(){
+  const base=$("#uBase").value.trim(); const camp=$("#uCamp").value.trim().toLowerCase().replace(/\s+/g,"-");
+  if(!/^https?:\/\/\S+$/i.test(base)){ $("#uOut").value=""; return; }
+  try{
+    const u=new URL(base);
+    u.searchParams.set("utm_source",$("#uSrc").value);
+    u.searchParams.set("utm_medium",$("#uMed").value);
+    if(camp) u.searchParams.set("utm_campaign",camp); else u.searchParams.delete("utm_campaign");
+    $("#uOut").value=u.toString();
+  }catch(e){ $("#uOut").value=""; }
+}
+["#uBase","#uCamp"].forEach(s=>$(s).addEventListener("input",buildUtm));
+["#uSrc","#uMed"].forEach(s=>$(s).addEventListener("change",buildUtm));
+$("#uCopy").addEventListener("click", async ()=>{
+  const v=$("#uOut").value; if(!v){ toast("Completați întâi linkul paginii (https://…)"); return; }
+  try{ await navigator.clipboard.writeText(v); toast("Link copiat ✓"); }
+  catch(e){ $("#uOut").select(); toast("Selectat — apăsați Ctrl+C"); }
+});
 
 /* ===================== START ===================== */
 boot();
