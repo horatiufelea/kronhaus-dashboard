@@ -154,6 +154,12 @@
   .card .t{font-weight:700;font-size:14px}
   .card.done .t{text-decoration:line-through;color:var(--muted)}
   .card .meta{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:7px;font-size:12px;color:var(--muted)}
+  .card .t{display:flex;gap:8px;align-items:flex-start}
+  .card .mv{margin-left:auto;display:inline-flex;gap:3px;flex-shrink:0}
+  .card .mv button{width:26px;height:24px;border:1px solid var(--line);background:#fff;border-radius:7px;font-size:15px;line-height:1;color:var(--green);font-weight:800;padding:0}
+  .card .mv button:hover:not(:disabled){background:var(--green-l)}
+  .card .mv button:disabled{opacity:.3;cursor:default}
+  .card.done .t .mv{text-decoration:none}
   .card .who{background:var(--bluebg);color:var(--blue);font-weight:800;border-radius:6px;padding:1px 7px}
   .card .due.late{color:#b3261e;font-weight:800}
   .pr-high{background:#fbe4e2;color:#b3261e} .pr-med{background:var(--warnbg);color:var(--warn)} .pr-low{background:var(--greybg);color:var(--grey)}
@@ -295,7 +301,7 @@
         <div class="utm-grid">
           <div><label>Link pagină</label><input type="text" id="uBase" placeholder="https://… (pagina din shop)"></div>
           <div><label>Sursă</label><select id="uSrc">
-            <option>facebook</option><option>instagram</option><option>google</option><option>tiktok</option>
+            <option>sms</option><option selected>facebook</option><option>instagram</option><option>google</option><option>tiktok</option>
             <option>email</option><option>whatsapp</option><option>youtube</option><option>partener</option></select></div>
           <div><label>Mediu</label><select id="uMed">
             <option value="social">social (organic)</option><option value="cpc">cpc (plătit)</option><option value="email">email</option>
@@ -735,6 +741,7 @@ window.addEventListener("hashchange", ()=>{ if(!$("#app").classList.contains("hi
 const P_COLORS = ["#00653e","#1256a0","#9a6b00","#b3261e","#6b3fa0","#0f7c86","#c2410c","#5d6b63"];
 const T_STATUS = [ {k:"todo",l:"De făcut"}, {k:"doing",l:"În lucru"}, {k:"done",l:"Gata"} ];
 const T_PRIO = { high:"Urgent", med:"Normal", low:"Scăzut" };
+const TEAM = ["Horatiu","Floriana","Alina","Karola","Office"];   // cele 5 conturi KronHaus
 let PROJ=[], TASKS=[], CUR_PROJ=null, SHOW_ARCH=false, F_WHO="";
 const safeColor = c => /^#[0-9a-f]{6}$/i.test(c||"") ? c : "#00653e";
 const todayISO = () => { const d=new Date(); d.setMinutes(d.getMinutes()-d.getTimezoneOffset()); return d.toISOString().slice(0,10); };
@@ -758,17 +765,17 @@ function renderProjects(){
     const open = TASKS.filter(t=>t.project_id===p.id && t.status!=="done").length;
     return `<button class="pchip ${p.id===CUR_PROJ?'on':''} ${p.archived?'arch':''}" data-id="${p.id}">
       <span class="pd" style="background:${safeColor(p.color)}"></span>${esc(p.name)}<span class="cnt">${open}</span></button>`;
-  }).join("") + `<button class="btn sm" id="newProj">+ Proiect nou</button>`
+  }).join("") + `<button class="btn sm" id="newProj">+ Proiect</button>`
     + (nArch?`<button class="btn ghost sm" id="togArch">${SHOW_ARCH?'Ascunde arhivate':'Arhivate ('+nArch+')'}</button>`:'');
   $("#projBar").querySelectorAll(".pchip").forEach(b=>b.onclick=()=>{ CUR_PROJ=b.dataset.id; F_WHO=""; renderProjects(); });
   $("#newProj").onclick=()=>openProjModal(null);
   const ta=$("#togArch"); if(ta) ta.onclick=()=>{ SHOW_ARCH=!SHOW_ARCH; renderProjects(); };
 
   const p = PROJ.find(x=>x.id===CUR_PROJ);
-  if(!p){ $("#projWrap").innerHTML='<div class="empty">Niciun proiect încă. Apăsați „+ Proiect nou”.</div>'; return; }
+  if(!p){ $("#projWrap").innerHTML='<div class="empty">Niciun proiect încă. Apăsați „+ Proiect”.</div>'; return; }
 
   const all = TASKS.filter(t=>t.project_id===p.id);
-  const people = [...new Set(all.map(t=>t.assignee_name).filter(Boolean))].sort();
+  const people = [...new Set([...TEAM, ...all.map(t=>t.assignee_name).filter(Boolean)])];
   const tasks = F_WHO ? all.filter(t=>t.assignee_name===F_WHO) : all;
   const done = all.filter(t=>t.status==="done").length;
   const pct = all.length ? Math.round(done*100/all.length) : 0;
@@ -776,8 +783,12 @@ function renderProjects(){
   const today = todayISO();
   const card = t => {
     const late = t.due_date && t.status!=="done" && t.due_date < today;
+    const si = T_STATUS.findIndex(s=>s.k===(t.status||"todo"));
+    const mv = `<span class="mv">
+      <button data-mv="-1" ${si<=0?'disabled':''} title="Mută la stânga">‹</button>
+      <button data-mv="1" ${si>=T_STATUS.length-1?'disabled':''} title="Mută la dreapta">›</button></span>`;
     return `<div class="card ${t.status==='done'?'done':''}" draggable="true" data-id="${t.id}">
-      <div class="t">${esc(t.title)}</div>
+      <div class="t">${esc(t.title)}${mv}</div>
       <div class="meta">
         <span class="chip pr-${esc(t.priority||'med')}">${T_PRIO[t.priority]||'Normal'}</span>
         ${t.assignee_name?`<span class="who">${esc(t.assignee_name)}</span>`:''}
@@ -789,7 +800,7 @@ function renderProjects(){
     const list = tasks.filter(t=>(t.status||"todo")===s.k).sort((a,b)=>(a.position||0)-(b.position||0));
     return `<div class="col" data-st="${s.k}"><h3>${s.l}<span class="cnt">${list.length}</span></h3>
       ${list.map(card).join("")}
-      <button class="add" data-st="${s.k}">+ Adaugă sarcină</button></div>`;
+      <button class="add" data-st="${s.k}">+ Task</button></div>`;
   }).join("");
 
   $("#projWrap").innerHTML = `
@@ -814,6 +825,12 @@ function renderProjects(){
   $("#projWrap").querySelectorAll(".add").forEach(b=>b.onclick=()=>openTask(null,b.dataset.st));
   $("#projWrap").querySelectorAll(".card").forEach(c=>{
     c.onclick=()=>openTask(TASKS.find(t=>t.id===c.dataset.id));
+    c.querySelectorAll(".mv button").forEach(b=>b.onclick=async e=>{
+      e.stopPropagation();
+      const t=TASKS.find(x=>x.id===c.dataset.id); if(!t) return;
+      const i=T_STATUS.findIndex(s=>s.k===(t.status||"todo"))+Number(b.dataset.mv);
+      if(i>=0 && i<T_STATUS.length) await moveTask(t, T_STATUS[i].k);
+    });
     c.addEventListener("dragstart",e=>{ e.dataTransfer.setData("text/plain",c.dataset.id); c.classList.add("dragging"); });
     c.addEventListener("dragend",()=>c.classList.remove("dragging"));
   });
@@ -869,11 +886,12 @@ $("#projSave").addEventListener("click", async ()=>{
 /* ---- drawer sarcină ---- */
 function openTask(t, st){
   const isNew=!t;
-  const people=[...new Set(TASKS.map(x=>x.assignee_name).filter(Boolean))].sort();
+  const cur = t&&t.assignee_name;
+  const people = (cur && !TEAM.includes(cur)) ? [...TEAM, cur] : TEAM;
   const scrim=document.createElement("div"); scrim.className="scrim";
   const dr=document.createElement("div"); dr.className="drawer";
   dr.innerHTML=`
-    <header><div><p class="dtitle">${isNew?'Sarcină nouă':'Sarcină'}</p>
+    <header><div><p class="dtitle">${isNew?'Task nou':'Task'}</p>
       <p class="dsub">${esc((PROJ.find(p=>p.id===(t?t.project_id:CUR_PROJ))||{}).name||'')}</p></div>
       <button class="x" id="closeDr">×</button></header>
     <div class="body">
@@ -882,8 +900,8 @@ function openTask(t, st){
       <div class="row2">
         <div><label>Stare</label><select id="tSt">${T_STATUS.map(s=>`<option value="${s.k}" ${(t?t.status:st)===s.k?'selected':''}>${s.l}</option>`).join("")}</select></div>
         <div><label>Prioritate</label><select id="tPr">${Object.entries(T_PRIO).map(([k,l])=>`<option value="${k}" ${((t&&t.priority)||'med')===k?'selected':''}>${l}</option>`).join("")}</select></div>
-        <div><label>Responsabil</label><input type="text" id="tWho" list="whoList" value="${esc(t?t.assignee_name||'':'')}" placeholder="nume coleg">
-          <datalist id="whoList">${people.map(n=>`<option value="${esc(n)}">`).join("")}</datalist></div>
+        <div><label>Responsabil</label><select id="tWho"><option value="">— nimeni —</option>
+          ${people.map(n=>`<option ${n===cur?'selected':''}>${esc(n)}</option>`).join("")}</select></div>
         <div><label>Termen</label><input type="date" id="tDue" value="${esc(t?t.due_date||'':'')}"></div>
       </div>
       <div class="actions" style="margin-top:20px">
@@ -913,14 +931,14 @@ function openTask(t, st){
       : await sb.from("tasks").update(rec).eq("id",t.id);
     btn.disabled=false;
     if(error){ dr.querySelector("#tErr").textContent="Eroare: "+error.message; return; }
-    close(); toast(isNew?"Sarcină adăugată ✓":"Salvat ✓"); await loadProjects();
+    close(); toast(isNew?"Task adăugat ✓":"Salvat ✓"); await loadProjects();
   };
   const del=dr.querySelector("#tDel");
   if(del) del.onclick=async()=>{
-    if(!confirm(`Ștergeți sarcina „${t.title}”?`)) return;
+    if(!confirm(`Ștergeți taskul „${t.title}”?`)) return;
     const { error } = await sb.from("tasks").delete().eq("id",t.id);
     if(error){ toast("Eroare: "+error.message); return; }
-    close(); toast("Sarcină ștearsă"); await loadProjects();
+    close(); toast("Task șters"); await loadProjects();
   };
 }
 
