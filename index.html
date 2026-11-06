@@ -45,10 +45,21 @@
              display:flex;align-items:center;gap:14px;padding:12px 18px;box-shadow:0 2px 10px rgba(0,0,0,.12)}
   header.top .dot{width:30px;height:30px;border-radius:8px;background:#fff;color:var(--green);
                   display:flex;align-items:center;justify-content:center;font-weight:800}
-  header.top b{font-size:16px}
+  header.top b{font-size:16px;white-space:nowrap}
+  header.top .toplogo{height:30px;width:auto;display:block}
+  header.top .sep{width:1px;height:26px;background:rgba(255,255,255,.4)}
+  .loginlogo{display:block;width:100%;max-width:260px;height:auto;margin:0 auto 22px}
+  header.top{flex-wrap:wrap;row-gap:8px}
   header.top .spacer{flex:1}
-  header.top .who{font-size:13px;opacity:.9}
-  header.top .rate{font-size:12px;opacity:.85;background:rgba(255,255,255,.14);padding:4px 9px;border-radius:999px}
+  header.top .who{font-size:13px;opacity:.9;white-space:nowrap}
+  header.top .rate{font-size:12px;opacity:.85;background:rgba(255,255,255,.14);padding:4px 9px;border-radius:999px;white-space:nowrap}
+  header.top .btn{white-space:nowrap}
+  @media(max-width:1040px){ header.top .who{display:none} }
+  @media(max-width:720px){
+    header.top{gap:8px 10px;padding:10px 12px}
+    header.top .toplogo{height:24px}
+    header.top .rate{display:none}
+  }
   .wrap{max-width:1180px;margin:0 auto;padding:18px}
 
   .toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:14px}
@@ -215,11 +226,11 @@
   .row3{display:grid;grid-template-columns:1fr 110px 1fr;gap:0 10px}
   input[type=number]{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:10px;font-size:15px;font-family:inherit}
   .subs{display:flex;flex-direction:column;gap:4px}
-  .sub{display:flex;align-items:center;gap:8px;padding:6px 8px;border:1px solid var(--line);border-radius:9px;font-size:14px}
-  .sub input[type=checkbox]{width:17px;height:17px;accent-color:var(--green);flex-shrink:0}
-  .sub .st{flex:1;min-width:0}
-  .sub.done .st{text-decoration:line-through;color:var(--muted)}
-  .sub .sw{width:auto;padding:3px 6px;font-size:12px;border-radius:7px}
+  .subt{display:flex;align-items:center;gap:8px;padding:6px 8px;border:1px solid var(--line);border-radius:9px;font-size:14px}
+  .subt input[type=checkbox]{width:17px;height:17px;accent-color:var(--green);flex-shrink:0}
+  .subt .st{flex:1;min-width:0}
+  .subt.done .st{text-decoration:line-through;color:var(--muted)}
+  .subt .sw{width:auto;padding:3px 6px;font-size:12px;border-radius:7px}
   .sx{border:none;background:none;color:var(--muted);font-size:18px;line-height:1;padding:0 4px}
   .sx:hover{color:#b3261e}
   .subadd input{margin-top:6px;padding:8px 12px;font-size:14px}
@@ -287,7 +298,8 @@
 <!-- ============ LOGIN ============ -->
 <div id="login">
   <form class="loginbox" id="loginForm">
-    <div class="brand"><span class="dot">TM</span><b>KronHaus Hub</b></div>
+    <img src="assets/thermomix-od.png" alt="Thermomix Official Distributor" class="loginlogo">
+    <div class="brand"><b>KronHaus Hub</b></div>
     <p class="sub">Thermomix Ungaria — platformă internă</p>
     <label>Email</label>
     <input type="email" id="email" autocomplete="username" required placeholder="nume@kronhaus.hu">
@@ -301,7 +313,8 @@
 <!-- ============ APP ============ -->
 <div id="app" class="hidden">
   <header class="top">
-    <span class="dot">TM</span><b>KronHaus Hub</b>
+    <img src="assets/thermomix-od-white.png" alt="Thermomix Official Distributor" class="toplogo">
+    <span class="sep"></span><b>KronHaus Hub</b>
     <span class="spacer"></span>
     <span class="rate" id="rateTag">1 € = … Ft</span>
     <span class="who" id="whoTag"></span>
@@ -1374,19 +1387,19 @@ function openTask(t, preset){
     if(!HAS_PARENT) return;
     if(isNew){
       q("#subCnt").textContent = pendingSubs.length?`· ${pendingSubs.length}`:"";
-      q("#subList").innerHTML = pendingSubs.map((s,i)=>`<div class="sub" data-i="${i}"><input type="checkbox" disabled><span class="st">${esc(s)}</span><button class="sx" title="Scoate">×</button></div>`).join("")
+      q("#subList").innerHTML = pendingSubs.map((s,i)=>`<div class="subt" data-i="${i}"><input type="checkbox" disabled><span class="st">${esc(s)}</span><button class="sx" title="Scoate">×</button></div>`).join("")
         || '<span class="dsub">Niciun subtask.</span>';
-      q("#subList").querySelectorAll(".sub").forEach(r=>r.querySelector(".sx").onclick=()=>{ pendingSubs.splice(+r.dataset.i,1); renderSubs(); });
+      q("#subList").querySelectorAll(".subt").forEach(r=>r.querySelector(".sx").onclick=()=>{ pendingSubs.splice(+r.dataset.i,1); renderSubs(); });
       return;
     }
     const s=subsOf(t).sort((a,b)=>new Date(a.created_at)-new Date(b.created_at));
     q("#subCnt").textContent = s.length?`· ${s.filter(x=>x.status==="done").length}/${s.length}`:"";
-    q("#subList").innerHTML = s.map(x=>`<div class="sub ${x.status==='done'?'done':''}" data-id="${x.id}">
+    q("#subList").innerHTML = s.map(x=>`<div class="subt ${x.status==='done'?'done':''}" data-id="${x.id}">
         <input type="checkbox" ${x.status==='done'?'checked':''}>
         <span class="st">${esc(x.title)}</span>
         <select class="sw"><option value="">—</option>${TEAM.map(n=>`<option ${n===x.assignee_name?'selected':''}>${esc(n)}</option>`).join("")}</select>
         <button class="sx" title="Șterge subtaskul">×</button></div>`).join("") || '<span class="dsub">Niciun subtask.</span>';
-    q("#subList").querySelectorAll(".sub").forEach(row=>{
+    q("#subList").querySelectorAll(".subt").forEach(row=>{
       const sub=TASKS.find(x=>x.id===row.dataset.id);
       row.querySelector("input").onchange=async e=>{
         const st=e.target.checked?"done":"todo";
