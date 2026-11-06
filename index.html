@@ -15,7 +15,8 @@
   *{box-sizing:border-box}
   body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
        color:var(--ink);background:var(--bg);font-size:15px;line-height:1.45}
-  button{font-family:inherit;cursor:pointer}
+  button,textarea,input,select{font-family:inherit}
+  button{cursor:pointer}
   .hidden{display:none!important}
 
   /* ---- Login ---- */
@@ -189,6 +190,51 @@
   .card .pj{font-size:11px;color:var(--muted);display:flex;align-items:center;gap:5px;margin-bottom:4px}
   .card .pj .pd{width:8px;height:8px;border-radius:50%}
 
+  /* ---- Proiecte · filtre ---- */
+  .pfilters{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
+  .pfilters input[type=text]{flex:1;min-width:200px;padding:8px 12px;font-size:14px}
+  .pfilters select{width:auto;padding:8px 10px;font-size:13px}
+  label.chk{display:inline-flex;align-items:center;gap:6px;margin:0;text-transform:none;letter-spacing:0;font-size:13px;color:var(--ink);font-weight:600;cursor:pointer}
+
+  /* ---- Proiecte · calendar ---- */
+  .cal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));background:var(--line);gap:1px;border:1px solid var(--line);border-radius:var(--radius);overflow:hidden}
+  .cal .chd{background:#fafcfb;padding:7px;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);text-align:center}
+  .cal .cday{background:#fff;min-height:104px;padding:5px;cursor:pointer;min-width:0}
+  .cal .cday:hover{background:#f7faf8}
+  .cal .cday.other{background:#f8faf9}
+  .cal .cday.other .cnum{opacity:.4}
+  .cal .cday.today{box-shadow:inset 0 0 0 2px var(--green)}
+  .cal .cnum{font-size:12px;font-weight:800;color:var(--muted);margin-bottom:3px}
+  .cal .cday.today .cnum{color:var(--green)}
+  .cchip{font-size:11px;font-weight:700;color:#fff;border-radius:5px;padding:2px 6px;margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
+  .cchip.done{opacity:.4;text-decoration:line-through}
+  .cchip.late{box-shadow:0 0 0 2px #b3261e}
+  .cchip.st{background:#fff;border:1px dashed}
+
+  /* ---- Proiecte · task: durată, subtaskuri, fișiere ---- */
+  .row3{display:grid;grid-template-columns:1fr 110px 1fr;gap:0 10px}
+  input[type=number]{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:10px;font-size:15px;font-family:inherit}
+  .subs{display:flex;flex-direction:column;gap:4px}
+  .sub{display:flex;align-items:center;gap:8px;padding:6px 8px;border:1px solid var(--line);border-radius:9px;font-size:14px}
+  .sub input[type=checkbox]{width:17px;height:17px;accent-color:var(--green);flex-shrink:0}
+  .sub .st{flex:1;min-width:0}
+  .sub.done .st{text-decoration:line-through;color:var(--muted)}
+  .sub .sw{width:auto;padding:3px 6px;font-size:12px;border-radius:7px}
+  .sx{border:none;background:none;color:var(--muted);font-size:18px;line-height:1;padding:0 4px}
+  .sx:hover{color:#b3261e}
+  .subadd input{margin-top:6px;padding:8px 12px;font-size:14px}
+  .files{display:flex;flex-direction:column;gap:4px;margin-bottom:8px}
+  .file{display:flex;align-items:center;gap:10px;padding:6px 8px;border:1px solid var(--line);border-radius:9px;font-size:14px}
+  .file a{flex:1;min-width:0;color:var(--blue);text-decoration:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .file a:hover{text-decoration:underline}
+  .file span:first-child{flex:1}
+  label.fileBtn{display:inline-block;margin:0;text-transform:none;letter-spacing:0;cursor:pointer}
+  @media(max-width:720px){
+    .cal .cday{min-height:64px;padding:3px}
+    .cchip{font-size:9px;padding:1px 3px}
+    .row3{grid-template-columns:1fr 80px 1fr}
+  }
+
   /* ---- Proiecte · timeline ---- */
   .tlbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
   .tl{background:#fff;border:1px solid var(--line);border-radius:var(--radius);overflow:auto;max-height:70vh}
@@ -322,9 +368,10 @@
   <div id="modProiecte" class="hidden">
     <div class="projbar" id="projBar"></div>
     <div class="tabs" id="projTabs">
-      <button data-pv="dash" class="on">📊 Dashboard</button>
+      <button data-pv="dash" class="on">📊 Rezumat</button>
       <button data-pv="board">🗂️ Tablă</button>
-      <button data-pv="timeline">📅 Timeline</button>
+      <button data-pv="timeline">📈 Timeline</button>
+      <button data-pv="calendar">📅 Calendar</button>
     </div>
     <div id="projWrap"><div class="empty">Se încarcă…</div></div>
   </div>
@@ -370,9 +417,9 @@
 <!-- ============ MODAL PROIECT ============ -->
 <div id="projModal" class="scrim hidden" style="display:flex;align-items:center;justify-content:center;z-index:70;padding:20px">
   <form class="loginbox" id="projForm" style="max-width:400px" onsubmit="return false">
-    <div class="brand"><span class="dot">📋</span><b id="projModalTitle">Proiect nou</b></div>
-    <label>Nume proiect</label>
-    <input type="text" id="projName" maxlength="80" placeholder="ex. Lansare TM7 Debrecen">
+    <div class="brand"><span class="dot">📋</span><b id="projModalTitle">Categorie nouă</b></div>
+    <label>Nume categorie</label>
+    <input type="text" id="projName" maxlength="80" placeholder="ex. Lansare TM7, Evenimente, Administrativ">
     <label>Culoare</label>
     <div class="swatches" id="projSw"></div>
     <div style="display:flex;gap:8px;margin-top:18px">
@@ -789,18 +836,24 @@ function showModule(m, fromBoot){
 $("#modnav").addEventListener("click", e=>{ const b=e.target.closest("button"); if(b) showModule(b.dataset.mod); });
 window.addEventListener("hashchange", ()=>{ if(!$("#app").classList.contains("hidden")) showModule(modFromHash()); });
 
-/* ===================== PROIECTE ===================== */
+/* ===================== PROIECTE (categorii · taskuri · subtaskuri) ===================== */
 const P_COLORS = ["#00653e","#1256a0","#9a6b00","#b3261e","#6b3fa0","#0f7c86","#c2410c","#5d6b63"];
 const T_STATUS = [ {k:"todo",l:"De făcut"}, {k:"doing",l:"În lucru"}, {k:"done",l:"Gata"} ];
 const T_PRIO = { high:"Urgent", med:"Normal", low:"Scăzut" };
 const TEAM = ["Horatiu","Floriana","Alina","Karola","Office"];   // cele 5 conturi KronHaus
-let PROJ=[], TASKS=[], CUR_PROJ="all", SHOW_ARCH=false, F_WHO="", PVIEW="dash", HAS_START=null, TL_ZOOM="auto", PCH={};
+const BUCKET = "task-files";
+let PROJ=[], TASKS=[], CUR_PROJ="all", SHOW_ARCH=false, PVIEW="dash", TL_ZOOM="auto", PCH={}, CAL_M=null;
+let F = { q:"", who:"", pr:"", late:false };
+let HAS_START=null, HAS_PARENT=null;
 const safeColor = c => /^#[0-9a-f]{6}$/i.test(c||"") ? c : "#00653e";
 const todayISO = () => { const d=new Date(); d.setMinutes(d.getMinutes()-d.getTimezoneOffset()); return d.toISOString().slice(0,10); };
 const fmtDay = d => d ? new Date(d+"T00:00:00").toLocaleDateString("ro-RO",{day:"numeric",month:"short"}) : "";
 const dnum = s => Math.floor(Date.UTC(+s.slice(0,4), +s.slice(5,7)-1, +s.slice(8,10))/864e5);   // "YYYY-MM-DD" → nr. zi
 const dstr = n => new Date(n*864e5).toISOString().slice(0,10);
-const projOf = t => PROJ.find(p=>p.id===t.project_id) || { name:"(fără proiect)", color:"#9aa5a0" };
+const projOf = t => PROJ.find(p=>p.id===t.project_id) || { name:"(fără categorie)", color:"#9aa5a0" };
+const subsOf = t => TASKS.filter(x=>x.parent_id===t.id);
+const topLevel = list => list.filter(t=>!t.parent_id);
+const isLate = t => t.status!=="done" && t.due_date && t.due_date < todayISO();
 function ago(ts){
   if(!ts) return ""; const m=Math.round((Date.now()-new Date(ts).getTime())/60000);
   if(m<60) return "acum "+Math.max(1,m)+" min"; const h=Math.round(m/60); if(h<24) return "acum "+h+" h";
@@ -815,14 +868,17 @@ async function loadProjects(){
   if(p.error||t.error){ $("#projWrap").innerHTML='<div class="empty">Eroare: '+esc((p.error||t.error).message)+'</div>'; return; }
   PROJ=p.data||[]; TASKS=t.data||[];
   if(HAS_START===null){
-    if(TASKS.length) HAS_START = ("start_date" in TASKS[0]);
-    else { const r=await sb.from("tasks").select("start_date").limit(1); HAS_START=!r.error; }
+    if(TASKS.length){ HAS_START=("start_date" in TASKS[0]); HAS_PARENT=("parent_id" in TASKS[0]); }
+    else {
+      const [a,b]=await Promise.all([sb.from("tasks").select("start_date").limit(1), sb.from("tasks").select("parent_id").limit(1)]);
+      HAS_START=!a.error; HAS_PARENT=!b.error;
+    }
   }
   if(CUR_PROJ!=="all" && !PROJ.find(x=>x.id===CUR_PROJ)) CUR_PROJ="all";
   renderProjects();
 }
 
-/* taskurile din selecția curentă (toate proiectele active sau unul anume) */
+/* taskurile din categoria curentă (sau toate categoriile active) */
 function scopeTasks(){
   if(CUR_PROJ==="all"){
     const active=new Set(PROJ.filter(p=>!p.archived).map(p=>p.id));
@@ -831,70 +887,107 @@ function scopeTasks(){
   return TASKS.filter(t=>t.project_id===CUR_PROJ);
 }
 function scopeProjects(){ return CUR_PROJ==="all" ? PROJ.filter(p=>!p.archived) : PROJ.filter(p=>p.id===CUR_PROJ); }
+/* căutare + filtre (se aplică în toate vederile) */
+function applyF(list){
+  const q=F.q.trim().toLowerCase();
+  return list.filter(t=>{
+    if(F.who && t.assignee_name!==F.who) return false;
+    if(F.pr && (t.priority||"med")!==F.pr) return false;
+    if(F.late && !isLate(t)) return false;
+    if(q){
+      const hay=[t.title,t.description,t.assignee_name,...subsOf(t).map(s=>s.title)].join(" ").toLowerCase();
+      if(!hay.includes(q)) return false;
+    }
+    return true;
+  });
+}
+const viewTasks = () => applyF(topLevel(scopeTasks()));
+const filtersOn = () => !!(F.q||F.who||F.pr||F.late);
 
 function renderProjects(){
   const visible = PROJ.filter(p=>SHOW_ARCH || !p.archived || p.id===CUR_PROJ);
   const nArch = PROJ.filter(p=>p.archived).length;
-  const openAll = scopeTasksAllActive().filter(t=>t.status!=="done").length;
+  const activeIds = new Set(PROJ.filter(p=>!p.archived).map(p=>p.id));
+  const openAll = topLevel(TASKS).filter(t=>activeIds.has(t.project_id) && t.status!=="done").length;
   $("#projBar").innerHTML =
-    `<button class="pchip ${CUR_PROJ==='all'?'on':''}" data-id="all"><span class="pd" style="background:conic-gradient(#00653e,#1256a0,#9a6b00,#00653e)"></span>Toate proiectele<span class="cnt">${openAll}</span></button>`
+    `<button class="pchip ${CUR_PROJ==='all'?'on':''}" data-id="all"><span class="pd" style="background:conic-gradient(#00653e,#1256a0,#9a6b00,#00653e)"></span>Toate categoriile<span class="cnt">${openAll}</span></button>`
     + visible.map(p=>{
-      const open = TASKS.filter(t=>t.project_id===p.id && t.status!=="done").length;
+      const open = topLevel(TASKS).filter(t=>t.project_id===p.id && t.status!=="done").length;
       return `<button class="pchip ${p.id===CUR_PROJ?'on':''} ${p.archived?'arch':''}" data-id="${p.id}">
         <span class="pd" style="background:${safeColor(p.color)}"></span>${esc(p.name)}<span class="cnt">${open}</span></button>`;
-    }).join("") + `<button class="btn sm" id="newProj">+ Proiect</button>`
+    }).join("") + `<button class="btn sm" id="newProj">+ Categorie</button>`
     + (nArch?`<button class="btn ghost sm" id="togArch">${SHOW_ARCH?'Ascunde arhivate':'Arhivate ('+nArch+')'}</button>`:'');
-  $("#projBar").querySelectorAll(".pchip").forEach(b=>b.onclick=()=>{ CUR_PROJ=b.dataset.id; F_WHO=""; renderProjects(); });
+  $("#projBar").querySelectorAll(".pchip").forEach(b=>b.onclick=()=>{ CUR_PROJ=b.dataset.id; renderProjects(); });
   $("#newProj").onclick=()=>openProjModal(null);
   const ta=$("#togArch"); if(ta) ta.onclick=()=>{ SHOW_ARCH=!SHOW_ARCH; renderProjects(); };
   document.querySelectorAll("#projTabs button").forEach(b=>b.classList.toggle("on", b.dataset.pv===PVIEW));
 
   Object.values(PCH).forEach(c=>{try{c&&c.destroy();}catch(e){}}); PCH={};
-  if(!PROJ.length){ $("#projWrap").innerHTML='<div class="empty">Niciun proiect încă. Apăsați „+ Proiect”.</div>'; return; }
+  if(!PROJ.length){ $("#projWrap").innerHTML='<div class="empty">Nicio categorie încă. Apăsați „+ Categorie” ca să începeți (ex. „Lansare TM7”, „Evenimente”, „Administrativ”).</div>'; return; }
   if(PVIEW==="dash") renderProjDash();
   else if(PVIEW==="timeline") renderTimeline();
+  else if(PVIEW==="calendar") renderCalendar();
   else renderBoard();
 }
-function scopeTasksAllActive(){ const a=new Set(PROJ.filter(p=>!p.archived).map(p=>p.id)); return TASKS.filter(t=>a.has(t.project_id)); }
 $("#projTabs").addEventListener("click", e=>{ const b=e.target.closest("button"); if(!b) return; PVIEW=b.dataset.pv; renderProjects(); });
 
-/* antet comun: nume proiect / filtre / acțiuni */
-function projHeader(all){
+/* antet comun: categorie + căutare/filtre + acțiuni */
+function projHeader(){
   const p = CUR_PROJ==="all" ? null : PROJ.find(x=>x.id===CUR_PROJ);
+  const all = topLevel(scopeTasks());
   const done = all.filter(t=>t.status==="done").length;
   const pct = all.length ? Math.round(done*100/all.length) : 0;
   const people = [...new Set([...TEAM, ...all.map(t=>t.assignee_name).filter(Boolean)])];
   return `<div class="phead">
-      <h2>${p?`<span class="pd" style="background:${safeColor(p.color)}"></span>${esc(p.name)}${p.archived?' <span class="chip c-grey">arhivat</span>':''}`:'Toate proiectele'}</h2>
+      <h2>${p?`<span class="pd" style="background:${safeColor(p.color)}"></span>${esc(p.name)}${p.archived?' <span class="chip c-grey">arhivată</span>':''}`:'Toate categoriile'}</h2>
       <span class="chip c-ok">${done}/${all.length} gata · ${pct}%</span>
       <span class="spacer"></span>
-      <select id="fWho"><option value="">Toți colegii</option>${people.map(n=>`<option ${n===F_WHO?'selected':''}>${esc(n)}</option>`).join("")}</select>
       <button class="btn sm" id="addTaskTop">+ Task</button>
       ${p?`<button class="btn ghost sm" id="editProj">Editează</button>
       <button class="btn ghost sm" id="archProj">${p.archived?'Restaurează':'Arhivează'}</button>`:''}
+    </div>
+    <div class="pfilters">
+      <input type="text" id="fQ" placeholder="🔍 Caută în taskuri și subtaskuri…" value="${esc(F.q)}">
+      <select id="fWho"><option value="">Toți colegii</option>${people.map(n=>`<option ${n===F.who?'selected':''}>${esc(n)}</option>`).join("")}</select>
+      <select id="fPr"><option value="">Orice prioritate</option>${Object.entries(T_PRIO).map(([k,l])=>`<option value="${k}" ${F.pr===k?'selected':''}>${l}</option>`).join("")}</select>
+      <label class="chk"><input type="checkbox" id="fLate" ${F.late?'checked':''}> Doar întârziate</label>
+      ${filtersOn()?'<button class="btn ghost sm" id="fClear">✕ Șterge filtrele</button>':''}
     </div>`;
 }
 function wireHeader(){
   const p = CUR_PROJ==="all" ? null : PROJ.find(x=>x.id===CUR_PROJ);
-  $("#fWho").onchange=e=>{ F_WHO=e.target.value; renderProjects(); };
-  $("#addTaskTop").onclick=()=>openTask(null,"todo");
+  $("#fQ").oninput=e=>{ F.q=e.target.value; const pos=e.target.selectionStart; renderProjects();
+    const i=$("#fQ"); if(i){ i.focus(); try{ i.setSelectionRange(pos,pos); }catch(_){} } };
+  $("#fWho").onchange=e=>{ F.who=e.target.value; renderProjects(); };
+  $("#fPr").onchange=e=>{ F.pr=e.target.value; renderProjects(); };
+  $("#fLate").onchange=e=>{ F.late=e.target.checked; renderProjects(); };
+  const fc=$("#fClear"); if(fc) fc.onclick=()=>{ F={q:"",who:"",pr:"",late:false}; renderProjects(); };
+  $("#addTaskTop").onclick=()=>openTask(null,{status:"todo"});
   if(!p) return;
   $("#editProj").onclick=()=>openProjModal(p);
   $("#archProj").onclick=async()=>{
-    if(!p.archived && !confirm(`Arhivați proiectul „${p.name}”? Îl puteți restaura oricând.`)) return;
+    if(!p.archived && !confirm(`Arhivați categoria „${p.name}”? O puteți restaura oricând.`)) return;
     const { error } = await sb.from("projects").update({ archived:!p.archived }).eq("id",p.id);
     if(error){ toast("Eroare: "+error.message); return; }
-    toast(p.archived?"Proiect restaurat":"Proiect arhivat"); await loadProjects();
+    toast(p.archived?"Categorie restaurată":"Categorie arhivată"); await loadProjects();
   };
 }
-const byWho = list => F_WHO ? list.filter(t=>t.assignee_name===F_WHO) : list;
+function subBadge(t){
+  const s=subsOf(t); if(!s.length) return "";
+  const d=s.filter(x=>x.status==="done").length;
+  return `<span class="chip ${d===s.length?'c-ok':'c-grey'}" title="subtaskuri">☑ ${d}/${s.length}</span>`;
+}
+function durBadge(t){
+  if(!(HAS_START && t.start_date && t.due_date)) return "";
+  const n=dnum(t.due_date)-dnum(t.start_date)+1; return `<span title="durată">⏱ ${n} ${n===1?'zi':'zile'}</span>`;
+}
 
-/* ---------- DASHBOARD ---------- */
+/* ---------- REZUMAT (dashboard) ---------- */
 function renderProjDash(){
-  const all = scopeTasks(); const L = byWho(all);
+  const L = viewTasks();
   const today=todayISO(), t0=dnum(today);
   const open = L.filter(t=>t.status!=="done");
-  const late = open.filter(t=>t.due_date && t.due_date<today);
+  const late = open.filter(isLate);
   const week = open.filter(t=>t.due_date && t.due_date>=today && dnum(t.due_date)-t0<=7);
   const done = L.filter(t=>t.status==="done");
   const doneWeek = done.filter(t=>t.updated_at && (Date.now()-new Date(t.updated_at))<7*864e5).length;
@@ -907,12 +1000,11 @@ function renderProjDash(){
     {n:pct+"%", l:"Progres", e:done.length+" din "+L.length+" gata · "+doneWeek+" săpt. asta"},
   ].map(k=>`<div class="kpi ${k.red?'red':''}"><div class="n">${k.n}</div><div class="l">${k.l}</div>${k.e?`<div class="e">${k.e}</div>`:''}</div>`).join("");
 
-  // carduri proiect
   const projCards = scopeProjects().map(p=>{
-    const pt = byWho(TASKS.filter(t=>t.project_id===p.id));
+    const pt = L.filter(t=>t.project_id===p.id);
     const d = pt.filter(t=>t.status==="done").length;
     const pc = pt.length ? Math.round(d*100/pt.length) : 0;
-    const lt = pt.filter(t=>t.status!=="done" && t.due_date && t.due_date<today).length;
+    const lt = pt.filter(isLate).length;
     const nx = pt.filter(t=>t.status!=="done" && t.due_date && t.due_date>=today).sort((a,b)=>a.due_date<b.due_date?-1:1)[0];
     const c = safeColor(p.color);
     return `<div class="pcard" data-id="${p.id}" style="border-left-color:${c}">
@@ -923,7 +1015,6 @@ function renderProjDash(){
         ${nx?`<span>· următorul: ${fmtDay(nx.due_date)}</span>`:''}</div></div>`;
   }).join("");
 
-  // urmează + întârziate
   const upcoming = open.filter(t=>t.due_date && dnum(t.due_date)-t0<=14).sort((a,b)=>a.due_date<b.due_date?-1:1).slice(0,12);
   const upHtml = upcoming.length ? upcoming.map(t=>{ const pj=projOf(t); const lt=t.due_date<today;
     return `<div class="it" data-id="${t.id}"><span class="d ${lt?'late':''}">${lt?'⚠ ':''}${fmtDay(t.due_date)}</span>
@@ -931,19 +1022,18 @@ function renderProjDash(){
       ${t.assignee_name?`<span class="chip c-blue">${esc(t.assignee_name)}</span>`:''}</div>`; }).join("")
     : '<div class="empty" style="padding:18px">Nimic cu termen în următoarele 14 zile.</div>';
 
-  // activitate recentă
-  const recent = [...L].sort((a,b)=>new Date(b.updated_at||b.created_at)-new Date(a.updated_at||a.created_at)).slice(0,8);
+  const recent = [...applyF(scopeTasks())].sort((a,b)=>new Date(b.updated_at||b.created_at)-new Date(a.updated_at||a.created_at)).slice(0,8);
   const stL = s => (T_STATUS.find(x=>x.k===s)||T_STATUS[0]).l;
-  const recHtml = recent.length ? recent.map(t=>{ const pj=projOf(t);
-    return `<div class="it" data-id="${t.id}"><span class="d">${ago(t.updated_at||t.created_at)}</span>
-      <span class="pd" style="background:${safeColor(pj.color)}"></span><span class="tt">${esc(t.title)}</span>
+  const recHtml = recent.length ? recent.map(t=>{ const pj=projOf(t); const par=t.parent_id?TASKS.find(x=>x.id===t.parent_id):null;
+    return `<div class="it" data-id="${par?par.id:t.id}"><span class="d">${ago(t.updated_at||t.created_at)}</span>
+      <span class="pd" style="background:${safeColor(pj.color)}"></span><span class="tt">${par?'<span style="color:var(--muted)">'+esc(par.title)+' › </span>':''}${esc(t.title)}</span>
       <span class="chip ${t.status==='done'?'c-ok':(t.status==='doing'?'c-blue':'c-grey')}">${stL(t.status)}</span></div>`; }).join("")
     : '<div class="empty" style="padding:18px">Nicio activitate încă.</div>';
 
-  $("#projWrap").innerHTML = projHeader(all) + `
+  $("#projWrap").innerHTML = projHeader() + `
     <div class="kpis">${kp}</div>
     <div class="chart-grid">
-      ${CUR_PROJ==="all"?`<div class="chart-card wide"><h3>Proiecte</h3><div class="pgrid">${projCards||'<div class="empty">Niciun proiect activ.</div>'}</div></div>`:''}
+      ${CUR_PROJ==="all"?`<div class="chart-card wide"><h3>Categorii</h3><div class="pgrid">${projCards||'<div class="empty">Nicio categorie activă.</div>'}</div></div>`:''}
       <div class="chart-card"><h3>Pe cine e munca</h3><p class="cnote">Taskuri pe colegă, după stare</p><div class="cbox"><canvas id="pWho"></canvas></div></div>
       <div class="chart-card"><h3>Urmează (14 zile) și întârziate</h3><div class="dlist">${upHtml}</div></div>
       <div class="chart-card wide"><h3>Activitate recentă</h3><div class="dlist">${recHtml}</div></div>
@@ -953,7 +1043,7 @@ function renderProjDash(){
   $("#projWrap").querySelectorAll(".dlist .it").forEach(i=>i.onclick=()=>openTask(TASKS.find(t=>t.id===i.dataset.id)));
 
   if(typeof Chart!=="undefined" && cctx("pWho")){
-    const names=[...new Set([...TEAM, ...L.map(t=>t.assignee_name||"Nealocat")])].filter(n=>L.some(t=>(t.assignee_name||"Nealocat")===n) || TEAM.includes(n));
+    const names=[...new Set([...TEAM, ...L.map(t=>t.assignee_name||"Nealocat")])].filter(n=>TEAM.includes(n) || L.some(t=>(t.assignee_name||"Nealocat")===n));
     const cnt=(n,s)=>L.filter(t=>(t.assignee_name||"Nealocat")===n && (t.status||"todo")===s).length;
     PCH.who=new Chart(cctx("pWho"),{type:"bar",
       data:{labels:names,datasets:[
@@ -968,11 +1058,10 @@ function renderProjDash(){
 
 /* ---------- TABLĂ (Trello) ---------- */
 function renderBoard(){
-  const all = scopeTasks(); const tasks = byWho(all);
+  const tasks = viewTasks();
   const showProj = CUR_PROJ==="all";
-  const today = todayISO();
   const card = t => {
-    const late = t.due_date && t.status!=="done" && t.due_date < today;
+    const late = isLate(t);
     const si = T_STATUS.findIndex(s=>s.k===(t.status||"todo"));
     const pj = projOf(t);
     const mv = `<span class="mv">
@@ -985,7 +1074,8 @@ function renderBoard(){
         <span class="chip pr-${esc(t.priority||'med')}">${T_PRIO[t.priority]||'Normal'}</span>
         ${t.assignee_name?`<span class="who">${esc(t.assignee_name)}</span>`:''}
         ${t.due_date?`<span class="due ${late?'late':''}">📅 ${fmtDay(t.due_date)}${late?' · întârziat':''}</span>`:''}
-        ${t.description?'<span title="are descriere">📝</span>':''}
+        ${durBadge(t)} ${subBadge(t)}
+        ${t.description?'<span title="are detalii">📝</span>':''}
       </div></div>`;
   };
   const cols = T_STATUS.map(s=>{
@@ -995,9 +1085,9 @@ function renderBoard(){
       <button class="add" data-st="${s.k}">+ Task</button></div>`;
   }).join("");
 
-  $("#projWrap").innerHTML = projHeader(all) + `<div class="board">${cols}</div>`;
+  $("#projWrap").innerHTML = projHeader() + `<div class="board">${cols}</div>`;
   wireHeader();
-  $("#projWrap").querySelectorAll(".add").forEach(b=>b.onclick=()=>openTask(null,b.dataset.st));
+  $("#projWrap").querySelectorAll(".add").forEach(b=>b.onclick=()=>openTask(null,{status:b.dataset.st}));
   $("#projWrap").querySelectorAll(".card").forEach(c=>{
     c.onclick=()=>openTask(TASKS.find(t=>t.id===c.dataset.id));
     c.querySelectorAll(".mv button").forEach(b=>b.onclick=async e=>{
@@ -1021,6 +1111,50 @@ function renderBoard(){
   });
 }
 
+/* ---------- CALENDAR (lună) ---------- */
+function renderCalendar(){
+  const L = viewTasks();
+  if(!CAL_M) CAL_M = todayISO().slice(0,7);
+  const y=+CAL_M.slice(0,4), m=+CAL_M.slice(5,7);
+  const first=dnum(CAL_M+"-01");
+  const lead=(new Date(first*864e5).getUTCDay()+6)%7;
+  const dim=new Date(Date.UTC(y,m,0)).getUTCDate();
+  const cells=Math.ceil((lead+dim)/7)*7;
+  const t0=dnum(todayISO());
+  const byDay={}; L.filter(t=>t.due_date).forEach(t=>{ (byDay[t.due_date]=byDay[t.due_date]||[]).push(t); });
+  const starts={}; if(HAS_START) L.filter(t=>t.start_date && t.start_date!==t.due_date).forEach(t=>{ (starts[t.start_date]=starts[t.start_date]||[]).push(t); });
+  const chip = (t,isStart) => { const c=safeColor(projOf(t).color);
+    return `<div class="cchip ${t.status==='done'?'done':''} ${isLate(t)?'late':''} ${isStart?'st':''}" data-id="${t.id}" title="${esc(t.title)}${t.assignee_name?' · '+esc(t.assignee_name):''}"
+      style="${isStart?`border-color:${c};color:${c}`:`background:${c}`}">${isStart?'▶ ':''}${esc(t.title)}</div>`; };
+  let html="";
+  ["Lu","Ma","Mi","Jo","Vi","Sâ","Du"].forEach(d=>html+=`<div class="chd">${d}</div>`);
+  for(let i=0;i<cells;i++){
+    const d=first-lead+i, ds=dstr(d), inM=ds.slice(0,7)===CAL_M;
+    const items=(byDay[ds]||[]).sort((a,b)=>(a.status==="done")-(b.status==="done"));
+    const st=(starts[ds]||[]);
+    html+=`<div class="cday ${inM?'':'other'} ${d===t0?'today':''}" data-d="${ds}">
+      <div class="cnum">${new Date(d*864e5).getUTCDate()}</div>${st.map(t=>chip(t,true)).join("")}${items.map(t=>chip(t,false)).join("")}</div>`;
+  }
+  const noDate=L.filter(t=>!t.due_date).length;
+  const title=new Date(Date.UTC(y,m-1,1)).toLocaleDateString("ro-RO",{month:"long",year:"numeric",timeZone:"UTC"});
+  $("#projWrap").innerHTML = projHeader() + `
+    <div class="tlbar">
+      <button class="btn ghost sm" id="calPrev">‹</button>
+      <b style="font-size:17px;min-width:150px;text-align:center;text-transform:capitalize">${title}</b>
+      <button class="btn ghost sm" id="calNext">›</button>
+      <button class="btn ghost sm" id="calToday">Azi</button>
+      <span style="flex:1"></span>
+      <span class="cnote" style="margin:0">Taskurile apar în ziua termenului${HAS_START?' (▶ = ziua de început)':''}. Click pe o zi goală = task nou cu acel termen.${noDate?` · ${noDate} fără termen`:''}</span>
+    </div>
+    <div class="cal">${html}</div>`;
+  wireHeader();
+  const shift=k=>{ const d=new Date(Date.UTC(y,m-1+k,1)); CAL_M=d.toISOString().slice(0,7); renderProjects(); };
+  $("#calPrev").onclick=()=>shift(-1); $("#calNext").onclick=()=>shift(1);
+  $("#calToday").onclick=()=>{ CAL_M=todayISO().slice(0,7); renderProjects(); };
+  $("#projWrap").querySelectorAll(".cchip").forEach(c=>c.onclick=e=>{ e.stopPropagation(); openTask(TASKS.find(t=>t.id===c.dataset.id)); });
+  $("#projWrap").querySelectorAll(".cday").forEach(c=>c.onclick=()=>openTask(null,{status:"todo",due_date:c.dataset.d}));
+}
+
 /* ---------- TIMELINE (Gantt) ---------- */
 function taskSpan(t){
   if(!t.due_date) return null;
@@ -1030,7 +1164,7 @@ function taskSpan(t){
   return { s, e };
 }
 function renderTimeline(){
-  const all = scopeTasks(); const L = byWho(all);
+  const L = viewTasks();
   const t0 = dnum(todayISO());
   const withDates = L.map(t=>({t, sp:taskSpan(t)})).filter(x=>x.sp);
   const noDate = L.filter(t=>!t.due_date);
@@ -1043,7 +1177,6 @@ function renderTimeline(){
   const W = days*PX;
   const x = d => (d-lo)*PX;
 
-  // antet: luni + zile/săptămâni
   let head="", grid="";
   for(let d=lo; d<=hi; d++){
     const dt=new Date(d*864e5), dom=dt.getUTCDate(), dow=(dt.getUTCDay()+6)%7;
@@ -1057,11 +1190,11 @@ function renderTimeline(){
 
   const bar = ({t,sp}) => {
     const c = safeColor(projOf(t).color);
-    const late = t.status!=="done" && sp.e<t0;
     const w = Math.max(PX,(sp.e-sp.s+1)*PX);
-    const tip = `${t.title} · ${fmtDay(dstr(sp.s))} → ${fmtDay(t.due_date)}${t.assignee_name?' · '+t.assignee_name:''}`;
+    const n = sp.e-sp.s+1;
+    const tip = `${t.title} · ${fmtDay(dstr(sp.s))} → ${fmtDay(t.due_date)} (${n} ${n===1?'zi':'zile'})${t.assignee_name?' · '+t.assignee_name:''}`;
     const inside = w>=90;
-    return `<span class="bar ${t.status==='done'?'done':''} ${late?'late':''}" data-id="${t.id}" title="${esc(tip)}"
+    return `<span class="bar ${t.status==='done'?'done':''} ${isLate(t)?'late':''}" data-id="${t.id}" title="${esc(tip)}"
         style="left:${x(sp.s)}px;width:${w}px;background:${c}">${inside?esc(t.title):''}</span>
       ${inside?'':`<span class="outl" style="left:${x(sp.s)+w+5}px">${esc(t.title)}</span>`}`;
   };
@@ -1079,7 +1212,7 @@ function renderTimeline(){
   });
 
   const zoomBtn = (k,l) => `<button data-z="${k}" class="${TL_ZOOM===k?'on':''}">${l}</button>`;
-  $("#projWrap").innerHTML = projHeader(all) + `
+  $("#projWrap").innerHTML = projHeader() + `
     <div class="tlbar">
       <div class="seg" id="tlZoom">${zoomBtn("auto","Auto")}${zoomBtn("zi","Zile")}${zoomBtn("sapt","Săptămâni")}${zoomBtn("luna","Luni")}</div>
       <button class="btn ghost sm" id="tlToday">Azi</button>
@@ -1090,7 +1223,7 @@ function renderTimeline(){
     ${withDates.length ? `<div class="tl" id="tlBox">
         <div class="row hd"><div class="lab">Task</div><div class="trk" style="width:${W}px">${head}</div></div>
         ${rows}</div>
-      <p class="cnote" style="margin-top:8px">Bara pornește de la ${HAS_START?'data de început (sau data creării)':'data creării taskului'} și se termină la termen.</p>`
+      <p class="cnote" style="margin-top:8px">Bara pornește de la data de început (dacă lipsește: data creării) și se termină la termen.</p>`
       : '<div class="empty">Niciun task cu termen. Puneți un termen la taskuri ca să apară pe timeline.</div>'}
     ${noDate.length?`<div class="chart-card" style="margin-top:14px"><h3>Fără termen (${noDate.length})</h3><div class="dlist">
       ${noDate.map(t=>{ const pj=projOf(t); return `<div class="it" data-id="${t.id}"><span class="pd" style="background:${safeColor(pj.color)}"></span>
@@ -1105,7 +1238,7 @@ function renderTimeline(){
 }
 
 function nextPos(projectId, st){
-  const l=TASKS.filter(t=>t.project_id===projectId && t.status===st);
+  const l=TASKS.filter(t=>t.project_id===projectId && t.status===st && !t.parent_id);
   return l.length ? Math.max(...l.map(t=>t.position||0))+1 : 0;
 }
 async function moveTask(t, st){
@@ -1117,11 +1250,11 @@ async function moveTask(t, st){
   toast(st==="done" ? "Gata ✓" : "Mutat în „"+T_STATUS.find(s=>s.k===st).l+"”");
 }
 
-/* ---- modal proiect ---- */
+/* ---- modal categorie ---- */
 let projEditing=null, projColor=P_COLORS[0];
 function openProjModal(p){
   projEditing=p; projColor=p?safeColor(p.color):P_COLORS[PROJ.length % P_COLORS.length];
-  $("#projModalTitle").textContent = p?"Editează proiectul":"Proiect nou";
+  $("#projModalTitle").textContent = p?"Editează categoria":"Categorie nouă";
   $("#projName").value = p?p.name:""; $("#projErr").textContent="";
   $("#projSw").innerHTML = P_COLORS.map(c=>`<button type="button" data-c="${c}" style="background:${c}" class="${c===projColor?'on':''}"></button>`).join("");
   $("#projSw").querySelectorAll("button").forEach(b=>b.onclick=()=>{ projColor=b.dataset.c; $("#projSw").querySelectorAll("button").forEach(x=>x.classList.toggle("on",x===b)); });
@@ -1139,18 +1272,46 @@ $("#projSave").addEventListener("click", async ()=>{
   if(res.error){ $("#projErr").textContent="Eroare: "+res.error.message; return; }
   $("#projModal").classList.add("hidden");
   CUR_PROJ=res.data.id; if(!projEditing) PVIEW="board";
-  toast(projEditing?"Proiect salvat ✓":"Proiect creat ✓");
+  toast(projEditing?"Categorie salvată ✓":"Categorie creată ✓");
   await loadProjects();
 });
 
-/* ---- drawer task ---- */
-function openTask(t, st){
-  if(!t && !PROJ.some(p=>!p.archived)){ toast("Creați întâi un proiect (+ Proiect)."); return; }
+/* ---- fișiere atașate (Supabase Storage, bucket privat) ---- */
+const fileLabel = n => n.replace(/^\d+_/, "");
+const safeName = n => Date.now()+"_"+n.normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/[^\w.\-]+/g,"_").slice(-120);
+const fmtSize = b => b>1048576 ? (b/1048576).toFixed(1)+" MB" : Math.max(1,Math.round(b/1024))+" KB";
+async function listFiles(taskId){
+  const { data, error } = await sb.storage.from(BUCKET).list(taskId,{ limit:100, sortBy:{column:"created_at",order:"asc"} });
+  return error ? null : (data||[]).filter(f=>f.name && f.id!==null);
+}
+async function uploadFiles(taskId, files){
+  let ok=0;
+  for(const f of files){
+    if(f.size>25*1048576){ toast(`„${f.name}” e prea mare (max 25 MB)`); continue; }
+    const { error } = await sb.storage.from(BUCKET).upload(taskId+"/"+safeName(f.name), f, { contentType:f.type||undefined });
+    if(error) toast("Eroare la încărcare: "+error.message); else ok++;
+  }
+  return ok;
+}
+async function removeAllFiles(taskId){
+  const l=await listFiles(taskId); if(l && l.length) await sb.storage.from(BUCKET).remove(l.map(f=>taskId+"/"+f.name));
+}
+
+/* ---- drawer task (+ subtaskuri, durată, fișiere) ---- */
+function openTask(t, preset){
+  preset = preset||{};
+  if(!t && !PROJ.some(p=>!p.archived)){ toast("Creați întâi o categorie (+ Categorie)."); return; }
   const isNew=!t;
   const cur = t&&t.assignee_name;
   const people = (cur && !TEAM.includes(cur)) ? [...TEAM, cur] : TEAM;
   const pid0 = t ? t.project_id : (CUR_PROJ!=="all" ? CUR_PROJ : (PROJ.find(p=>!p.archived)||{}).id);
   const projOpts = PROJ.filter(p=>!p.archived || p.id===pid0).map(p=>`<option value="${p.id}" ${p.id===pid0?'selected':''}>${esc(p.name)}</option>`).join("");
+  const st0 = t ? t.status : (preset.status||"todo");
+  const due0 = t ? (t.due_date||"") : (preset.due_date||"");
+  const start0 = t ? (t.start_date||"") : "";
+  const dur0 = (start0 && due0) ? dnum(due0)-dnum(start0)+1 : "";
+  let pending=[], pendingSubs=[];   // fișiere / subtaskuri adăugate înainte de salvarea unui task nou
+
   const scrim=document.createElement("div"); scrim.className="scrim";
   const dr=document.createElement("div"); dr.className="drawer";
   dr.innerHTML=`
@@ -1159,16 +1320,31 @@ function openTask(t, st){
       <button class="x" id="closeDr">×</button></header>
     <div class="body">
       <label>Titlu</label><input type="text" id="tTitle" maxlength="200" value="${esc(t?t.title:'')}" placeholder="ce trebuie făcut">
-      <label>Proiect</label><select id="tProj">${projOpts}</select>
-      <label>Detalii</label><textarea id="tDesc" rows="4" placeholder="detalii, linkuri, pași…">${esc(t?t.description||'':'')}</textarea>
+      <label>Categorie</label><select id="tProj">${projOpts}</select>
+      <label>Detalii</label><textarea id="tDesc" rows="3" placeholder="detalii, linkuri, pași…">${esc(t?t.description||'':'')}</textarea>
       <div class="row2">
-        <div><label>Stare</label><select id="tSt">${T_STATUS.map(s=>`<option value="${s.k}" ${(t?t.status:st)===s.k?'selected':''}>${s.l}</option>`).join("")}</select></div>
+        <div><label>Stare</label><select id="tSt">${T_STATUS.map(s=>`<option value="${s.k}" ${st0===s.k?'selected':''}>${s.l}</option>`).join("")}</select></div>
         <div><label>Prioritate</label><select id="tPr">${Object.entries(T_PRIO).map(([k,l])=>`<option value="${k}" ${((t&&t.priority)||'med')===k?'selected':''}>${l}</option>`).join("")}</select></div>
         <div><label>Responsabil</label><select id="tWho"><option value="">— nimeni —</option>
           ${people.map(n=>`<option ${n===cur?'selected':''}>${esc(n)}</option>`).join("")}</select></div>
-        ${HAS_START?`<div><label>Început</label><input type="date" id="tStart" value="${esc(t?t.start_date||'':'')}"></div>`:''}
-        <div><label>Termen</label><input type="date" id="tDue" value="${esc(t?t.due_date||'':'')}"></div>
+        <div></div>
       </div>
+      ${HAS_START?`<div class="row3">
+        <div><label>Început</label><input type="date" id="tStart" value="${esc(start0)}"></div>
+        <div><label>Durată (zile)</label><input type="number" id="tDur" min="1" max="999" value="${dur0}" placeholder="ex. 5"></div>
+        <div><label>Termen</label><input type="date" id="tDue" value="${esc(due0)}"></div>
+      </div><p class="cnote" style="margin:6px 0 0">Scrieți numărul de zile și termenul se calculează singur (sau invers).</p>`
+      :`<label>Termen</label><input type="date" id="tDue" value="${esc(due0)}">`}
+
+      ${HAS_PARENT?`<div class="sect"><h4>Subtaskuri <span id="subCnt"></span></h4>
+        <div id="subList" class="subs"></div>
+        <div class="subadd"><input type="text" id="subNew" placeholder="+ Adaugă subtask și apăsați Enter" maxlength="200"></div></div>`:''}
+
+      <div class="sect"><h4>Fișiere atașate</h4>
+        <div id="fileList" class="files"><span class="dsub">${isNew?'':'Se încarcă…'}</span></div>
+        <label class="btn ghost sm fileBtn">📎 Atașează fișiere<input type="file" id="fileIn" multiple hidden></label>
+      </div>
+
       <div class="actions" style="margin-top:20px">
         <button class="btn" id="tSave">${isNew?'Adaugă':'Salvează'}</button>
         ${isNew?'':'<button class="btn ghost" id="tDel" style="color:#b3261e">Șterge</button>'}
@@ -1178,35 +1354,143 @@ function openTask(t, st){
     </div>`;
   document.body.append(scrim,dr);
   const close=()=>{ scrim.remove(); dr.remove(); };
-  scrim.onclick=close; dr.querySelector("#closeDr").onclick=close;
-  setTimeout(()=>dr.querySelector("#tTitle").focus(),50);
+  const q=s=>dr.querySelector(s);
+  scrim.onclick=close; q("#closeDr").onclick=close;
+  setTimeout(()=>q("#tTitle").focus(),50);
 
-  dr.querySelector("#tSave").onclick=async()=>{
-    const title=dr.querySelector("#tTitle").value.trim();
-    if(!title){ dr.querySelector("#tErr").textContent="Scrieți un titlu."; return; }
-    const pid=dr.querySelector("#tProj").value;
-    if(!pid){ dr.querySelector("#tErr").textContent="Alegeți proiectul."; return; }
-    const newSt=dr.querySelector("#tSt").value;
-    const due=dr.querySelector("#tDue").value||null;
-    const rec={ title, project_id:pid, description:dr.querySelector("#tDesc").value.trim()||null, status:newSt,
-      priority:dr.querySelector("#tPr").value, assignee_name:dr.querySelector("#tWho").value||null,
+  /* durată ↔ termen */
+  if(HAS_START){
+    const sI=q("#tStart"), dI=q("#tDur"), eI=q("#tDue");
+    const fromDur=()=>{ const n=parseInt(dI.value,10); if(!(n>0)) return;
+      if(!sI.value) sI.value=todayISO(); eI.value=dstr(dnum(sI.value)+n-1); };
+    const fromDates=()=>{ if(sI.value && eI.value){ const n=dnum(eI.value)-dnum(sI.value)+1; dI.value = n>0?n:""; } };
+    dI.addEventListener("input",fromDur);
+    sI.addEventListener("change",()=>{ if(dI.value && !eI.value) fromDur(); else if(dI.value && eI.value) fromDur(); else fromDates(); });
+    eI.addEventListener("change",fromDates);
+  }
+
+  /* subtaskuri */
+  const renderSubs=()=>{
+    if(!HAS_PARENT) return;
+    if(isNew){
+      q("#subCnt").textContent = pendingSubs.length?`· ${pendingSubs.length}`:"";
+      q("#subList").innerHTML = pendingSubs.map((s,i)=>`<div class="sub" data-i="${i}"><input type="checkbox" disabled><span class="st">${esc(s)}</span><button class="sx" title="Scoate">×</button></div>`).join("")
+        || '<span class="dsub">Niciun subtask.</span>';
+      q("#subList").querySelectorAll(".sub").forEach(r=>r.querySelector(".sx").onclick=()=>{ pendingSubs.splice(+r.dataset.i,1); renderSubs(); });
+      return;
+    }
+    const s=subsOf(t).sort((a,b)=>new Date(a.created_at)-new Date(b.created_at));
+    q("#subCnt").textContent = s.length?`· ${s.filter(x=>x.status==="done").length}/${s.length}`:"";
+    q("#subList").innerHTML = s.map(x=>`<div class="sub ${x.status==='done'?'done':''}" data-id="${x.id}">
+        <input type="checkbox" ${x.status==='done'?'checked':''}>
+        <span class="st">${esc(x.title)}</span>
+        <select class="sw"><option value="">—</option>${TEAM.map(n=>`<option ${n===x.assignee_name?'selected':''}>${esc(n)}</option>`).join("")}</select>
+        <button class="sx" title="Șterge subtaskul">×</button></div>`).join("") || '<span class="dsub">Niciun subtask.</span>';
+    q("#subList").querySelectorAll(".sub").forEach(row=>{
+      const sub=TASKS.find(x=>x.id===row.dataset.id);
+      row.querySelector("input").onchange=async e=>{
+        const st=e.target.checked?"done":"todo";
+        const { error } = await sb.from("tasks").update({ status:st, updated_at:new Date().toISOString() }).eq("id",sub.id);
+        if(error){ toast("Eroare: "+error.message); e.target.checked=!e.target.checked; return; }
+        sub.status=st; sub.updated_at=new Date().toISOString(); renderSubs(); renderProjects();
+      };
+      row.querySelector(".sw").onchange=async e=>{
+        const { error } = await sb.from("tasks").update({ assignee_name:e.target.value||null, updated_at:new Date().toISOString() }).eq("id",sub.id);
+        if(error){ toast("Eroare: "+error.message); return; } sub.assignee_name=e.target.value||null;
+      };
+      row.querySelector(".sx").onclick=async()=>{
+        if(!confirm(`Ștergeți subtaskul „${sub.title}”?`)) return;
+        const { error } = await sb.from("tasks").delete().eq("id",sub.id);
+        if(error){ toast("Eroare: "+error.message); return; }
+        TASKS=TASKS.filter(x=>x.id!==sub.id); renderSubs(); renderProjects();
+      };
+    });
+  };
+  if(HAS_PARENT){
+    q("#subNew").addEventListener("keydown",async e=>{
+      if(e.key!=="Enter") return; e.preventDefault();
+      const title=e.target.value.trim(); if(!title) return;
+      if(isNew){ pendingSubs.push(title); e.target.value=""; renderSubs(); return; }
+      e.target.disabled=true;
+      const { data, error } = await sb.from("tasks").insert({ title, parent_id:t.id, project_id:t.project_id, status:"todo",
+        priority:"med", position:subsOf(t).length, created_by:ME.id }).select().single();
+      e.target.disabled=false;
+      if(error){ toast("Eroare: "+error.message); return; }
+      TASKS.push(data); e.target.value=""; e.target.focus(); renderSubs(); renderProjects();
+    });
+  }
+  renderSubs();
+
+  /* fișiere */
+  const renderFiles=async()=>{
+    const box=q("#fileList");
+    if(isNew){ box.innerHTML = pending.length ? pending.map(f=>`<div class="file"><span>📄 ${esc(f.name)}</span><span class="dsub">${fmtSize(f.size)} · se încarcă la salvare</span></div>`).join("") : '<span class="dsub">Niciun fișier.</span>'; return; }
+    const l=await listFiles(t.id);
+    if(l===null){ box.innerHTML='<span class="dsub">Fișierele nu au putut fi citite.</span>'; return; }
+    box.innerHTML = l.length ? l.map(f=>`<div class="file" data-n="${esc(f.name)}">
+        <a href="#" class="fo">📄 ${esc(fileLabel(f.name))}</a>
+        <span class="dsub">${f.metadata&&f.metadata.size?fmtSize(f.metadata.size):''}</span>
+        <button class="sx" title="Șterge fișierul">×</button></div>`).join("") : '<span class="dsub">Niciun fișier.</span>';
+    box.querySelectorAll(".file").forEach(row=>{
+      const path=t.id+"/"+row.dataset.n;
+      row.querySelector(".fo").onclick=async e=>{ e.preventDefault();
+        const { data, error } = await sb.storage.from(BUCKET).createSignedUrl(path, 300);
+        if(error){ toast("Eroare: "+error.message); return; } window.open(data.signedUrl,"_blank"); };
+      row.querySelector(".sx").onclick=async()=>{
+        if(!confirm(`Ștergeți fișierul „${fileLabel(row.dataset.n)}”?`)) return;
+        const { error } = await sb.storage.from(BUCKET).remove([path]);
+        if(error){ toast("Eroare: "+error.message); return; } toast("Fișier șters"); renderFiles(); };
+    });
+  };
+  q("#fileIn").addEventListener("change",async e=>{
+    const files=[...e.target.files]; e.target.value=""; if(!files.length) return;
+    if(isNew){ pending=pending.concat(files); renderFiles(); return; }
+    q("#fileList").innerHTML='<span class="dsub">Se încarcă…</span>';
+    const n=await uploadFiles(t.id, files); if(n) toast(n===1?"Fișier atașat ✓":n+" fișiere atașate ✓");
+    renderFiles();
+  });
+  renderFiles();
+
+  /* salvare */
+  q("#tSave").onclick=async()=>{
+    const title=q("#tTitle").value.trim();
+    if(!title){ q("#tErr").textContent="Scrieți un titlu."; return; }
+    const pid=q("#tProj").value;
+    if(!pid){ q("#tErr").textContent="Alegeți categoria."; return; }
+    const newSt=q("#tSt").value;
+    const due=q("#tDue").value||null;
+    const rec={ title, project_id:pid, description:q("#tDesc").value.trim()||null, status:newSt,
+      priority:q("#tPr").value, assignee_name:q("#tWho").value||null,
       due_date:due, updated_at:new Date().toISOString() };
     if(HAS_START){
-      rec.start_date=dr.querySelector("#tStart").value||null;
-      if(rec.start_date && due && rec.start_date>due){ dr.querySelector("#tErr").textContent="Începutul e după termen."; return; }
+      rec.start_date=q("#tStart").value||null;
+      if(rec.start_date && due && rec.start_date>due){ q("#tErr").textContent="Începutul e după termen."; return; }
     }
     if(isNew || t.status!==newSt || t.project_id!==pid) rec.position=nextPos(pid,newSt);
-    const btn=dr.querySelector("#tSave"); btn.disabled=true;
-    const { error } = isNew
-      ? await sb.from("tasks").insert({ ...rec, created_by:ME.id })
-      : await sb.from("tasks").update(rec).eq("id",t.id);
-    btn.disabled=false;
-    if(error){ dr.querySelector("#tErr").textContent="Eroare: "+error.message; return; }
+    const btn=q("#tSave"); btn.disabled=true; btn.innerHTML='<span class="spin"></span>Salvez…';
+    let res;
+    if(isNew) res = await sb.from("tasks").insert({ ...rec, created_by:ME.id }).select().single();
+    else {
+      res = await sb.from("tasks").update(rec).eq("id",t.id);
+      if(!res.error && HAS_PARENT && t.project_id!==pid) await sb.from("tasks").update({ project_id:pid }).eq("parent_id",t.id);
+    }
+    if(res.error){ btn.disabled=false; btn.textContent=isNew?'Adaugă':'Salvează'; q("#tErr").textContent="Eroare: "+res.error.message; return; }
+    if(isNew && res.data){
+      if(HAS_PARENT && pendingSubs.length){
+        const { error } = await sb.from("tasks").insert(pendingSubs.map((s,i)=>({ title:s, parent_id:res.data.id, project_id:pid,
+          status:"todo", priority:"med", position:i, created_by:ME.id })));
+        if(error) toast("Subtaskurile nu s-au salvat: "+error.message);
+      }
+      if(pending.length) await uploadFiles(res.data.id, pending);
+    }
     close(); toast(isNew?"Task adăugat ✓":"Salvat ✓"); await loadProjects();
   };
-  const del=dr.querySelector("#tDel");
+  const del=q("#tDel");
   if(del) del.onclick=async()=>{
-    if(!confirm(`Ștergeți taskul „${t.title}”?`)) return;
+    const ns=subsOf(t).length;
+    if(!confirm(`Ștergeți taskul „${t.title}”${ns?` și cele ${ns} subtaskuri`:''}? Se șterg și fișierele atașate.`)) return;
+    await removeAllFiles(t.id);
+    for(const s of subsOf(t)) await removeAllFiles(s.id);
     const { error } = await sb.from("tasks").delete().eq("id",t.id);
     if(error){ toast("Eroare: "+error.message); return; }
     close(); toast("Task șters"); await loadProjects();
