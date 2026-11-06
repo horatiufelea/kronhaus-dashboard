@@ -1,0 +1,479 @@
+<!doctype html>
+<html lang="ro">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>KronHaus · Comenzi</title>
+<style>
+  :root{
+    --green:#00653e; --green-d:#004c2e; --green-l:#e7f1ec;
+    --ink:#132018; --muted:#5d6b63; --line:#dfe6e1; --bg:#f4f7f5; --card:#fff;
+    --ok:#1a7f4b; --okbg:#e3f3ea; --warn:#9a6b00; --warnbg:#fbf1dd;
+    --grey:#6b7770; --greybg:#eef1ef; --blue:#1256a0; --bluebg:#e5effb;
+    --radius:14px; --shadow:0 1px 3px rgba(0,0,0,.06),0 6px 20px rgba(0,0,0,.05);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+       color:var(--ink);background:var(--bg);font-size:15px;line-height:1.45}
+  button{font-family:inherit;cursor:pointer}
+  .hidden{display:none!important}
+
+  /* ---- Login ---- */
+  #login{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
+  .loginbox{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+            box-shadow:var(--shadow);width:100%;max-width:380px;padding:30px}
+  .brand{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+  .brand .dot{width:30px;height:30px;border-radius:8px;background:var(--green);color:#fff;
+              display:flex;align-items:center;justify-content:center;font-weight:800}
+  .brand b{font-size:18px;letter-spacing:.2px}
+  .sub{color:var(--muted);font-size:13px;margin:0 0 20px}
+  label{display:block;font-size:12px;font-weight:700;color:var(--muted);margin:14px 0 5px;text-transform:uppercase;letter-spacing:.4px}
+  input[type=email],input[type=password],input[type=text],textarea,select{
+    width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:10px;font-size:15px;background:#fff;color:var(--ink)}
+  input:focus,textarea:focus,select:focus{outline:none;border-color:var(--green);box-shadow:0 0 0 3px var(--green-l)}
+  .btn{background:var(--green);color:#fff;border:none;border-radius:10px;padding:11px 16px;font-weight:700;font-size:15px}
+  .btn:hover{background:var(--green-d)}
+  .btn.block{width:100%;margin-top:18px}
+  .btn.ghost{background:#fff;color:var(--green);border:1px solid var(--line)}
+  .btn.ghost:hover{background:var(--green-l)}
+  .btn.sm{padding:7px 12px;font-size:13px;border-radius:9px}
+  .err{color:#b3261e;font-size:13px;margin-top:12px;min-height:18px}
+
+  /* ---- App shell ---- */
+  header.top{position:sticky;top:0;z-index:20;background:var(--green);color:#fff;
+             display:flex;align-items:center;gap:14px;padding:12px 18px;box-shadow:0 2px 10px rgba(0,0,0,.12)}
+  header.top .dot{width:30px;height:30px;border-radius:8px;background:#fff;color:var(--green);
+                  display:flex;align-items:center;justify-content:center;font-weight:800}
+  header.top b{font-size:16px}
+  header.top .spacer{flex:1}
+  header.top .who{font-size:13px;opacity:.9}
+  header.top .rate{font-size:12px;opacity:.85;background:rgba(255,255,255,.14);padding:4px 9px;border-radius:999px}
+  .wrap{max-width:1180px;margin:0 auto;padding:18px}
+
+  .toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:14px}
+  .toolbar .grow{flex:1;min-width:180px}
+  .seg{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:#fff}
+  .seg button{border:none;background:#fff;padding:8px 13px;font-size:13px;font-weight:700;color:var(--muted)}
+  .seg button.on{background:var(--green);color:#fff}
+
+  .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
+  .kpi{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px}
+  .kpi .n{font-size:24px;font-weight:800}
+  .kpi .l{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-top:2px}
+  .kpi .e{font-size:12px;color:var(--green);font-weight:700;margin-top:4px}
+
+  table{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--line);
+        border-radius:var(--radius);overflow:hidden}
+  thead th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);
+           padding:11px 14px;border-bottom:1px solid var(--line);background:#fafcfb}
+  tbody td{padding:11px 14px;border-bottom:1px solid var(--line);vertical-align:middle}
+  tbody tr{cursor:pointer}
+  tbody tr:hover{background:var(--green-l)}
+  tbody tr:last-child td{border-bottom:none}
+  .amt{font-weight:800;white-space:nowrap}
+  .amt .eu{display:block;font-size:12px;color:var(--green);font-weight:700}
+  .nm{font-weight:700}
+  .day{color:var(--muted);font-size:13px;white-space:nowrap}
+
+  .chip{display:inline-block;font-size:11px;font-weight:800;padding:3px 9px;border-radius:999px;white-space:nowrap}
+  .c-ok{background:var(--okbg);color:var(--ok)} .c-warn{background:var(--warnbg);color:var(--warn)}
+  .c-grey{background:var(--greybg);color:var(--grey)} .c-blue{background:var(--bluebg);color:var(--blue)}
+  .badges{display:flex;flex-wrap:wrap;gap:5px;margin-top:5px}
+  .badge{font-size:10px;font-weight:800;padding:2px 7px;border-radius:6px;background:var(--greybg);color:var(--grey)}
+  .badge.on{background:var(--okbg);color:var(--ok)}
+
+  .empty{padding:36px;text-align:center;color:var(--muted)}
+
+  /* ---- Drawer ---- */
+  .scrim{position:fixed;inset:0;background:rgba(10,20,15,.4);z-index:40}
+  .drawer{position:fixed;top:0;right:0;height:100vh;width:min(560px,100vw);background:#fff;z-index:41;
+          box-shadow:-10px 0 40px rgba(0,0,0,.18);display:flex;flex-direction:column}
+  .drawer header{display:flex;align-items:center;gap:12px;padding:16px 18px;border-bottom:1px solid var(--line)}
+  .drawer header .x{margin-left:auto;background:#fff;border:1px solid var(--line);border-radius:9px;width:34px;height:34px;font-size:18px;color:var(--muted)}
+  .drawer .body{padding:18px;overflow:auto;flex:1}
+  .dtitle{font-size:19px;font-weight:800;margin:0}
+  .dsub{color:var(--muted);font-size:13px;margin-top:2px}
+  .actions{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0}
+  .sect{margin-top:18px}
+  .sect h4{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin:0 0 8px;
+           border-bottom:1px solid var(--line);padding-bottom:6px}
+  .kv{display:grid;grid-template-columns:130px 1fr;gap:4px 12px;font-size:14px}
+  .kv .k{color:var(--muted)}
+  .items{width:100%;border-collapse:collapse;font-size:13px;margin-top:4px}
+  .items th,.items td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line)}
+  .items td.r,.items th.r{text-align:right}
+  .note{width:100%;min-height:54px;margin-top:8px;resize:vertical}
+  .confirmed-line{font-size:12px;color:var(--ok);font-weight:700;margin-top:6px}
+  .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;
+         padding:11px 18px;border-radius:10px;z-index:60;font-size:14px;box-shadow:var(--shadow);opacity:0;transition:.2s}
+  .toast.show{opacity:1}
+  .spin{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.5);border-top-color:#fff;
+        border-radius:50%;animation:sp .7s linear infinite;vertical-align:-2px;margin-right:6px}
+  @keyframes sp{to{transform:rotate(360deg)}}
+  @media(max-width:720px){
+    .kpis{grid-template-columns:repeat(2,1fr)}
+    .col-status,.col-unas{display:none}
+    .kv{grid-template-columns:110px 1fr}
+  }
+</style>
+</head>
+<body>
+
+<!-- ============ LOGIN ============ -->
+<div id="login">
+  <form class="loginbox" id="loginForm">
+    <div class="brand"><span class="dot">TM</span><b>KronHaus · Comenzi</b></div>
+    <p class="sub">Thermomix Ungaria — platformă internă</p>
+    <label>Email</label>
+    <input type="email" id="email" autocomplete="username" required placeholder="nume@kronhaus.hu">
+    <label>Parolă</label>
+    <input type="password" id="password" autocomplete="current-password" required placeholder="••••••••">
+    <button class="btn block" type="submit" id="loginBtn">Autentificare</button>
+    <div class="err" id="loginErr"></div>
+  </form>
+</div>
+
+<!-- ============ APP ============ -->
+<div id="app" class="hidden">
+  <header class="top">
+    <span class="dot">TM</span><b>KronHaus · Comenzi</b>
+    <span class="spacer"></span>
+    <span class="rate" id="rateTag">1 € = … Ft</span>
+    <span class="who" id="whoTag"></span>
+    <button class="btn ghost sm" id="refreshBtn">Actualizează</button>
+    <button class="btn ghost sm" id="pwBtn">Parola</button>
+    <button class="btn ghost sm" id="logoutBtn">Ieșire</button>
+  </header>
+
+  <div class="wrap">
+    <div class="kpis" id="kpis"></div>
+
+    <div class="toolbar">
+      <input class="grow" type="text" id="search" placeholder="Caută după nume / oraș / număr factură…">
+      <div class="seg" id="segScope">
+        <button data-scope="real" class="on">Reale (TM7)</button>
+        <button data-scope="all">Toate</button>
+        <button data-scope="test">Test</button>
+      </div>
+      <div class="seg" id="segStatus">
+        <button data-st="all" class="on">Toate stările</button>
+        <button data-st="confirmed">Confirmate</button>
+        <button data-st="pending">În așteptare</button>
+      </div>
+    </div>
+
+    <div id="tableWrap"></div>
+  </div>
+</div>
+
+<!-- ============ SCHIMBĂ PAROLA ============ -->
+<div id="pwModal" class="scrim hidden" style="display:flex;align-items:center;justify-content:center;z-index:70;padding:20px">
+  <form class="loginbox" id="pwForm" style="max-width:360px" onsubmit="return false">
+    <div class="brand"><span class="dot">TM</span><b>Schimbă parola</b></div>
+    <label>Parolă nouă</label>
+    <input type="password" id="pw1" minlength="6" placeholder="min. 6 caractere">
+    <label>Confirmă parola</label>
+    <input type="password" id="pw2" minlength="6" placeholder="repetă parola">
+    <div style="display:flex;gap:8px;margin-top:16px">
+      <button class="btn" id="pwSave" style="flex:1">Salvează</button>
+      <button class="btn ghost" id="pwCancel" type="button">Renunță</button>
+    </div>
+    <div class="err" id="pwErr"></div>
+  </form>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script>
+/* ===================== CONFIG ===================== */
+const SUPABASE_URL = "https://yleiqrwjwjazlsjylqjt.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlsZWlxcndqd2phemxzanlscWp0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM5NjYyMDYsImV4cCI6MjEwOTU0MjIwNn0.bEpFs2DVs61BumqYL4qJSYOugxNNUYwbUH29wbjsGPQ";
+const FN = SUPABASE_URL + "/functions/v1";
+const FALLBACK_RATE = 365;          // 1 € = Ft, dacă nu se încarcă cursul live
+const REAL_THRESHOLD = 50000;       // prag comandă reală (Ft)
+
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+let EUR = FALLBACK_RATE;
+let ROWS = [];
+let STATE = { scope:"real", status:"all", q:"" };
+
+/* ===================== HELPERS ===================== */
+const $ = s => document.querySelector(s);
+const ft = n => (n==null?"—":Number(n).toLocaleString("hu-HU")+" Ft");
+const eur = n => (n==null?"":"≈ "+Math.round(Number(n)/EUR).toLocaleString("ro-RO")+" €");
+const esc = s => (s==null?"":String(s)).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+/* traducere statusuri UNAS (maghiară → română), afișate: Română (Maghiară) */
+const HU_STATUS = {
+  "Új":"Nouă", "Új rendelés":"Comandă nouă",
+  "Feldolgozásra vár":"Așteaptă procesare", "Feldolgozás alatt":"În procesare",
+  "Visszaigazolásra vár":"Așteaptă confirmare", "Visszaigazolva":"Confirmată",
+  "Fizetésre vár":"Așteaptă plata", "Fizetve":"Plătită",
+  "Csomagolás alatt":"În ambalare", "Átadva szállításra":"Predată curierului",
+  "Kiszállítás":"În curs de livrare", "Kiszállítás alatt":"În curs de livrare",
+  "Szállítás alatt":"În livrare", "Kiszállítva":"Livrată",
+  "Átvéve":"Ridicată", "Teljesítve":"Finalizată",
+  "Megrendelés lezárva":"Comandă închisă", "Lezárva":"Închisă",
+  "Törölve":"Anulată", "Sztornózva":"Stornată", "Visszaküldve":"Returnată"
+};
+function trStatus(hu){
+  if(!hu) return "—";
+  const ro = HU_STATUS[hu];
+  return ro ? ro+" ("+esc(hu)+")" : esc(hu);
+}
+const PAY_STATUS = { "paid":"plătită", "unpaid":"neplătită", "partly paid":"parțial plătită", "overpaid":"supraplătită" };
+function trPay(s){ return s ? (PAY_STATUS[s]||esc(s)) : "—"; }
+
+function toast(msg){ const t=$("#toast"); t.textContent=msg; t.classList.add("show"); clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove("show"),2600); }
+
+async function loadRate(){
+  try{
+    const r = await fetch("https://api.frankfurter.app/latest?from=EUR&to=HUF");
+    const j = await r.json();
+    if(j && j.rates && j.rates.HUF){ EUR = j.rates.HUF; }
+  }catch(e){ EUR = FALLBACK_RATE; }
+  $("#rateTag").textContent = "1 € = "+Math.round(EUR).toLocaleString("hu-HU")+" Ft";
+}
+
+/* ===================== AUTH ===================== */
+$("#loginForm").addEventListener("submit", async e=>{
+  e.preventDefault();
+  $("#loginErr").textContent=""; $("#loginBtn").disabled=true;
+  const { error } = await sb.auth.signInWithPassword({ email:$("#email").value.trim(), password:$("#password").value });
+  $("#loginBtn").disabled=false;
+  if(error){ $("#loginErr").textContent = "Email sau parolă greșită."; return; }
+  boot();
+});
+$("#logoutBtn").addEventListener("click", async ()=>{ await sb.auth.signOut(); location.reload(); });
+
+/* ---- schimbare parolă ---- */
+$("#pwBtn").addEventListener("click", ()=>{ $("#pw1").value=""; $("#pw2").value=""; $("#pwErr").textContent=""; $("#pwModal").classList.remove("hidden"); });
+$("#pwCancel").addEventListener("click", ()=>$("#pwModal").classList.add("hidden"));
+$("#pwSave").addEventListener("click", async ()=>{
+  const a=$("#pw1").value, b=$("#pw2").value;
+  if(a.length<6){ $("#pwErr").textContent="Minim 6 caractere."; return; }
+  if(a!==b){ $("#pwErr").textContent="Parolele nu coincid."; return; }
+  $("#pwSave").disabled=true;
+  const { error } = await sb.auth.updateUser({ password:a });
+  $("#pwSave").disabled=false;
+  if(error){ $("#pwErr").textContent="Eroare: "+error.message; return; }
+  $("#pwModal").classList.add("hidden"); toast("Parola a fost schimbată ✓");
+});
+
+async function boot(){
+  const { data:{ session } } = await sb.auth.getSession();
+  if(!session){ $("#login").classList.remove("hidden"); $("#app").classList.add("hidden"); return; }
+  $("#login").classList.add("hidden"); $("#app").classList.remove("hidden");
+  $("#whoTag").textContent = session.user.email;
+  await loadRate();
+  await loadOrders();
+}
+
+/* ===================== DATA ===================== */
+async function loadOrders(){
+  const { data, error } = await sb.from("v_orders_truth").select("*").order("order_day",{ascending:false,nullsFirst:false});
+  if(error){ toast("Eroare la încărcare: "+error.message); return; }
+  ROWS = data||[];
+  render();
+}
+
+/* ===================== RENDER LIST ===================== */
+function filtered(){
+  const q = STATE.q.trim().toLowerCase();
+  return ROWS.filter(r=>{
+    if(STATE.scope==="real" && !r.is_real) return false;
+    if(STATE.scope==="test" && r.is_real) return false;
+    if(STATE.status==="confirmed" && !r.is_confirmed_sale) return false;
+    if(STATE.status==="pending" && r.is_confirmed_sale) return false;
+    if(q){
+      const hay = [r.customer_name,r.inv_city,r.invoice_number,r.unas_status,HU_STATUS[r.unas_status]].join(" ").toLowerCase();
+      if(!hay.includes(q)) return false;
+    }
+    return true;
+  });
+}
+function statusChip(r){
+  if(!r.is_real) return '<span class="chip c-grey">Test</span>';
+  if(r.is_confirmed_sale) return '<span class="chip c-ok">Vânzare confirmată</span>';
+  return '<span class="chip c-warn">Plată în așteptare</span>';
+}
+function badges(r){
+  const b=[];
+  b.push(`<span class="badge ${r.is_invoiced?'on':''}">Factură${r.invoice_type?' '+esc(r.invoice_type):''}</span>`);
+  b.push(`<span class="badge ${r.invoice_paid?'on':''}">Factură plătită</span>`);
+  b.push(`<span class="badge ${r.card_paid?'on':''}">Card</span>`);
+  b.push(`<span class="badge ${r.transfer_confirmed?'on':''}">Transfer</span>`);
+  return '<div class="badges">'+b.join("")+'</div>';
+}
+function kpis(list){
+  const real = ROWS.filter(r=>r.is_real);
+  const conf = real.filter(r=>r.is_confirmed_sale);
+  const rev = conf.reduce((s,r)=>s+Number(r.sum_gross||0),0);
+  const pend = real.length-conf.length;
+  const html = [
+    {n:real.length, l:"Comenzi reale (TM7)", e:""},
+    {n:conf.length, l:"Vânzări confirmate", e:""},
+    {n:ft(rev), l:"Venit confirmat", e:eur(rev)},
+    {n:pend, l:"Plată în așteptare", e:""},
+  ].map(k=>`<div class="kpi"><div class="n">${k.n}</div><div class="l">${k.l}</div>${k.e?`<div class="e">${k.e}</div>`:''}</div>`).join("");
+  $("#kpis").innerHTML=html;
+}
+function render(){
+  const list = filtered();
+  kpis(list);
+  if(!list.length){ $("#tableWrap").innerHTML='<div class="empty">Nicio comandă pentru filtrul selectat.</div>'; return; }
+  const rows = list.map(r=>`
+    <tr data-key="${esc(r.key)}">
+      <td><div class="nm">${esc(r.customer_name)||'—'}</div>${badges(r)}</td>
+      <td class="day">${esc(r.order_day)||'—'}${r.inv_city?' · '+esc(r.inv_city):''}</td>
+      <td class="amt">${ft(r.sum_gross)}<span class="eu">${eur(r.sum_gross)}</span></td>
+      <td class="col-status">${statusChip(r)}</td>
+      <td class="col-unas day">${trStatus(r.unas_status)}</td>
+    </tr>`).join("");
+  $("#tableWrap").innerHTML = `<table>
+    <thead><tr><th>Client</th><th>Dată / Oraș</th><th>Sumă</th>
+      <th class="col-status">Stare reală</th><th class="col-unas">Status UNAS</th></tr></thead>
+    <tbody>${rows}</tbody></table>`;
+  document.querySelectorAll("tbody tr").forEach(tr=>tr.addEventListener("click",()=>openDetail(tr.dataset.key)));
+}
+
+/* ===================== DETAIL DRAWER ===================== */
+async function openDetail(key){
+  const r = ROWS.find(x=>x.key===key);
+  const { data:det } = await sb.from("v_order_detail").select("*").eq("key",key).maybeSingle();
+  const d = det || {};
+  const items = (d.details && d.details.items) || [];
+  const itemRows = items.map(i=>`<tr><td>${esc(i.name)||esc(i.sku)}</td><td class="r">${i.quantity||1}×</td><td class="r">${ft(i.price_gross)}</td></tr>`).join("")
+    || '<tr><td colspan="3" style="color:var(--muted)">Fără produse</td></tr>';
+
+  const invBtn = d.invoice_number
+    ? `<button class="btn sm" id="pdfBtn">📄 Vezi factura (${esc(d.invoice_number)})</button>`
+    : `<span class="chip c-grey">Fără factură</span>`;
+
+  const trConf = r.transfer_confirmed;
+  const trBtn = trConf
+    ? `<button class="btn ghost sm" id="trBtn" data-v="0">Anulează transferul</button>`
+    : `<button class="btn sm" id="trBtn" data-v="1">✓ Transfer bancar încasat</button>`;
+  const trLine = trConf
+    ? `<div class="confirmed-line">Transfer confirmat de: ${esc(r.transfer_confirmed_by)||'—'} · ${r.transfer_confirmed_at?new Date(r.transfer_confirmed_at).toLocaleString("ro-RO"):''}</div>`
+    : "";
+
+  const addr = p => [d[p+"_name"],d[p+"_zip"],d[p+"_city"],d[p+"_street"]].filter(Boolean).map(esc).join(" ");
+
+  const scrim=document.createElement("div"); scrim.className="scrim";
+  const dr=document.createElement("div"); dr.className="drawer";
+  dr.innerHTML=`
+    <header>
+      <div>
+        <p class="dtitle">${esc(r.customer_name)||'—'}</p>
+        <p class="dsub">#${esc(r.key)} · ${esc(r.order_day)||''}</p>
+      </div>
+      <button class="x" id="closeDr">×</button>
+    </header>
+    <div class="body">
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        ${statusChip(r)}
+        <div class="amt" style="font-size:20px">${ft(r.sum_gross)} <span style="color:var(--green);font-size:14px">${eur(r.sum_gross)}</span></div>
+      </div>
+      ${badges(r)}
+
+      <div class="actions">${invBtn} ${trBtn}</div>
+      ${trLine}
+      <label style="margin-top:4px">Observație la transfer (opțional)</label>
+      <textarea class="note" id="trNote" placeholder="ex. data extrasului bancar / identificator">${esc(r.transfer_note||'')}</textarea>
+
+      <div class="sect"><h4>Plată</h4>
+        <div class="kv">
+          <span class="k">Status UNAS</span><span>${trStatus(d.unas_status)}</span>
+          <span class="k">Metodă de plată</span><span>${esc(d.payment_name)||'—'} (${trPay(d.payment_status)})</span>
+          <span class="k">Factură</span><span>${d.invoice_number?esc(d.invoice_number):'fără'} ${r.invoice_paid?'· <b style="color:var(--ok)">plătită</b>':(r.is_invoiced?'· <b style="color:var(--warn)">neplătită</b>':'')}</span>
+          <span class="k">Plată cu card</span><span>${r.card_paid?'<b style="color:var(--ok)">da (SimplePay/UNAS)</b>':'neconfirmată'}</span>
+        </div>
+      </div>
+
+      <div class="sect"><h4>Produse</h4>
+        <table class="items"><thead><tr><th>Produs</th><th class="r">Buc</th><th class="r">Brut</th></tr></thead>
+        <tbody>${itemRows}</tbody></table>
+      </div>
+
+      <div class="sect"><h4>Client</h4>
+        <div class="kv">
+          <span class="k">Email</span><span>${esc(d.customer_email)||'—'}</span>
+          <span class="k">Telefon</span><span>${esc(d.customer_mobile)||esc(d.customer_phone)||'—'}</span>
+          <span class="k">Tip</span><span>${esc(d.customer_type)||'—'}${d.inv_tax_number?' · cod fiscal '+esc(d.inv_tax_number):''}</span>
+          <span class="k">Adresă facturare</span><span>${addr('inv')||'—'}</span>
+          <span class="k">Adresă livrare</span><span>${addr('ship')||'—'}</span>
+        </div>
+      </div>
+
+      <div class="sect"><h4>Sursă marketing</h4>
+        <div class="kv">
+          <span class="k">UTM</span><span>${[d.utm_source,d.utm_medium,d.utm_campaign].filter(Boolean).map(esc).join(' / ')||'—'}</span>
+          <span class="k">Cupon</span><span>${esc(d.coupon)||'—'}</span>
+        </div>
+      </div>
+    </div>`;
+  document.body.append(scrim,dr);
+  const close=()=>{ scrim.remove(); dr.remove(); };
+  scrim.onclick=close; dr.querySelector("#closeDr").onclick=close;
+
+  const pdf=dr.querySelector("#pdfBtn");
+  if(pdf) pdf.onclick=()=>openInvoice(d.invoice_number,pdf);
+
+  dr.querySelector("#trBtn").onclick=async (ev)=>{
+    const btn=ev.currentTarget; const makeConfirmed = btn.dataset.v==="1";
+    btn.disabled=true; btn.innerHTML='<span class="spin"></span>Salvez…';
+    const { error } = await sb.rpc("set_transfer",{ p_order_key:key, p_confirmed:makeConfirmed, p_note:dr.querySelector("#trNote").value||null });
+    if(error){ toast("Eroare: "+error.message); btn.disabled=false; return; }
+    toast(makeConfirmed?"Transfer confirmat ✓":"Transfer anulat");
+    close(); await loadOrders();
+  };
+}
+
+/* ---- factură PDF (edge function protejată cu auth) ---- */
+async function openInvoice(szamlaszam, btn){
+  const old=btn.innerHTML; btn.disabled=true; btn.innerHTML='<span class="spin"></span>Factura…';
+  try{
+    const { data:{ session } } = await sb.auth.getSession();
+    const r = await fetch(FN+"/invoice-pdf?szamlaszam="+encodeURIComponent(szamlaszam),{
+      headers:{ Authorization:"Bearer "+session.access_token, apikey:SUPABASE_KEY }});
+    if(!r.ok) throw new Error("HTTP "+r.status);
+    const blob = await r.blob();
+    const url = URL.createObjectURL(blob);
+    window.open(url,"_blank");
+    setTimeout(()=>URL.revokeObjectURL(url),60000);
+  }catch(e){ toast("Factura nu a putut fi încărcată ("+e.message+")"); }
+  btn.disabled=false; btn.innerHTML=old;
+}
+
+/* ===================== ACTUALIZARE (sync) ===================== */
+let lastRefresh=0;
+$("#refreshBtn").addEventListener("click", async ()=>{
+  const now=Date.now();
+  if(now-lastRefresh < 60000){ toast("Puțină răbdare — actualizare o dată pe minut."); return; }
+  lastRefresh=now;
+  const btn=$("#refreshBtn"); btn.disabled=true; const old=btn.textContent; btn.innerHTML='<span class="spin"></span>Sincronizare…';
+  try{
+    const { data:{ session } } = await sb.auth.getSession();
+    const h={ Authorization:"Bearer "+session.access_token, apikey:SUPABASE_KEY };
+    await fetch(FN+"/unas-sync?days=35",{ headers:h });
+    await fetch(FN+"/szamla-sync",{ headers:h });
+    await loadOrders();
+    toast("Actualizat din UNAS și Számlázz ✓");
+  }catch(e){ toast("Eroare la actualizare: "+e.message); }
+  btn.disabled=false; btn.textContent=old;
+});
+
+/* ===================== FILTER WIRING ===================== */
+$("#search").addEventListener("input", e=>{ STATE.q=e.target.value; render(); });
+$("#segScope").addEventListener("click", e=>{ const b=e.target.closest("button"); if(!b)return;
+  STATE.scope=b.dataset.scope; $("#segScope").querySelectorAll("button").forEach(x=>x.classList.toggle("on",x===b)); render(); });
+$("#segStatus").addEventListener("click", e=>{ const b=e.target.closest("button"); if(!b)return;
+  STATE.status=b.dataset.st; $("#segStatus").querySelectorAll("button").forEach(x=>x.classList.toggle("on",x===b)); render(); });
+
+/* ===================== START ===================== */
+boot();
+</script>
+</body>
+</html>
