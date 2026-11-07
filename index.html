@@ -384,6 +384,11 @@
   .mapbox{margin-top:8px;border:1px solid var(--line);border-radius:8px;overflow:hidden;height:260px}
   .mapbox iframe{width:100%;height:100%;border:0;display:block}
   .ltable input.ldate{padding:2px 4px;font-size:12px;height:24px;width:auto}
+  .ltable input.lest{width:84px;border:1px solid transparent;background:transparent;padding:2px 4px;font-size:12px;height:24px;border-radius:5px;color:var(--ink)}
+  .ltable input.lest:hover,.ltable input.lest:focus{border-color:var(--line);background:#fff}
+  .estrow{display:flex;align-items:center;gap:8px}
+  .estrow input{width:80px}
+  .estrow span{font-size:13px;color:var(--muted)}
   .ltable select.lsel{height:24px}
   .ltable tr.lgrp td{background:color-mix(in srgb, var(--pc) 9%, #fff)!important;border-top:2px solid color-mix(in srgb, var(--pc) 35%, #fff);border-bottom:1px solid color-mix(in srgb, var(--pc) 25%, #fff);height:40px;cursor:pointer;padding:0}
   .ltable tr.lgrp:hover td{background:color-mix(in srgb, var(--pc) 15%, #fff)!important}
@@ -1525,7 +1530,18 @@ function attachMention(ta){
 const BUCKET = "task-files";
 let PROJ=[], TASKS=[], CUR_PROJ="all", SHOW_ARCH=false, PVIEW="dash", TL_ZOOM="auto", PCH={}, CAL_M=null;
 let F = { q:"", who:"", pr:"", late:false };
-let HAS_START=null, HAS_PARENT=null;
+let HAS_START=null, HAS_PARENT=null, HAS_EST=null;
+// timp estimat: în baza de date în minute; afișat „2 h 30 min”
+const fmtEst = m => { m=+m; if(!(m>0)) return ""; const h=Math.floor(m/60), r=m%60; return (h?h+" h":"") + (h&&r?" ":"") + (r?r+" min":""); };
+function parseEst(v){
+  v = String(v||"").trim().toLowerCase().replace(",", ".");
+  if(!v) return null;
+  let m = v.match(/^(\d+):(\d{1,2})$/); if(m) return (+m[1])*60 + (+m[2]);
+  m = v.match(/^(?:(\d+(?:\.\d+)?)\s*(?:h|ore|ora|oră)\s*)?(?:(\d+)\s*(?:m|min|minute)?)?$/);
+  if(m && (m[1]||m[2]) && /[hmo]/.test(v)) return Math.round((+(m[1]||0))*60 + (+(m[2]||0)));
+  if(/^\d+(\.\d+)?$/.test(v)) return Math.round(parseFloat(v)*60);   // număr simplu = ore
+  return NaN;
+}
 const safeColor = c => /^#[0-9a-f]{6}$/i.test(c||"") ? c : "#00653e";
 const todayISO = () => { const d=new Date(); d.setMinutes(d.getMinutes()-d.getTimezoneOffset()); return d.toISOString().slice(0,10); };
 const fmtDay = d => d ? new Date(d+"T00:00:00").toLocaleDateString("ro-RO",{day:"numeric",month:"short"}) : "";
@@ -1549,10 +1565,10 @@ async function loadProjects(){
   if(p.error||t.error){ $("#projWrap").innerHTML='<div class="empty">Eroare: '+esc((p.error||t.error).message)+'</div>'; return; }
   PROJ=p.data||[]; TASKS=t.data||[];
   if(HAS_START===null){
-    if(TASKS.length){ HAS_START=("start_date" in TASKS[0]); HAS_PARENT=("parent_id" in TASKS[0]); }
+    if(TASKS.length){ HAS_START=("start_date" in TASKS[0]); HAS_PARENT=("parent_id" in TASKS[0]); HAS_EST=("estimate_min" in TASKS[0]); }
     else {
-      const [a,b]=await Promise.all([sb.from("tasks").select("start_date").limit(1), sb.from("tasks").select("parent_id").limit(1)]);
-      HAS_START=!a.error; HAS_PARENT=!b.error;
+      const [a,b,c]=await Promise.all([sb.from("tasks").select("start_date").limit(1), sb.from("tasks").select("parent_id").limit(1), sb.from("tasks").select("estimate_min").limit(1)]);
+      HAS_START=!a.error; HAS_PARENT=!b.error; HAS_EST=!c.error;
     }
   }
   if(CUR_PROJ!=="all" && !PROJ.find(x=>x.id===CUR_PROJ)) CUR_PROJ="all";
@@ -1770,6 +1786,7 @@ function renderBoard(){
         <span class="chip pr-${esc(t.priority||'med')}">${T_PRIO[t.priority]||'Normal'}</span>
         ${t.assignee_name?`<span class="who">${esc(t.assignee_name)}</span>`:''}
         ${(t.supporters||[]).length?`<span title="Suport">+ ${(t.supporters||[]).map(esc).join(", ")}</span>`:''}
+        ${HAS_EST&&t.estimate_min?`<span title="Timp estimat">⏱ ${fmtEst(t.estimate_min)}</span>`:''}
         ${t.status==='review'&&t.reviewer?`<span class="rev" title="Verifică">${ic("eye",12)} ${esc(t.reviewer)}</span>`:''}
         ${t.due_date?`<span class="due ${late?'late':''}">${ic('calendar',13)}${fmtDay(t.due_date)}${late?' · întârziat':''}</span>`:''}
         ${durBadge(t)} ${subBadge(t)}
@@ -1840,6 +1857,7 @@ function renderList(keepScroll){
     prio:(a,b)=>(PRIO_ORD[a.priority||"med"]-PRIO_ORD[b.priority||"med"]),
     st:(a,b)=>(ST_ORD[a.status||"todo"]-ST_ORD[b.status||"todo"]),
     due:(a,b)=>(a.due_date||"9999").localeCompare(b.due_date||"9999"),
+    est:(a,b)=>(a.estimate_min??1e9)-(b.estimate_min??1e9),
     created:(a,b)=>new Date(a.created_at)-new Date(b.created_at),
     updated:(a,b)=>new Date(a.updated_at||a.created_at)-new Date(b.updated_at||b.created_at)
   }[k] || ((a,b)=>0);
@@ -1869,6 +1887,7 @@ function renderList(keepScroll){
       <td>${isSub?'<span class="lmuted">—</span>':prSel(t)}</td>
       <td>${stSel(t)}</td>
       <td><input type="date" class="ldate ${late?'late':''}" data-f="due_date" value="${esc(t.due_date||'')}"></td>
+      ${HAS_EST?`<td><input type="text" class="lest" value="${esc(fmtEst(t.estimate_min))}" placeholder="—" title="Timp estimat — ex. 2h 30m, 1:30, 45m sau 2 (= 2 ore)"></td>`:''}
       <td class="lnotes"><textarea class="lnote" data-f="notes" rows="1" placeholder="+ observație (@nume = anunț pe Slack)">${esc(t.notes||'')}</textarea></td>
       <td class="lmuted lts">${fdts(t.created_at)}</td>
       <td class="lmuted lts">${fdts(t.updated_at||t.created_at)}</td>
@@ -1884,18 +1903,21 @@ function renderList(keepScroll){
   const allOpen = groups.length && groups.every(g=>g.open);
   const grpRow = g => {
     const n=g.items.length, d=g.items.filter(t=>t.status==="done").length, lt=g.items.filter(isLate).length, ip=g.items.filter(t=>t.status==="doing").length;
-    return `<tr class="lgrp ${g.open?'open':''}" data-grp="${g.p.id}" style="--pc:${safeColor(g.p.color)}"><td colspan="11"><div class="lgh">
+    return `<tr class="lgrp ${g.open?'open':''}" data-grp="${g.p.id}" style="--pc:${safeColor(g.p.color)}"><td colspan="${HAS_EST?12:11}"><div class="lgh">
       <span class="ltog ${g.open?'open':''}">${ic("chevron",15)}</span><span class="pd"></span><b>${esc(g.p.name)}</b>
       <span class="lgc">${n} ${n===1?'task':'taskuri'}</span>
       ${n?`<span class="lgbar" title="${d} din ${n} gata"><i style="width:${Math.round(d*100/n)}%"></i></span><span class="lgc">${d}/${n} gata</span>`:''}
       ${ip?`<span class="lgtag t-doing">${ip} în lucru</span>`:''}
       ${lt?`<span class="lgtag t-late">${lt} ${lt===1?'întârziat':'întârziate'}</span>`:''}
+      ${(()=>{ if(!HAS_EST) return ''; const all=g.items.reduce((a,t)=>a+(+t.estimate_min||0),0); if(!all) return '';
+        const left=g.items.filter(t=>t.status!=="done").reduce((a,t)=>a+(+t.estimate_min||0),0);
+        return `<span class="lgc" title="Timp estimat: total / rămas (fără taskurile gata)">⏱ ${fmtEst(all)}${left!==all?' · rămas '+(fmtEst(left)||'0'):''}</span>`; })()}
       <button class="lgadd" data-addcat="${g.p.id}">+ Task</button></div></td></tr>`;
   };
   $("#projWrap").innerHTML = projHeader() + (L.length ? `
     <div class="tscroll" id="listBox"><table class="ltable">
-      <thead><tr>${th("no","Task","lwork")}${th("who","Responsabil")}<th>Verifică</th><th>Suport</th><th>Raportor</th>${th("prio","Prioritate")}${th("st","Stare")}${th("due","Termen")}<th class="lnotes">Observații</th>${th("created","Creat")}${th("updated","Actualizat")}</tr></thead>
-      <tbody>${groups.map(g=>grpRow(g) + (g.open ? (g.items.length ? g.items.map(t=>row(t,false)).join("") : `<tr class="lempty"><td class="lwork" colspan="11"><span class="lmuted">Niciun task în această categorie.</span></td></tr>`) : "")).join("")}</tbody>
+      <thead><tr>${th("no","Task","lwork")}${th("who","Responsabil")}<th>Verifică</th><th>Suport</th><th>Raportor</th>${th("prio","Prioritate")}${th("st","Stare")}${th("due","Termen")}${HAS_EST?th("est","Estimat"):''}<th class="lnotes">Observații</th>${th("created","Creat")}${th("updated","Actualizat")}</tr></thead>
+      <tbody>${groups.map(g=>grpRow(g) + (g.open ? (g.items.length ? g.items.map(t=>row(t,false)).join("") : `<tr class="lempty"><td class="lwork" colspan="${HAS_EST?12:11}"><span class="lmuted">Niciun task în această categorie.</span></td></tr>`) : "")).join("")}</tbody>
     </table></div>
     <div class="lfoot"><button class="btn ghost sm" id="lAdd">+ Task</button><span class="day">${L.length} ${L.length===1?'task':'taskuri'} în ${groups.length} ${groups.length===1?'categorie':'categorii'} · click pe o categorie ca s-o deschizi, pe titlu pentru detalii</span></div>`
     : '<div class="empty">Niciun task pentru filtrul ales.</div>');
@@ -1928,6 +1950,16 @@ function renderList(keepScroll){
     });
     const dt = tr.querySelector("input.ldate");
     if(dt) dt.onchange = async()=>{ if(await updTask(t, { due_date: dt.value || null })) renderList(true); };
+    const es = tr.querySelector("input.lest");
+    if(es){
+      es.addEventListener("keydown", e=>{ if(e.key==="Enter"){ e.preventDefault(); es.blur(); } if(e.key==="Escape"){ es.value=fmtEst(t.estimate_min); es.blur(); } });
+      es.addEventListener("blur", async()=>{
+        const v = parseEst(es.value);
+        if(Number.isNaN(v)){ toast("Nu înțeleg timpul — scrieți ex. 2h 30m, 1:30 sau 45m"); es.value=fmtEst(t.estimate_min); return; }
+        if((v||null) === (t.estimate_min||null)){ es.value=fmtEst(t.estimate_min); return; }
+        if(await updTask(t, { estimate_min: v||null }, v?"Estimat: "+fmtEst(v)+" ✓":"Estimare ștearsă")) renderList(true);
+      });
+    }
     const nt = tr.querySelector("textarea.lnote");
     if(nt){
       attachMention(nt);
@@ -2212,6 +2244,9 @@ function openTask(t, preset){
         <div><label>Termen</label><input type="date" id="tDue" value="${esc(due0)}"></div>
       </div><p class="cnote" style="margin:8px 0 0">Scrieți numărul de zile și termenul se calculează singur (sau invers).</p>`
       :`<label>Termen</label><input type="date" id="tDue" value="${esc(due0)}">`}
+      ${HAS_EST?`<label>Timp estimat <span class="day" style="font-weight:400">(cât durează munca efectivă)</span></label>
+      <div class="estrow"><input type="number" id="tEstH" min="0" max="999" value="${t&&t.estimate_min?Math.floor(t.estimate_min/60):''}" placeholder="0"><span>ore</span>
+        <input type="number" id="tEstM" min="0" max="59" step="5" value="${t&&t.estimate_min?t.estimate_min%60:''}" placeholder="0"><span>minute</span></div>`:''}
       </section>
 
       ${HAS_PARENT?`<section class="tsec s-subs"><h5>${ic("check",15)} Subtaskuri <span id="subCnt"></span></h5>
@@ -2353,6 +2388,11 @@ function openTask(t, preset){
       supporters:[...q("#tSup").querySelectorAll("button.on")].map(b=>b.dataset.n).filter(n=>n!==q("#tWho").value),
       reviewer:q("#tRev").value||null, updated_by_name:myFirst(),
       due_date:due, updated_at:new Date().toISOString() };
+    if(HAS_EST){
+      const eh=parseInt(q("#tEstH").value||"0",10), em=parseInt(q("#tEstM").value||"0",10);
+      if(eh<0 || em<0 || em>59 || Number.isNaN(eh) || Number.isNaN(em)){ q("#tErr").textContent="Timp estimat: ore ≥ 0, minute între 0 și 59."; return; }
+      rec.estimate_min = (eh*60+em) || null;
+    }
     if(HAS_START){
       rec.start_date=q("#tStart").value||null;
       if(rec.start_date && due && rec.start_date>due){ q("#tErr").textContent="Începutul e după termen."; return; }
