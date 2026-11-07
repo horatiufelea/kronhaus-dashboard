@@ -324,6 +324,57 @@
   .file > span:first-child{flex:1;display:inline-flex;align-items:center;gap:7px}
   label.fileBtn{display:inline-flex;margin:0;cursor:pointer}
 
+  /* ---- Proiecte · Listă ---- */
+  .ltable{font-size:13px}
+  .ltable thead th{background:#F5F5F4;border-bottom:1px solid #DCD9D6;color:#57534E;font-weight:600;padding:10px 10px;cursor:pointer;user-select:none}
+  .ltable thead th:not([data-sort]){cursor:default}
+  .ltable thead th.sorted{color:var(--ink)}
+  .ltable td{padding:6px 10px;border-bottom:1px solid var(--line);vertical-align:middle;white-space:nowrap}
+  .ltable tbody tr{cursor:default}
+  .ltable tbody tr:hover td{background:var(--hover)!important}
+  .ltable tbody tr:nth-child(even) td{background:var(--zebra)}
+  .ltable tr.lsub td{background:#FCFCFB}
+  .ltable .lwork{min-width:320px;max-width:440px}
+  .ltable td.lwork,.ltable th.lwork{position:sticky;left:0;z-index:2;background:#fff;box-shadow:inset -1px 0 0 var(--line)}
+  .ltable thead th.lwork{background:#F5F5F4;z-index:3}
+  .ltable tbody tr:nth-child(even) td.lwork{background:var(--zebra)}
+  .ltable tr.lsub td.lwork{background:#FCFCFB}
+  .lw{display:flex;align-items:center;gap:8px;min-width:0}
+  .ltog{width:20px;height:20px;border:none;background:none;padding:0;color:var(--muted);display:grid;place-items:center;border-radius:4px;flex-shrink:0}
+  .ltog:hover{background:var(--greybg);color:var(--ink)}
+  .ltog .ico{transition:transform .15s;vertical-align:0}
+  .ltog.open .ico{transform:rotate(90deg)}
+  .ltogsp{width:20px;flex-shrink:0}
+  .lind{width:20px;margin-left:20px;color:var(--faint);flex-shrink:0;display:grid;place-items:center}
+  .lkey{color:var(--blue);font-weight:600;text-decoration:none;font-size:12.5px;flex-shrink:0}
+  .lkey:hover{text-decoration:underline}
+  .ldone .lkey{text-decoration:line-through;color:var(--faint)}
+  .ltitle{color:var(--ink);text-decoration:none;overflow:hidden;text-overflow:ellipsis;min-width:0}
+  .ltitle:hover{text-decoration:underline}
+  .ldone .ltitle{color:var(--muted)}
+  .lmeta{font-size:11.5px;color:var(--muted);border:1px solid var(--line);border-radius:4px;padding:0 5px;flex-shrink:0}
+  .lclip{display:inline-flex;align-items:center;gap:2px;font-size:11.5px;color:var(--muted);text-decoration:none;flex-shrink:0}
+  .lclip:hover{color:var(--ink)}
+  .lcat{color:var(--grey)}
+  .lcat .pd{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:6px}
+  .lmuted{color:var(--muted)}
+  .lts{font-size:12px}
+  .lsel{width:auto;border:1px solid transparent;background:transparent;padding:4px 6px;font-size:12.5px;border-radius:5px;cursor:pointer;color:var(--ink)}
+  .lsel:hover{border-color:var(--line);background:#fff}
+  .lsel.st-todo{background:var(--greybg);color:var(--grey);font-weight:600}
+  .lsel.st-doing{background:var(--bluebg);color:var(--blue);font-weight:600}
+  .lsel.st-done{background:var(--okbg);color:var(--ok);font-weight:600}
+  .lsel.pr-high{color:var(--err);font-weight:600} .lsel.pr-med{color:var(--warn)} .lsel.pr-low{color:var(--grey)}
+  .ldate{width:auto;border:1px solid transparent;background:transparent;padding:4px 6px;font-size:12.5px;border-radius:5px;color:var(--ink)}
+  .ldate:hover,.ldate:focus{border-color:var(--line);background:#fff}
+  .ldate.late{color:var(--err);font-weight:600}
+  .lnotes{min-width:260px;width:30%;white-space:normal!important}
+  .lnote{width:100%;min-height:30px;resize:none;border:1px solid transparent;background:transparent;padding:5px 7px;font-size:12.5px;line-height:1.4;border-radius:5px;color:var(--ink);overflow:hidden}
+  .lnote::placeholder{color:var(--faint)}
+  .lnote:hover{border-color:var(--line);background:#fff}
+  .lnote:focus{background:#fff;border-color:var(--accent);box-shadow:0 0 0 3px rgba(0,132,61,.12)}
+  .lfoot{display:flex;align-items:center;gap:12px;margin-top:10px}
+
   /* ---- Proiecte · timeline ---- */
   .tlbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
   .tl{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);overflow:auto;max-height:70vh}
@@ -512,6 +563,7 @@
     <div class="projbar" id="projBar"></div>
     <div class="tabs" id="projTabs">
       <button data-pv="dash" class="on"><i data-ic="dashboard" data-s="15"></i>Rezumat</button>
+      <button data-pv="list"><i data-ic="list" data-s="15"></i>Listă</button>
       <button data-pv="board"><i data-ic="columns" data-s="15"></i>Tablă</button>
       <button data-pv="timeline"><i data-ic="gantt" data-s="15"></i>Timeline</button>
       <button data-pv="calendar"><i data-ic="calendar" data-s="15"></i>Calendar</button>
@@ -652,6 +704,9 @@ const ICONS = {
   x:'<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',
   dashboard:'<rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/>',
   columns:'<rect width="18" height="18" x="3" y="3" rx="2"/><path d="M9 3v18"/><path d="M15 3v18"/>',
+  list:'<path d="M3 12h.01"/><path d="M3 18h.01"/><path d="M3 6h.01"/><path d="M8 12h13"/><path d="M8 18h13"/><path d="M8 6h13"/>',
+  chevron:'<path d="m9 18 6-6-6-6"/>',
+  sub:'<path d="M4 4v7a4 4 0 0 0 4 4h12"/><path d="m15 10 5 5-5 5"/>',
   gantt:'<path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="M7 7h8"/><path d="M11 12h8"/><path d="M8 17h6"/>',
   sign:'<path d="M20 19.5v.5a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8.5L18 5.5"/><path d="M8 18h1"/><path d="M18.42 9.61a2.1 2.1 0 1 1 2.97 2.97L16.95 17 13 18l.99-3.95 4.43-4.44Z"/>',
   mail:'<rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>',
@@ -736,7 +791,7 @@ async function boot(){
   const md = session.user.user_metadata||{};
   ME = { id:session.user.id, name: md.full_name || md.name || session.user.email.split("@")[0] };
   { const nm = ME.name.replace(/[._-]+/g," ").replace(/\b\w/g,c=>c.toUpperCase());
-    $("#meName").textContent = nm; $("#avTag").textContent = nm.split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase(); }
+    ME.disp = nm; $("#meName").textContent = nm; $("#avTag").textContent = nm.split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase(); }
   await loadRate();
   await loadOrders();
   showModule(modFromHash(), true);
@@ -921,8 +976,9 @@ function payCell(r){
 function invCell(r){
   const n=r.szamlaszam||r.invoice_number;
   if(!n) return '<span class="chip c-grey">fără factură</span>';
-  const paid=r.invoice_paid?'<span class="chip c-ok">plătită</span>':'<span class="chip c-warn">neplătită</span>';
-  return `${paid}<div class="sub2">${esc(n)}${r.invoice_type&&r.invoice_type!=="SZ"?' · '+(INV_TYPE[r.invoice_type]||esc(r.invoice_type)):''}</div>`;
+  const typ = r.invoice_type&&r.invoice_type!=="SZ" ? (INV_TYPE[r.invoice_type]||esc(r.invoice_type)) : "factură";
+  return `<span class="chip c-ok">emisă</span><div class="sub2">${esc(n)}${typ!=="factură"?' · '+typ:''}</div>`
+       + `<div class="sub2">${r.invoice_paid?'marcată plătită în Számlázz':'<span style="color:var(--warn)">nemarcată plătită în Számlázz</span>'}</div>`;
 }
 
 function render(){
@@ -1049,7 +1105,7 @@ async function openDetail(key){
           <span class="k">Metodă de plată</span><span>${PAY_RO[pk]}${d.payment_name?` <span class="day">(${esc(d.payment_name)})</span>`:''}</span>
           <span class="k">${proofLine[0]}</span><span>${proofLine[1]}</span>
           ${(pk!=="card" && r.card_paid)?'<span class="k">Plată cu cardul</span><span><b style="color:var(--ok)">reușită</b></span>':''}
-          <span class="k">Factură</span><span>${d.invoice_number?esc(d.invoice_number)+(r.invoice_paid?' · <b style="color:var(--ok)">plătită</b>':' · <b style="color:var(--warn)">neplătită</b>'):'nu e emisă încă'}</span>
+          <span class="k">Factură</span><span>${d.invoice_number?'<b style="color:var(--ok)">emisă</b> · '+esc(d.invoice_number)+(r.invoice_paid?' <span class="day">· marcată plătită în Számlázz</span>':' <span class="day" style="color:var(--warn)">· nemarcată plătită în Számlázz</span>'):'nu e emisă încă'}</span>
           <span class="k">Status shop</span><span>${trStatus(d.unas_status)}${d.payment_status?` <span class="day">· plată în UNAS: ${trPay(d.payment_status)}</span>`:''}</span>`;
   const trLine = trConf
     ? `<div class="confirmed-line">Transfer confirmat de: ${esc(r.transfer_confirmed_by)||'—'} · ${r.transfer_confirmed_at?new Date(r.transfer_confirmed_at).toLocaleString("ro-RO"):''}</div>`
@@ -1324,6 +1380,18 @@ async function loadProjects(){
   }
   if(CUR_PROJ!=="all" && !PROJ.find(x=>x.id===CUR_PROJ)) CUR_PROJ="all";
   renderProjects();
+  loadFileCounts();
+}
+let FILECNT = {};
+async function loadFileCounts(){
+  try{
+    const { data, error } = await sb.storage.from(BUCKET).list("", { limit:1000 });
+    if(error || !data) return;
+    const folders = data.filter(x=>x.id===null || !x.metadata).map(x=>x.name);
+    const res = await Promise.all(folders.map(f=>sb.storage.from(BUCKET).list(f,{limit:100}).then(r=>[f,(r.data||[]).filter(x=>x.id!==null).length]).catch(()=>[f,0])));
+    FILECNT = Object.fromEntries(res.filter(x=>x[1]>0));
+    if(PVIEW==="list" && activeMod==="proiecte") renderList(true);
+  }catch(e){ /* fără iconițe dacă nu merge */ }
 }
 
 /* taskurile din categoria curentă (sau toate categoriile active) */
@@ -1376,6 +1444,7 @@ function renderProjects(){
   if(PVIEW==="dash") renderProjDash();
   else if(PVIEW==="timeline") renderTimeline();
   else if(PVIEW==="calendar") renderCalendar();
+  else if(PVIEW==="list") renderList();
   else renderBoard();
 }
 $("#projTabs").addEventListener("click", e=>{ const b=e.target.closest("button"); if(!b) return; PVIEW=b.dataset.pv; renderProjects(); });
@@ -1557,6 +1626,101 @@ function renderBoard(){
       if(!t || t.status===col.dataset.st) return;
       await moveTask(t, col.dataset.st);
     });
+  });
+}
+
+
+/* ---------- LISTĂ (stil Jira: totul editabil direct din tabel) ---------- */
+let LSORT = { k:"no", dir:1 }, LOPEN = new Set();
+const PRIO_ORD = { high:0, med:1, low:2 };
+const ST_ORD = { todo:0, doing:1, done:2 };
+const tkey = t => t.task_no ? "KH-"+t.task_no : "KH-?";
+const fdts = ts => ts ? new Date(ts).toLocaleString("ro-RO",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"}) : "—";
+async function updTask(t, patch, msg){
+  const now = new Date().toISOString();
+  const old = {}; Object.keys(patch).forEach(k=>old[k]=t[k]);
+  Object.assign(t, patch, { updated_at:now });
+  const { error } = await sb.from("tasks").update({ ...patch, updated_at:now }).eq("id", t.id);
+  if(error){ Object.assign(t, old); toast("Eroare: "+error.message); renderList(true); return false; }
+  if(msg!==false) toast(msg||"Salvat ✓");
+  return true;
+}
+function renderList(keepScroll){
+  const box = $("#listBox"); const sx = keepScroll && box ? box.scrollLeft : 0, sy = window.scrollY;
+  let L = viewTasks();
+  const dir = LSORT.dir, k = LSORT.k;
+  const cmp = {
+    no:(a,b)=>(a.task_no||0)-(b.task_no||0),
+    title:(a,b)=>(a.title||"").localeCompare(b.title||"","ro"),
+    cat:(a,b)=>projOf(a).name.localeCompare(projOf(b).name,"ro"),
+    who:(a,b)=>(a.assignee_name||"~").localeCompare(b.assignee_name||"~","ro"),
+    prio:(a,b)=>(PRIO_ORD[a.priority||"med"]-PRIO_ORD[b.priority||"med"]),
+    st:(a,b)=>(ST_ORD[a.status||"todo"]-ST_ORD[b.status||"todo"]),
+    due:(a,b)=>(a.due_date||"9999").localeCompare(b.due_date||"9999"),
+    created:(a,b)=>new Date(a.created_at)-new Date(b.created_at),
+    updated:(a,b)=>new Date(a.updated_at||a.created_at)-new Date(b.updated_at||b.created_at)
+  }[k] || ((a,b)=>0);
+  L = [...L].sort((a,b)=>cmp(a,b)*dir || (a.task_no||0)-(b.task_no||0));
+  const today = todayISO();
+  const peopleOpt = cur => `<option value="">— nimeni —</option>` + [...new Set([...TEAM, ...(cur&&!TEAM.includes(cur)?[cur]:[])])].map(n=>`<option ${n===cur?'selected':''}>${esc(n)}</option>`).join("");
+  const stSel = t => `<select class="lsel st-${t.status||'todo'}" data-f="status">${T_STATUS.map(s=>`<option value="${s.k}" ${(t.status||'todo')===s.k?'selected':''}>${s.l}</option>`).join("")}</select>`;
+  const prSel = t => `<select class="lsel pr-${t.priority||'med'}" data-f="priority">${Object.entries(T_PRIO).map(([k2,l])=>`<option value="${k2}" ${(t.priority||'med')===k2?'selected':''}>${l}</option>`).join("")}</select>`;
+  const row = (t, isSub) => {
+    const subs = subsOf(t), open = LOPEN.has(t.id) || (filtersOn() && subs.length);
+    const late = isLate(t), nf = FILECNT[t.id]||0, pj = projOf(t);
+    const doneSubs = subs.filter(x=>x.status==="done").length;
+    return `<tr data-id="${t.id}" class="${isSub?'lsub':''} ${t.status==='done'?'ldone':''}">
+      <td class="lwork">
+        <div class="lw">
+          ${isSub?`<span class="lind">${ic("sub",14)}</span>`:(subs.length?`<button class="ltog ${open?'open':''}" data-tog="${t.id}" title="${open?'Ascunde':'Arată'} subtaskurile">${ic("chevron",14)}</button>`:'<span class="ltogsp"></span>')}
+          <a href="#" class="lkey" data-open="${isSub?t.parent_id:t.id}">${tkey(t)}</a>
+          <a href="#" class="ltitle" data-open="${isSub?t.parent_id:t.id}">${esc(t.title)}</a>
+          ${subs.length?`<span class="lmeta" title="subtaskuri gata">${doneSubs}/${subs.length}</span>`:''}
+          ${nf?`<a href="#" class="lclip" data-open="${isSub?t.parent_id:t.id}" title="${nf} ${nf===1?'fișier atașat':'fișiere atașate'} — deschide taskul">${ic("clip",13)}${nf}</a>`:''}
+        </div>
+      </td>
+      <td class="lcat">${isSub?'':`<span class="pd" style="background:${safeColor(pj.color)}"></span>${esc(pj.name)}`}</td>
+      <td><select class="lsel lwho" data-f="assignee_name">${peopleOpt(t.assignee_name)}</select></td>
+      <td class="lmuted">${esc(t.created_by_name)||'—'}</td>
+      <td>${isSub?'<span class="lmuted">—</span>':prSel(t)}</td>
+      <td>${stSel(t)}</td>
+      <td><input type="date" class="ldate ${late?'late':''}" data-f="due_date" value="${esc(t.due_date||'')}"></td>
+      <td class="lnotes"><textarea class="lnote" data-f="notes" rows="1" placeholder="+ observație">${esc(t.notes||'')}</textarea></td>
+      <td class="lmuted lts">${fdts(t.created_at)}</td>
+      <td class="lmuted lts">${fdts(t.updated_at||t.created_at)}</td>
+    </tr>` + (open && !isSub ? subs.sort((a,b)=>(a.position||0)-(b.position||0)).map(x=>row(x,true)).join("") : "");
+  };
+  const th = (key,label,cls) => `<th class="${cls||''} ${LSORT.k===key?'sorted':''}" data-sort="${key}">${label}${LSORT.k===key?(LSORT.dir>0?' ↑':' ↓'):''}</th>`;
+  $("#projWrap").innerHTML = projHeader() + (L.length ? `
+    <div class="tscroll" id="listBox"><table class="ltable">
+      <thead><tr>${th("no","Task","lwork")}${th("cat","Categorie")}${th("who","Responsabil")}<th>Raportor</th>${th("prio","Prioritate")}${th("st","Stare")}${th("due","Termen")}<th class="lnotes">Observații</th>${th("created","Creat")}${th("updated","Actualizat")}</tr></thead>
+      <tbody>${L.map(t=>row(t,false)).join("")}</tbody>
+    </table></div>
+    <div class="lfoot"><button class="btn ghost sm" id="lAdd">+ Task</button><span class="day">${L.length} ${L.length===1?'task':'taskuri'} · click pe titlu pentru detalii, fișiere și subtaskuri</span></div>`
+    : '<div class="empty">Niciun task pentru filtrul ales.</div>');
+  wireHeader();
+  const nb = $("#listBox"); if(nb && sx) nb.scrollLeft = sx; if(keepScroll) window.scrollTo(0, sy);
+  const la = $("#lAdd"); if(la) la.onclick = ()=>openTask(null,{status:"todo"});
+  const W = $("#projWrap");
+  W.querySelectorAll("th[data-sort]").forEach(h=>h.onclick=()=>{ const k2=h.dataset.sort; LSORT = { k:k2, dir: LSORT.k===k2 ? -LSORT.dir : 1 }; renderList(true); });
+  W.querySelectorAll("[data-tog]").forEach(b=>b.onclick=e=>{ e.preventDefault(); const id=b.dataset.tog; LOPEN.has(id)?LOPEN.delete(id):LOPEN.add(id); renderList(true); });
+  W.querySelectorAll("[data-open]").forEach(a=>a.onclick=e=>{ e.preventDefault(); openTask(TASKS.find(x=>x.id===a.dataset.open)); });
+  W.querySelectorAll("tbody tr").forEach(tr=>{
+    const t = TASKS.find(x=>x.id===tr.dataset.id); if(!t) return;
+    tr.querySelectorAll("select.lsel").forEach(sel=>sel.onchange=async()=>{
+      const f = sel.dataset.f, v = sel.value || null;
+      if(f==="status" && !t.parent_id){ await moveTask(t, v); return; }   // re-randează singur
+      if(await updTask(t, { [f]: v }, f==="status"&&v==="done"?"Gata ✓":undefined)) renderList(true);
+    });
+    const dt = tr.querySelector("input.ldate");
+    if(dt) dt.onchange = async()=>{ if(await updTask(t, { due_date: dt.value || null })) renderList(true); };
+    const nt = tr.querySelector("textarea.lnote");
+    if(nt){
+      const fit = ()=>{ nt.style.height="auto"; nt.style.height=Math.min(nt.scrollHeight,160)+"px"; };
+      fit(); nt.addEventListener("input", fit);
+      nt.addEventListener("keydown", e=>{ if(e.key==="Enter" && !e.shiftKey){ e.preventDefault(); nt.blur(); } if(e.key==="Escape"){ nt.value=t.notes||""; nt.blur(); } });
+      nt.addEventListener("blur", async()=>{ const v = nt.value.trim(); if(v === (t.notes||"")) return; if(await updTask(t, { notes: v||null }, "Observație salvată ✓")) renderList(true); });
+    }
   });
 }
 
@@ -1771,6 +1935,7 @@ function openTask(t, preset){
       <label>Titlu</label><input type="text" id="tTitle" maxlength="200" value="${esc(t?t.title:'')}" placeholder="ce trebuie făcut">
       <label>Categorie</label><select id="tProj">${projOpts}</select>
       <label>Detalii</label><textarea id="tDesc" rows="3" placeholder="detalii, linkuri, pași…">${esc(t?t.description||'':'')}</textarea>
+      <label>Observații</label><textarea id="tNotes" rows="2" placeholder="stadiu, ce s-a discutat, ce urmează…">${esc(t?t.notes||'':'')}</textarea>
       <div class="row2">
         <div><label>Stare</label><select id="tSt">${T_STATUS.map(s=>`<option value="${s.k}" ${st0===s.k?'selected':''}>${s.l}</option>`).join("")}</select></div>
         <div><label>Prioritate</label><select id="tPr">${Object.entries(T_PRIO).map(([k,l])=>`<option value="${k}" ${((t&&t.priority)||'med')===k?'selected':''}>${l}</option>`).join("")}</select></div>
@@ -1862,7 +2027,7 @@ function openTask(t, preset){
       if(isNew){ pendingSubs.push(title); e.target.value=""; renderSubs(); return; }
       e.target.disabled=true;
       const { data, error } = await sb.from("tasks").insert({ title, parent_id:t.id, project_id:t.project_id, status:"todo",
-        priority:"med", position:subsOf(t).length, created_by:ME.id }).select().single();
+        priority:"med", position:subsOf(t).length, created_by:ME.id, created_by_name:ME.disp||ME.name }).select().single();
       e.target.disabled=false;
       if(error){ toast("Eroare: "+error.message); return; }
       TASKS.push(data); e.target.value=""; e.target.focus(); renderSubs(); renderProjects();
@@ -1908,7 +2073,7 @@ function openTask(t, preset){
     if(!pid){ q("#tErr").textContent="Alegeți categoria."; return; }
     const newSt=q("#tSt").value;
     const due=q("#tDue").value||null;
-    const rec={ title, project_id:pid, description:q("#tDesc").value.trim()||null, status:newSt,
+    const rec={ title, project_id:pid, description:q("#tDesc").value.trim()||null, notes:q("#tNotes").value.trim()||null, status:newSt,
       priority:q("#tPr").value, assignee_name:q("#tWho").value||null,
       due_date:due, updated_at:new Date().toISOString() };
     if(HAS_START){
@@ -1918,7 +2083,7 @@ function openTask(t, preset){
     if(isNew || t.status!==newSt || t.project_id!==pid) rec.position=nextPos(pid,newSt);
     const btn=q("#tSave"); btn.disabled=true; btn.innerHTML='<span class="spin"></span>Salvez…';
     let res;
-    if(isNew) res = await sb.from("tasks").insert({ ...rec, created_by:ME.id }).select().single();
+    if(isNew) res = await sb.from("tasks").insert({ ...rec, created_by:ME.id, created_by_name:ME.disp||ME.name }).select().single();
     else {
       res = await sb.from("tasks").update(rec).eq("id",t.id);
       if(!res.error && HAS_PARENT && t.project_id!==pid) await sb.from("tasks").update({ project_id:pid }).eq("parent_id",t.id);
@@ -1927,7 +2092,7 @@ function openTask(t, preset){
     if(isNew && res.data){
       if(HAS_PARENT && pendingSubs.length){
         const { error } = await sb.from("tasks").insert(pendingSubs.map((s,i)=>({ title:s, parent_id:res.data.id, project_id:pid,
-          status:"todo", priority:"med", position:i, created_by:ME.id })));
+          status:"todo", priority:"med", position:i, created_by:ME.id, created_by_name:ME.disp||ME.name })));
         if(error) toast("Subtaskurile nu s-au salvat: "+error.message);
       }
       if(pending.length) await uploadFiles(res.data.id, pending);
