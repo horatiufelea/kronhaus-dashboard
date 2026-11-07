@@ -1139,6 +1139,13 @@ $("#refreshBtn").addEventListener("click", async ()=>{
   try{
     const { data:{ session } } = await sb.auth.getSession();
     const h={ Authorization:"Bearer "+session.access_token, apikey:SUPABASE_KEY };
+    if(activeMod==="contracte"){
+      const r = await fetch(FN+"/zoho-sign-sync",{ method:"POST", headers:h });
+      const j = await r.json().catch(()=>({}));
+      await loadContracts();
+      toast(j.ok ? "Actualizat din Zoho Sign ✓ ("+j.synced+" trimiteri)" : "Zoho Sign: "+(j.error||("eroare "+r.status)));
+      btn.disabled=false; btn.innerHTML=old; return;
+    }
     await fetch(FN+"/unas-sync?days=35",{ headers:h });
     await fetch(FN+"/szamla-sync",{ headers:h });
     await loadOrders();
@@ -1247,7 +1254,7 @@ function showModule(m, fromBoot){
   $("#pageTitle").textContent = PT[activeMod][0]; $("#pageSub").textContent = PT[activeMod][1];
   document.title = PT[activeMod][0]+" · KronHaus Hub";
   $("#exportBtn").classList.toggle("hidden", activeMod!=="comenzi");
-  $("#refreshBtn").classList.toggle("hidden", activeMod==="proiecte" || activeMod==="contracte");
+  $("#refreshBtn").classList.toggle("hidden", activeMod==="proiecte");
   if(activeMod==="comenzi" && activeTab==="orders") buildTrend();
   if(activeMod==="comenzi" && activeTab==="stats") buildStats();
   if(activeMod==="proiecte") loadProjects();
@@ -2065,7 +2072,7 @@ async function loadContracts(){
   if(error){ $("#cWrap").innerHTML='<div class="empty">Eroare: '+esc(error.message)+'</div>'; return; }
   ZS = (data||[]).map(q=>{ const c=counterpart(q); return { ...q, _c:c, _o:ownerRc(q), _test:isInternal(q,c) }; });
   const last = ZS.reduce((m,q)=>q.synced_at>m?q.synced_at:m,"");
-  $("#ctrSync").innerHTML = ic("refresh",13)+" Date din Zoho Sign (contul KronHaus Kft.) · actualizat "+(last?new Date(last).toLocaleString("ro-RO"):"—");
+  $("#ctrSync").innerHTML = ic("refresh",13)+" Date din Zoho Sign (contul KronHaus Kft.) · se actualizează automat din oră în oră · ultima dată: "+(last?new Date(last).toLocaleString("ro-RO"):"—");
   renderContracts();
 }
 
