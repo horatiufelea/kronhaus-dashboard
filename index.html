@@ -435,6 +435,7 @@
   .mentpop .mh{font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);padding:5px 8px 4px}
   .mentpop button{display:flex;align-items:center;gap:8px;width:100%;border:0;background:none;text-align:left;padding:6px 8px;border-radius:6px;font-size:13px;color:var(--ink);cursor:pointer}
   .mentpop button.on,.mentpop button:hover{background:var(--okbg);color:var(--ok)}
+  .mentpop .mme{margin-left:auto;font-size:11px;color:var(--muted)}
   .mentpop .ma{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;background:#F1EAFB;color:#6B3FA0;font-weight:700;font-size:11.5px}
   .catsel{border-left:6px solid var(--pc)!important}
   .colsel{font-weight:600}
@@ -1494,11 +1495,11 @@ function attachMention(ta){
     const m = ta.value.slice(0, ta.selectionStart).match(/(^|[\s(,.;:!?])@([A-Za-zĂÂÎȘȚăâîșț]*)$/);
     if(!m){ close(); return; }
     const pre=m[2].toLowerCase();
-    items = TEAM.filter(n=>n!==myFirst() && n.toLowerCase().startsWith(pre));
+    const me=myFirst(); items = TEAM.filter(n=>n.toLowerCase().startsWith(pre)).sort((x,y)=>(x===me)-(y===me));
     if(!items.length){ close(); return; }
     start = ta.selectionStart - m[2].length - 1; idx = Math.min(idx, items.length-1);
     if(!pop){ pop=document.createElement("div"); pop.className="mentpop"; document.body.appendChild(pop); }
-    pop.innerHTML = `<div class="mh">Anunță pe Slack:</div>` + items.map(n=>`<button type="button" data-n="${esc(n)}"><span class="ma">${esc(n[0])}</span>${esc(n)}</button>`).join("");
+    pop.innerHTML = `<div class="mh">Anunță pe Slack:</div>` + items.map(n=>`<button type="button" data-n="${esc(n)}"><span class="ma">${esc(n[0])}</span>${esc(n)}${n===me?'<span class="mme">(tu · memento)</span>':''}</button>`).join("");
     pop.querySelectorAll("button").forEach(b=>{ b.onmousedown=e=>{ e.preventDefault(); pick(b.dataset.n); }; });
     paint();
     const r=ta.getBoundingClientRect(), h=pop.offsetHeight;
