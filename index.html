@@ -389,6 +389,9 @@
   .estrow{display:flex;align-items:center;gap:8px}
   .estrow input{width:80px}
   .estrow span{font-size:13px;color:var(--muted)}
+  .estrow input{width:70px}
+  .ltable input.lest.over,.card .over,.cnote.over{color:var(--err);font-weight:600}
+  .ltable input.lest.under,.card .under,.cnote.under{color:var(--ok);font-weight:600}
   .ltable select.lsel{height:24px}
   .ltable tr.lgrp td{background:color-mix(in srgb, var(--pc) 9%, #fff)!important;border-top:2px solid color-mix(in srgb, var(--pc) 35%, #fff);border-bottom:1px solid color-mix(in srgb, var(--pc) 25%, #fff);height:40px;cursor:pointer;padding:0}
   .ltable tr.lgrp:hover td{background:color-mix(in srgb, var(--pc) 15%, #fff)!important}
@@ -1533,6 +1536,9 @@ let F = { q:"", who:"", pr:"", late:false };
 let HAS_START=null, HAS_PARENT=null, HAS_EST=null;
 // timp estimat: în baza de date în minute; afișat „2 h 30 min”
 const fmtEst = m => { m=+m; if(!(m>0)) return ""; const h=Math.floor(m/60), r=m%60; return (h?h+" h":"") + (h&&r?" ":"") + (r?r+" min":""); };
+const realCls = t => (t.actual_min>0 && t.estimate_min>0) ? (t.actual_min>t.estimate_min ? "over" : "under") : "";
+const realTip = t => { if(!(t.actual_min>0 && t.estimate_min>0)) return "Timp real lucrat"; const d=t.actual_min-t.estimate_min;
+  return d>0 ? "Cu "+fmtEst(d)+" peste estimare" : d<0 ? "Cu "+fmtEst(-d)+" sub estimare" : "Exact cât s-a estimat"; };
 function parseEst(v){
   v = String(v||"").trim().toLowerCase().replace(",", ".");
   if(!v) return null;
@@ -1786,7 +1792,7 @@ function renderBoard(){
         <span class="chip pr-${esc(t.priority||'med')}">${T_PRIO[t.priority]||'Normal'}</span>
         ${t.assignee_name?`<span class="who">${esc(t.assignee_name)}</span>`:''}
         ${(t.supporters||[]).length?`<span title="Suport">+ ${(t.supporters||[]).map(esc).join(", ")}</span>`:''}
-        ${HAS_EST&&t.estimate_min?`<span title="Timp estimat">⏱ ${fmtEst(t.estimate_min)}</span>`:''}
+        ${HAS_EST&&(t.estimate_min||t.actual_min)?`<span class="${realCls(t)}" title="Estimat${t.actual_min?' / real · '+realTip(t):''}">⏱ ${fmtEst(t.estimate_min)||'—'}${t.actual_min?' / '+fmtEst(t.actual_min):''}</span>`:''}
         ${t.status==='review'&&t.reviewer?`<span class="rev" title="Verifică">${ic("eye",12)} ${esc(t.reviewer)}</span>`:''}
         ${t.due_date?`<span class="due ${late?'late':''}">${ic('calendar',13)}${fmtDay(t.due_date)}${late?' · întârziat':''}</span>`:''}
         ${durBadge(t)} ${subBadge(t)}
@@ -1858,6 +1864,7 @@ function renderList(keepScroll){
     st:(a,b)=>(ST_ORD[a.status||"todo"]-ST_ORD[b.status||"todo"]),
     due:(a,b)=>(a.due_date||"9999").localeCompare(b.due_date||"9999"),
     est:(a,b)=>(a.estimate_min??1e9)-(b.estimate_min??1e9),
+    real:(a,b)=>(a.actual_min??1e9)-(b.actual_min??1e9),
     created:(a,b)=>new Date(a.created_at)-new Date(b.created_at),
     updated:(a,b)=>new Date(a.updated_at||a.created_at)-new Date(b.updated_at||b.created_at)
   }[k] || ((a,b)=>0);
@@ -1887,7 +1894,8 @@ function renderList(keepScroll){
       <td>${isSub?'<span class="lmuted">—</span>':prSel(t)}</td>
       <td>${stSel(t)}</td>
       <td><input type="date" class="ldate ${late?'late':''}" data-f="due_date" value="${esc(t.due_date||'')}"></td>
-      ${HAS_EST?`<td><input type="text" class="lest" value="${esc(fmtEst(t.estimate_min))}" placeholder="—" title="Timp estimat — ex. 2h 30m, 1:30, 45m sau 2 (= 2 ore)"></td>`:''}
+      ${HAS_EST?`<td><input type="text" class="lest" data-f="estimate_min" value="${esc(fmtEst(t.estimate_min))}" placeholder="—" title="Timp estimat — ex. 2h 30m, 1:30, 45m sau 2 (= 2 ore)"></td>
+      <td><input type="text" class="lest ${realCls(t)}" data-f="actual_min" value="${esc(fmtEst(t.actual_min))}" placeholder="—" title="${realTip(t)} — ex. 2h 30m, 1:30, 45m sau 2 (= 2 ore)"></td>`:''}
       <td class="lnotes"><textarea class="lnote" data-f="notes" rows="1" placeholder="+ observație (@nume = anunț pe Slack)">${esc(t.notes||'')}</textarea></td>
       <td class="lmuted lts">${fdts(t.created_at)}</td>
       <td class="lmuted lts">${fdts(t.updated_at||t.created_at)}</td>
@@ -1903,21 +1911,23 @@ function renderList(keepScroll){
   const allOpen = groups.length && groups.every(g=>g.open);
   const grpRow = g => {
     const n=g.items.length, d=g.items.filter(t=>t.status==="done").length, lt=g.items.filter(isLate).length, ip=g.items.filter(t=>t.status==="doing").length;
-    return `<tr class="lgrp ${g.open?'open':''}" data-grp="${g.p.id}" style="--pc:${safeColor(g.p.color)}"><td colspan="${HAS_EST?12:11}"><div class="lgh">
+    return `<tr class="lgrp ${g.open?'open':''}" data-grp="${g.p.id}" style="--pc:${safeColor(g.p.color)}"><td colspan="${HAS_EST?13:11}"><div class="lgh">
       <span class="ltog ${g.open?'open':''}">${ic("chevron",15)}</span><span class="pd"></span><b>${esc(g.p.name)}</b>
       <span class="lgc">${n} ${n===1?'task':'taskuri'}</span>
       ${n?`<span class="lgbar" title="${d} din ${n} gata"><i style="width:${Math.round(d*100/n)}%"></i></span><span class="lgc">${d}/${n} gata</span>`:''}
       ${ip?`<span class="lgtag t-doing">${ip} în lucru</span>`:''}
       ${lt?`<span class="lgtag t-late">${lt} ${lt===1?'întârziat':'întârziate'}</span>`:''}
-      ${(()=>{ if(!HAS_EST) return ''; const all=g.items.reduce((a,t)=>a+(+t.estimate_min||0),0); if(!all) return '';
+      ${(()=>{ if(!HAS_EST) return ''; const all=g.items.reduce((a,t)=>a+(+t.estimate_min||0),0);
+        if(!all){ const r0=g.items.reduce((a,t)=>a+(+t.actual_min||0),0); return r0?`<span class="lgc">⏱ real ${fmtEst(r0)}</span>`:''; }
         const left=g.items.filter(t=>t.status!=="done").reduce((a,t)=>a+(+t.estimate_min||0),0);
-        return `<span class="lgc" title="Timp estimat: total / rămas (fără taskurile gata)">⏱ ${fmtEst(all)}${left!==all?' · rămas '+(fmtEst(left)||'0'):''}</span>`; })()}
+        const real=g.items.reduce((a,t)=>a+(+t.actual_min||0),0);
+        return `<span class="lgc" title="Timp estimat: total / rămas (fără taskurile gata)">⏱ estimat ${fmtEst(all)}${left!==all?' · rămas '+(fmtEst(left)||'0'):''}</span>${real?`<span class="lgc" title="Timp real lucrat, adunat">· real ${fmtEst(real)}</span>`:''}`; })()}
       <button class="lgadd" data-addcat="${g.p.id}">+ Task</button></div></td></tr>`;
   };
   $("#projWrap").innerHTML = projHeader() + (L.length ? `
     <div class="tscroll" id="listBox"><table class="ltable">
-      <thead><tr>${th("no","Task","lwork")}${th("who","Responsabil")}<th>Verifică</th><th>Suport</th><th>Raportor</th>${th("prio","Prioritate")}${th("st","Stare")}${th("due","Termen")}${HAS_EST?th("est","Estimat"):''}<th class="lnotes">Observații</th>${th("created","Creat")}${th("updated","Actualizat")}</tr></thead>
-      <tbody>${groups.map(g=>grpRow(g) + (g.open ? (g.items.length ? g.items.map(t=>row(t,false)).join("") : `<tr class="lempty"><td class="lwork" colspan="${HAS_EST?12:11}"><span class="lmuted">Niciun task în această categorie.</span></td></tr>`) : "")).join("")}</tbody>
+      <thead><tr>${th("no","Task","lwork")}${th("who","Responsabil")}<th>Verifică</th><th>Suport</th><th>Raportor</th>${th("prio","Prioritate")}${th("st","Stare")}${th("due","Termen")}${HAS_EST?th("est","Estimat")+th("real","Real"):''}<th class="lnotes">Observații</th>${th("created","Creat")}${th("updated","Actualizat")}</tr></thead>
+      <tbody>${groups.map(g=>grpRow(g) + (g.open ? (g.items.length ? g.items.map(t=>row(t,false)).join("") : `<tr class="lempty"><td class="lwork" colspan="${HAS_EST?13:11}"><span class="lmuted">Niciun task în această categorie.</span></td></tr>`) : "")).join("")}</tbody>
     </table></div>
     <div class="lfoot"><button class="btn ghost sm" id="lAdd">+ Task</button><span class="day">${L.length} ${L.length===1?'task':'taskuri'} în ${groups.length} ${groups.length===1?'categorie':'categorii'} · click pe o categorie ca s-o deschizi, pe titlu pentru detalii</span></div>`
     : '<div class="empty">Niciun task pentru filtrul ales.</div>');
@@ -1950,16 +1960,15 @@ function renderList(keepScroll){
     });
     const dt = tr.querySelector("input.ldate");
     if(dt) dt.onchange = async()=>{ if(await updTask(t, { due_date: dt.value || null })) renderList(true); };
-    const es = tr.querySelector("input.lest");
-    if(es){
-      es.addEventListener("keydown", e=>{ if(e.key==="Enter"){ e.preventDefault(); es.blur(); } if(e.key==="Escape"){ es.value=fmtEst(t.estimate_min); es.blur(); } });
+    tr.querySelectorAll("input.lest").forEach(es=>{ const f = es.dataset.f, lbl = f==="actual_min" ? "Real" : "Estimat";
+      es.addEventListener("keydown", e=>{ if(e.key==="Enter"){ e.preventDefault(); es.blur(); } if(e.key==="Escape"){ es.value=fmtEst(t[f]); es.blur(); } });
       es.addEventListener("blur", async()=>{
         const v = parseEst(es.value);
-        if(Number.isNaN(v)){ toast("Nu înțeleg timpul — scrieți ex. 2h 30m, 1:30 sau 45m"); es.value=fmtEst(t.estimate_min); return; }
-        if((v||null) === (t.estimate_min||null)){ es.value=fmtEst(t.estimate_min); return; }
-        if(await updTask(t, { estimate_min: v||null }, v?"Estimat: "+fmtEst(v)+" ✓":"Estimare ștearsă")) renderList(true);
+        if(Number.isNaN(v)){ toast("Nu înțeleg timpul — scrieți ex. 2h 30m, 1:30 sau 45m"); es.value=fmtEst(t[f]); return; }
+        if((v||null) === (t[f]||null)){ es.value=fmtEst(t[f]); return; }
+        if(await updTask(t, { [f]: v||null }, v?lbl+": "+fmtEst(v)+" ✓":lbl+" — șters")) renderList(true);
       });
-    }
+    });
     const nt = tr.querySelector("textarea.lnote");
     if(nt){
       attachMention(nt);
@@ -2244,9 +2253,14 @@ function openTask(t, preset){
         <div><label>Termen</label><input type="date" id="tDue" value="${esc(due0)}"></div>
       </div><p class="cnote" style="margin:8px 0 0">Scrieți numărul de zile și termenul se calculează singur (sau invers).</p>`
       :`<label>Termen</label><input type="date" id="tDue" value="${esc(due0)}">`}
-      ${HAS_EST?`<label>Timp estimat <span class="day" style="font-weight:400">(cât durează munca efectivă)</span></label>
-      <div class="estrow"><input type="number" id="tEstH" min="0" max="999" value="${t&&t.estimate_min?Math.floor(t.estimate_min/60):''}" placeholder="0"><span>ore</span>
-        <input type="number" id="tEstM" min="0" max="59" step="5" value="${t&&t.estimate_min?t.estimate_min%60:''}" placeholder="0"><span>minute</span></div>`:''}
+      ${HAS_EST?`<div class="row2">
+        <div><label>Timp estimat <span class="day" style="font-weight:400">(cât credem că durează)</span></label>
+        <div class="estrow"><input type="number" id="tEstH" min="0" max="999" value="${t&&t.estimate_min?Math.floor(t.estimate_min/60):''}" placeholder="0"><span>ore</span>
+          <input type="number" id="tEstM" min="0" max="59" step="5" value="${t&&t.estimate_min?t.estimate_min%60:''}" placeholder="0"><span>min</span></div></div>
+        <div><label>Timp real <span class="day" style="font-weight:400">(cât a durat de fapt)</span></label>
+        <div class="estrow"><input type="number" id="tActH" min="0" max="999" value="${t&&t.actual_min?Math.floor(t.actual_min/60):''}" placeholder="0"><span>ore</span>
+          <input type="number" id="tActM" min="0" max="59" step="5" value="${t&&t.actual_min?t.actual_min%60:''}" placeholder="0"><span>min</span></div></div>
+      </div><p class="cnote" id="tEstCmp" style="margin:8px 0 0"></p>`:''}
       </section>
 
       ${HAS_PARENT?`<section class="tsec s-subs"><h5>${ic("check",15)} Subtaskuri <span id="subCnt"></span></h5>
@@ -2280,6 +2294,14 @@ function openTask(t, preset){
   ["#tSt","#tPr","#tProj"].forEach(id=>q(id).addEventListener("change", paintSel)); paintSel();
   setTimeout(()=>q("#tTitle").focus(),50);
   attachMention(q("#tNotes"));
+  if(HAS_EST){
+    const v=id=>(parseInt(q(id).value||"0",10)||0);
+    const cmp=()=>{ const e=v("#tEstH")*60+v("#tEstM"), a=v("#tActH")*60+v("#tActM"), box=q("#tEstCmp");
+      if(!(e>0 && a>0)){ box.textContent="Completați „Timp real” când terminați taskul — se compară singur cu estimarea."; box.className="cnote"; return; }
+      const d=a-e; box.className="cnote "+(d>0?"over":"under");
+      box.textContent = d>0 ? "A durat cu "+fmtEst(d)+" mai mult decât estimarea." : d<0 ? "A durat cu "+fmtEst(-d)+" mai puțin decât estimarea." : "A durat exact cât s-a estimat."; };
+    ["#tEstH","#tEstM","#tActH","#tActM"].forEach(id=>q(id).addEventListener("input",cmp)); cmp();
+  }
 
   /* durată ↔ termen */
   if(HAS_START){
@@ -2389,9 +2411,12 @@ function openTask(t, preset){
       reviewer:q("#tRev").value||null, updated_by_name:myFirst(),
       due_date:due, updated_at:new Date().toISOString() };
     if(HAS_EST){
-      const eh=parseInt(q("#tEstH").value||"0",10), em=parseInt(q("#tEstM").value||"0",10);
-      if(eh<0 || em<0 || em>59 || Number.isNaN(eh) || Number.isNaN(em)){ q("#tErr").textContent="Timp estimat: ore ≥ 0, minute între 0 și 59."; return; }
-      rec.estimate_min = (eh*60+em) || null;
+      const rd = (h,m,lbl)=>{ const a=parseInt(q(h).value||"0",10), b=parseInt(q(m).value||"0",10);
+        if(a<0 || b<0 || b>59 || Number.isNaN(a) || Number.isNaN(b)){ q("#tErr").textContent=lbl+": ore ≥ 0, minute între 0 și 59."; return undefined; }
+        return (a*60+b) || null; };
+      const ev = rd("#tEstH","#tEstM","Timp estimat"); if(ev===undefined) return;
+      const av = rd("#tActH","#tActM","Timp real"); if(av===undefined) return;
+      rec.estimate_min = ev; rec.actual_min = av;
     }
     if(HAS_START){
       rec.start_date=q("#tStart").value||null;
