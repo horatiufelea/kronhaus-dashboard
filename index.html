@@ -234,7 +234,9 @@
   .phead h2 .pd{width:12px;height:12px;border-radius:3px}
   .phead .spacer{flex:1}
   .phead select{width:auto;padding:6px 10px;font-size:13px}
-  .board{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;align-items:start}
+  .board{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;align-items:start}
+  .col[data-st="review"]{background:#F3EEFB}
+  .card .rev{color:#6B3FA0;font-weight:600}
   .col{background:#F2F1EE;border-radius:var(--radius);padding:10px;min-height:160px;transition:background .15s}
   .col.over{background:var(--green-l);box-shadow:inset 0 0 0 1px var(--green)}
   .col h3{margin:2px 4px 10px;font-size:13px;font-weight:600;color:var(--ink);display:flex;gap:8px;align-items:center}
@@ -364,6 +366,7 @@
   .lsel.st-todo{background:var(--greybg);color:var(--grey);font-weight:600}
   .lsel.st-doing{background:var(--bluebg);color:var(--blue);font-weight:600}
   .lsel.st-done{background:var(--okbg);color:var(--ok);font-weight:600}
+  .lsel.st-review{background:#F1EAFB;color:#6B3FA0;font-weight:600}
   .lsel.pr-high{color:var(--err);font-weight:600} .lsel.pr-med{color:var(--warn)} .lsel.pr-low{color:var(--grey)}
   .ldate{width:auto;border:1px solid transparent;background:transparent;padding:2px 4px;font-size:12px;border-radius:5px;color:var(--ink)}
   .ldate:hover,.ldate:focus{border-color:var(--line);background:#fff}
@@ -433,6 +436,7 @@
   .colsel.st-todo{background:var(--greybg)!important;color:var(--grey)}
   .colsel.st-doing{background:var(--bluebg)!important;color:var(--blue);border-color:#C9D5F2}
   .colsel.st-done{background:var(--okbg)!important;color:var(--ok);border-color:#CDE7D6}
+  .colsel.st-review{background:#F1EAFB!important;color:#6B3FA0;border-color:#D9C8F2}
   .colsel.pr-high{background:var(--errbg)!important;color:var(--err);border-color:#F5C9C4}
   .colsel.pr-med{background:var(--warnbg)!important;color:var(--warn);border-color:#F1DDB0}
   .colsel.pr-low{background:var(--greybg)!important;color:var(--grey)}
@@ -1466,7 +1470,7 @@ window.addEventListener("hashchange", ()=>{ if(!$("#app").classList.contains("hi
 
 /* ===================== PROIECTE (categorii · taskuri · subtaskuri) ===================== */
 const P_COLORS = ["#00653e","#1256a0","#9a6b00","#b3261e","#6b3fa0","#0f7c86","#c2410c","#5d6b63"];
-const T_STATUS = [ {k:"todo",l:"De făcut"}, {k:"doing",l:"În lucru"}, {k:"done",l:"Gata"} ];
+const T_STATUS = [ {k:"todo",l:"De făcut"}, {k:"doing",l:"În lucru"}, {k:"review",l:"De verificat"}, {k:"done",l:"Gata"} ];
 const T_PRIO = { high:"Urgent", med:"Normal", low:"Scăzut" };
 const TEAM = ["Horatiu","Floriana","Alina","Karola","Office"];   // cele 5 conturi KronHaus
 const BUCKET = "task-files";
@@ -1691,6 +1695,7 @@ function renderProjDash(){
       data:{labels:names,datasets:[
         {label:"De făcut",data:names.map(n=>cnt(n,"todo")),backgroundColor:"#c9d3ce",borderRadius:3},
         {label:"În lucru",data:names.map(n=>cnt(n,"doing")),backgroundColor:C_BLUE,borderRadius:3},
+        {label:"De verificat",data:names.map(n=>cnt(n,"review")),backgroundColor:"#8B6BC4",borderRadius:3},
         {label:"Gata",data:names.map(n=>cnt(n,"done")),backgroundColor:C_GREEN,borderRadius:3}]},
       options:{indexAxis:"y",maintainAspectRatio:false,responsive:true,
         plugins:{legend:{position:"bottom",labels:{boxWidth:12}}},
@@ -1716,6 +1721,7 @@ function renderBoard(){
         <span class="chip pr-${esc(t.priority||'med')}">${T_PRIO[t.priority]||'Normal'}</span>
         ${t.assignee_name?`<span class="who">${esc(t.assignee_name)}</span>`:''}
         ${(t.supporters||[]).length?`<span title="Suport">+ ${(t.supporters||[]).map(esc).join(", ")}</span>`:''}
+        ${t.status==='review'&&t.reviewer?`<span class="rev" title="Verifică">${ic("eye",12)} ${esc(t.reviewer)}</span>`:''}
         ${t.due_date?`<span class="due ${late?'late':''}">${ic('calendar',13)}${fmtDay(t.due_date)}${late?' · întârziat':''}</span>`:''}
         ${durBadge(t)} ${subBadge(t)}
         ${t.description?'<span title="are detalii">'+ic('text',13)+'</span>':''}
@@ -1760,14 +1766,15 @@ let LSORT = { k:"no", dir:1 }, LOPEN = new Set();
 let LEXP = new Set((()=>{ try{ return JSON.parse(localStorage.getItem("kh_list_open")||"[]"); }catch(e){ return []; } })());
 const saveLEXP = ()=>{ try{ localStorage.setItem("kh_list_open", JSON.stringify([...LEXP])); }catch(e){} };
 const PRIO_ORD = { high:0, med:1, low:2 };
-const ST_ORD = { todo:0, doing:1, done:2 };
+const ST_ORD = { todo:0, doing:1, review:2, done:3 };
 const tkey = t => t.task_no ? "KH-"+t.task_no : "KH-?";
+const myFirst = () => { const n=(ME.disp||ME.name||"").trim(); const f=n.split(" ")[0]; return TEAM.find(x=>x.toLowerCase()===f.toLowerCase()) || f || null; };
 const fdts = ts => ts ? new Date(ts).toLocaleString("ro-RO",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"}) : "—";
 async function updTask(t, patch, msg){
   const now = new Date().toISOString();
   const old = {}; Object.keys(patch).forEach(k=>old[k]=t[k]);
   Object.assign(t, patch, { updated_at:now });
-  const { error } = await sb.from("tasks").update({ ...patch, updated_at:now }).eq("id", t.id);
+  const { error } = await sb.from("tasks").update({ ...patch, updated_at:now, updated_by_name:myFirst() }).eq("id", t.id);
   if(error){ Object.assign(t, old); toast("Eroare: "+error.message); renderList(true); return false; }
   if(msg!==false) toast(msg||"Salvat ✓");
   return true;
@@ -1807,12 +1814,13 @@ function renderList(keepScroll){
         </div>
       </td>
       <td><select class="lsel lwho" data-f="assignee_name">${peopleOpt(t.assignee_name)}</select></td>
+      <td><select class="lsel lrev" data-f="reviewer" title="Cine verifică">${`<option value="">—</option>`+TEAM.map(n=>`<option ${n===t.reviewer?'selected':''}>${esc(n)}</option>`).join("")}</select></td>
       <td class="lsup"><button class="lsupbtn" data-sup="${t.id}" title="Cine ajută la task">${(t.supporters||[]).length?(t.supporters||[]).map(esc).join(", "):'<span class="lmuted">+ suport</span>'}</button></td>
       <td class="lmuted">${esc(t.created_by_name)||'—'}</td>
       <td>${isSub?'<span class="lmuted">—</span>':prSel(t)}</td>
       <td>${stSel(t)}</td>
       <td><input type="date" class="ldate ${late?'late':''}" data-f="due_date" value="${esc(t.due_date||'')}"></td>
-      <td class="lnotes"><textarea class="lnote" data-f="notes" rows="1" placeholder="+ observație">${esc(t.notes||'')}</textarea></td>
+      <td class="lnotes"><textarea class="lnote" data-f="notes" rows="1" placeholder="+ observație (@nume = anunț pe Slack)">${esc(t.notes||'')}</textarea></td>
       <td class="lmuted lts">${fdts(t.created_at)}</td>
       <td class="lmuted lts">${fdts(t.updated_at||t.created_at)}</td>
     </tr>` + (open && !isSub ? subs.sort((a,b)=>(a.position||0)-(b.position||0)).map(x=>row(x,true)).join("") : "");
@@ -1827,7 +1835,7 @@ function renderList(keepScroll){
   const allOpen = groups.length && groups.every(g=>g.open);
   const grpRow = g => {
     const n=g.items.length, d=g.items.filter(t=>t.status==="done").length, lt=g.items.filter(isLate).length, ip=g.items.filter(t=>t.status==="doing").length;
-    return `<tr class="lgrp ${g.open?'open':''}" data-grp="${g.p.id}" style="--pc:${safeColor(g.p.color)}"><td colspan="10"><div class="lgh">
+    return `<tr class="lgrp ${g.open?'open':''}" data-grp="${g.p.id}" style="--pc:${safeColor(g.p.color)}"><td colspan="11"><div class="lgh">
       <span class="ltog ${g.open?'open':''}">${ic("chevron",15)}</span><span class="pd"></span><b>${esc(g.p.name)}</b>
       <span class="lgc">${n} ${n===1?'task':'taskuri'}</span>
       ${n?`<span class="lgbar" title="${d} din ${n} gata"><i style="width:${Math.round(d*100/n)}%"></i></span><span class="lgc">${d}/${n} gata</span>`:''}
@@ -1837,8 +1845,8 @@ function renderList(keepScroll){
   };
   $("#projWrap").innerHTML = projHeader() + (L.length ? `
     <div class="tscroll" id="listBox"><table class="ltable">
-      <thead><tr>${th("no","Task","lwork")}${th("who","Responsabil")}<th>Suport</th><th>Raportor</th>${th("prio","Prioritate")}${th("st","Stare")}${th("due","Termen")}<th class="lnotes">Observații</th>${th("created","Creat")}${th("updated","Actualizat")}</tr></thead>
-      <tbody>${groups.map(g=>grpRow(g) + (g.open ? (g.items.length ? g.items.map(t=>row(t,false)).join("") : `<tr class="lempty"><td class="lwork" colspan="10"><span class="lmuted">Niciun task în această categorie.</span></td></tr>`) : "")).join("")}</tbody>
+      <thead><tr>${th("no","Task","lwork")}${th("who","Responsabil")}<th>Verifică</th><th>Suport</th><th>Raportor</th>${th("prio","Prioritate")}${th("st","Stare")}${th("due","Termen")}<th class="lnotes">Observații</th>${th("created","Creat")}${th("updated","Actualizat")}</tr></thead>
+      <tbody>${groups.map(g=>grpRow(g) + (g.open ? (g.items.length ? g.items.map(t=>row(t,false)).join("") : `<tr class="lempty"><td class="lwork" colspan="11"><span class="lmuted">Niciun task în această categorie.</span></td></tr>`) : "")).join("")}</tbody>
     </table></div>
     <div class="lfoot"><button class="btn ghost sm" id="lAdd">+ Task</button><span class="day">${L.length} ${L.length===1?'task':'taskuri'} în ${groups.length} ${groups.length===1?'categorie':'categorii'} · click pe o categorie ca s-o deschizi, pe titlu pentru detalii</span></div>`
     : '<div class="empty">Niciun task pentru filtrul ales.</div>');
@@ -2002,7 +2010,7 @@ function renderTimeline(){
     rows += `<div class="row ph"><div class="lab"><span class="pd" style="width:10px;height:10px;border-radius:3px;background:${c}"></span>${esc(p.name)}</div>
       ${track(`<span class="bar sum" style="left:${x(ps)}px;width:${(pe-ps+1)*PX}px;background:${c}"></span>`)}</div>`;
     rows += items.map(i=>`<div class="row"><div class="lab" data-id="${i.t.id}" title="${esc(i.t.title)}">
-        ${i.t.status==='done'?ic('check',14):(i.t.status==='doing'?ic('clock',14):ic('circle',14))} ${esc(i.t.title)}</div>${track(bar(i))}</div>`).join("");
+        ${i.t.status==='done'?ic('check',14):(i.t.status==='doing'?ic('clock',14):(i.t.status==='review'?ic('eye',14):ic('circle',14)))} ${esc(i.t.title)}</div>${track(bar(i))}</div>`).join("");
   });
 
   const zoomBtn = (k,l) => `<button data-z="${k}" class="${TL_ZOOM===k?'on':''}">${l}</button>`;
@@ -2036,12 +2044,16 @@ function nextPos(projectId, st){
   return l.length ? Math.max(...l.map(t=>t.position||0))+1 : 0;
 }
 async function moveTask(t, st){
+  if(st==="review" && !t.reviewer && !t.parent_id){
+    toast("Alegeți cine verifică — apoi salvați");
+    openTask(t, { status:"review" }); return;
+  }
   const pos = nextPos(t.project_id, st);
   const old = t.status, oldUpd=t.updated_at;
   t.status=st; t.position=pos; t.updated_at=new Date().toISOString(); renderProjects();      // optimist
-  const { error } = await sb.from("tasks").update({ status:st, position:pos, updated_at:t.updated_at }).eq("id",t.id);
+  const { error } = await sb.from("tasks").update({ status:st, position:pos, updated_at:t.updated_at, updated_by_name:myFirst() }).eq("id",t.id);
   if(error){ t.status=old; t.updated_at=oldUpd; renderProjects(); toast("Eroare: "+error.message); return; }
-  toast(st==="done" ? "Gata ✓" : "Mutat în „"+T_STATUS.find(s=>s.k===st).l+"”");
+  toast(st==="done" ? "Gata ✓" : st==="review" ? "Trimis la verificare — "+t.reviewer+" primește mesaj pe Slack" : "Mutat în „"+T_STATUS.find(s=>s.k===st).l+"”");
 }
 
 /* ---- modal categorie ---- */
@@ -2100,7 +2112,7 @@ function openTask(t, preset){
   const people = (cur && !TEAM.includes(cur)) ? [...TEAM, cur] : TEAM;
   const pid0 = t ? t.project_id : (preset.project_id || (CUR_PROJ!=="all" ? CUR_PROJ : (PROJ.find(p=>!p.archived)||{}).id));
   const projOpts = PROJ.filter(p=>!p.archived || p.id===pid0).map(p=>`<option value="${p.id}" ${p.id===pid0?'selected':''}>${esc(p.name)}</option>`).join("");
-  const st0 = t ? t.status : (preset.status||"todo");
+  const st0 = t ? (preset.status||t.status) : (preset.status||"todo");
   const due0 = t ? (t.due_date||"") : (preset.due_date||"");
   const start0 = t ? (t.start_date||"") : "";
   const dur0 = (start0 && due0) ? dnum(due0)-dnum(start0)+1 : "";
@@ -2122,7 +2134,7 @@ function openTask(t, preset){
         <label>Titlu</label><input type="text" id="tTitle" maxlength="200" value="${esc(t?t.title:'')}" placeholder="ce trebuie făcut">
         <label>Categorie</label><select id="tProj" class="catsel" style="--pc:${pc0}">${projOpts}</select>
         <label>Detalii</label><textarea id="tDesc" rows="3" placeholder="detalii, linkuri, pași…">${esc(t?t.description||'':'')}</textarea>
-        <label>Observații</label><textarea id="tNotes" class="notearea" rows="2" placeholder="stadiu, ce s-a discutat, ce urmează…">${esc(t?t.notes||'':'')}</textarea>
+        <label>Observații</label><textarea id="tNotes" class="notearea" rows="2" placeholder="stadiu, ce s-a discutat, ce urmează… Scrieți @Floriana ca s-o anunțați pe Slack">${esc(t?t.notes||'':'')}</textarea>
       </section>
 
       <section class="tsec s-status"><h5>${ic("flag",15)} Stare și prioritate</h5>
@@ -2139,6 +2151,8 @@ function openTask(t, preset){
           <div><label>Suport <span class="day" style="font-weight:400">(cine ajută)</span></label><div class="supp" id="tSup">
             ${[...new Set([...TEAM, ...((t&&t.supporters)||[])])].map(n=>`<button type="button" data-n="${esc(n)}" class="${((t&&t.supporters)||[]).includes(n)?'on':''}">${esc(n)}</button>`).join("")}</div></div>
         </div>
+        <label>Verifică <span class="day" style="font-weight:400">(cine aprobă când taskul e „De verificat”)</span></label>
+        <select id="tRev"><option value="">— nimeni —</option>${TEAM.map(n=>`<option ${t&&t.reviewer===n?'selected':''}>${esc(n)}</option>`).join("")}</select>
       </section>
 
       <section class="tsec s-time"><h5>${ic("calendar",15)} Termene</h5>
@@ -2282,9 +2296,11 @@ function openTask(t, preset){
     if(!pid){ q("#tErr").textContent="Alegeți categoria."; return; }
     const newSt=q("#tSt").value;
     const due=q("#tDue").value||null;
+    if(newSt==="review" && !q("#tRev").value){ q("#tErr").textContent="Alegeți cine verifică (câmpul „Verifică”)."; q("#tRev").focus(); return; }
     const rec={ title, project_id:pid, description:q("#tDesc").value.trim()||null, notes:q("#tNotes").value.trim()||null, status:newSt,
       priority:q("#tPr").value, assignee_name:q("#tWho").value||null,
       supporters:[...q("#tSup").querySelectorAll("button.on")].map(b=>b.dataset.n).filter(n=>n!==q("#tWho").value),
+      reviewer:q("#tRev").value||null, updated_by_name:myFirst(),
       due_date:due, updated_at:new Date().toISOString() };
     if(HAS_START){
       rec.start_date=q("#tStart").value||null;
