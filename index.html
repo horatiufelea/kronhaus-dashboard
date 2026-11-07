@@ -329,7 +329,7 @@
   .ltable thead th{background:#F5F5F4;border-bottom:1px solid #DCD9D6;color:#57534E;font-weight:600;padding:10px 10px;cursor:pointer;user-select:none}
   .ltable thead th:not([data-sort]){cursor:default}
   .ltable thead th.sorted{color:var(--ink)}
-  .ltable td{padding:6px 10px;border-bottom:1px solid var(--line);vertical-align:middle;white-space:nowrap}
+  .ltable td{padding:2px 8px;border-bottom:1px solid var(--line);vertical-align:middle;white-space:nowrap;height:34px}
   .ltable tbody tr{cursor:default}
   .ltable tbody tr:hover td{background:var(--hover)!important}
   .ltable tbody tr:nth-child(even) td{background:var(--zebra)}
@@ -359,21 +359,44 @@
   .lcat .pd{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:6px}
   .lmuted{color:var(--muted)}
   .lts{font-size:12px}
-  .lsel{width:auto;border:1px solid transparent;background:transparent;padding:4px 6px;font-size:12.5px;border-radius:5px;cursor:pointer;color:var(--ink)}
+  .lsel{width:auto;border:1px solid transparent;background:transparent;padding:2px 4px;font-size:12px;border-radius:5px;cursor:pointer;color:var(--ink)}
   .lsel:hover{border-color:var(--line);background:#fff}
   .lsel.st-todo{background:var(--greybg);color:var(--grey);font-weight:600}
   .lsel.st-doing{background:var(--bluebg);color:var(--blue);font-weight:600}
   .lsel.st-done{background:var(--okbg);color:var(--ok);font-weight:600}
   .lsel.pr-high{color:var(--err);font-weight:600} .lsel.pr-med{color:var(--warn)} .lsel.pr-low{color:var(--grey)}
-  .ldate{width:auto;border:1px solid transparent;background:transparent;padding:4px 6px;font-size:12.5px;border-radius:5px;color:var(--ink)}
+  .ldate{width:auto;border:1px solid transparent;background:transparent;padding:2px 4px;font-size:12px;border-radius:5px;color:var(--ink)}
   .ldate:hover,.ldate:focus{border-color:var(--line);background:#fff}
   .ldate.late{color:var(--err);font-weight:600}
   .lnotes{min-width:260px;width:30%;white-space:normal!important}
-  .lnote{width:100%;min-height:30px;resize:none;border:1px solid transparent;background:transparent;padding:5px 7px;font-size:12.5px;line-height:1.4;border-radius:5px;color:var(--ink);overflow:hidden}
+  .lnote{width:100%;min-height:24px;resize:none;border:1px solid transparent;background:transparent;padding:3px 6px;font-size:12px;line-height:1.35;border-radius:5px;color:var(--ink);overflow:hidden}
   .lnote::placeholder{color:var(--faint)}
   .lnote:hover{border-color:var(--line);background:#fff}
   .lnote:focus{background:#fff;border-color:var(--accent);box-shadow:0 0 0 3px rgba(0,132,61,.12)}
   .lfoot{display:flex;align-items:center;gap:12px;margin-top:10px}
+  .ltable{font-size:12.5px}
+  .ltable .lsupbtn{padding:2px 4px;font-size:12px}
+  .mapbtns{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+  .mapbtns a.btn{text-decoration:none}
+  .mapbox{margin-top:8px;border:1px solid var(--line);border-radius:8px;overflow:hidden;height:260px}
+  .mapbox iframe{width:100%;height:100%;border:0;display:block}
+  .ltable input.ldate{padding:2px 4px;font-size:12px;height:24px;width:auto}
+  .ltable select.lsel{height:24px}
+  .ltable tr.lgrp td{background:color-mix(in srgb, var(--pc) 9%, #fff)!important;border-top:2px solid color-mix(in srgb, var(--pc) 35%, #fff);border-bottom:1px solid color-mix(in srgb, var(--pc) 25%, #fff);height:40px;cursor:pointer;padding:0}
+  .ltable tr.lgrp:hover td{background:color-mix(in srgb, var(--pc) 15%, #fff)!important}
+  .lgh{position:sticky;left:0;display:inline-flex;align-items:center;gap:10px;padding:0 12px;white-space:nowrap}
+  .lgh .ltog{display:grid;place-items:center;color:var(--pc)}
+  .lgh .pd{width:10px;height:10px;border-radius:3px;background:var(--pc)}
+  .lgh b{font-size:13.5px;font-weight:700;color:var(--ink)}
+  .lgc{font-size:12px;color:var(--muted)}
+  .lgbar{width:70px;height:5px;border-radius:99px;background:rgba(0,0,0,.08);overflow:hidden;display:inline-block}
+  .lgbar i{display:block;height:100%;background:var(--pc)}
+  .lgtag{font-size:11.5px;font-weight:700;border-radius:4px;padding:1px 6px}
+  .lgtag.t-doing{background:var(--bluebg);color:var(--blue)}
+  .lgtag.t-late{background:var(--errbg);color:var(--err)}
+  .lgadd{border:1px solid color-mix(in srgb, var(--pc) 35%, #fff);background:#fff;color:var(--pc);font-weight:700;font-size:12px;border-radius:5px;padding:2px 8px;margin-left:6px}
+  .lgadd:hover{background:var(--pc);color:#fff}
+  .ltable tr.lempty td{height:32px}
 
   /* ---- Suport ---- */
   .supp{display:flex;flex-wrap:wrap;gap:6px;margin-top:2px}
@@ -764,6 +787,7 @@ const ICONS = {
   chevron:'<path d="m9 18 6-6-6-6"/>',
   sub:'<path d="M4 4v7a4 4 0 0 0 4 4h12"/><path d="m15 10 5 5-5 5"/>',
   card:'<rect width="20" height="14" x="2" y="5" rx="2"/><path d="M2 10h20"/>',
+  pin:'<path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"/><circle cx="12" cy="10" r="3"/>',
   bank:'<path d="M3 22h18"/><path d="M6 18v-7"/><path d="M10 18v-7"/><path d="M14 18v-7"/><path d="M18 18v-7"/><path d="M12 2 20 7H4z"/>',
   cash:'<rect width="20" height="12" x="2" y="6" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/>',
   users:'<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
@@ -1196,6 +1220,9 @@ async function openDetail(key){
     : "";
 
   const addr = p => [d[p+"_name"],d[p+"_zip"],d[p+"_city"],d[p+"_street"]].filter(Boolean).map(esc).join(" ");
+  // adresa de livrare pentru hartă (fără nume; dacă lipsește, cea de facturare)
+  const mapAddr = p => [d[p+"_street"], d[p+"_zip"], d[p+"_city"], d[p+"_country"]||"Hungary"].filter(Boolean).join(", ");
+  const mapQ = (d.ship_city||d.ship_street) ? mapAddr("ship") : ((d.inv_city||d.inv_street) ? mapAddr("inv") : "");
 
   const scrim=document.createElement("div"); scrim.className="scrim";
   const dr=document.createElement("div"); dr.className="drawer";
@@ -1244,7 +1271,10 @@ async function openDetail(key){
           <span class="k">Telefon</span><span>${esc(d.customer_mobile)||esc(d.customer_phone)||'—'}</span>
           <span class="k">Tip</span><span>${esc(d.customer_type)||'—'}${d.inv_tax_number?' · cod fiscal '+esc(d.inv_tax_number):''}</span>
           <span class="k">Adresă facturare</span><span>${addr('inv')||'—'}</span>
-          <span class="k">Adresă livrare</span><span>${addr('ship')||'—'}</span>
+          <span class="k">Adresă livrare</span><span>${addr('ship')||'—'}${mapQ?`
+            <div class="mapbtns"><button class="btn ghost sm" id="mapToggle" type="button">${ic("pin",14)}Vezi pe hartă</button>
+            <a class="btn ghost sm" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapQ)}" target="_blank" rel="noopener">${ic("arrow",14)}Deschide în Google Maps</a></div>
+            <div id="mapBox" class="mapbox hidden"></div>`:''}</span>
         </div>
       </div>
 
@@ -1258,6 +1288,14 @@ async function openDetail(key){
   document.body.append(scrim,dr);
   const close=()=>{ scrim.remove(); dr.remove(); };
   scrim.onclick=close; dr.querySelector("#closeDr").onclick=close;
+
+  const mt=dr.querySelector("#mapToggle");
+  if(mt) mt.onclick=()=>{
+    const box=dr.querySelector("#mapBox"), open=box.classList.toggle("hidden")===false;
+    if(open && !box.firstChild) box.innerHTML=`<iframe title="Hartă adresă de livrare" loading="lazy" referrerpolicy="no-referrer-when-downgrade"
+      src="https://maps.google.com/maps?q=${encodeURIComponent(mapQ)}&z=15&output=embed"></iframe>`;
+    mt.innerHTML = ic("pin",14) + (open ? "Ascunde harta" : "Vezi pe hartă");
+  };
 
   const pdf=dr.querySelector("#pdfBtn");
   if(pdf) pdf.onclick=()=>openInvoice(d.invoice_number,pdf);
@@ -1719,6 +1757,8 @@ function renderBoard(){
 
 /* ---------- LISTĂ (stil Jira: totul editabil direct din tabel) ---------- */
 let LSORT = { k:"no", dir:1 }, LOPEN = new Set();
+let LEXP = new Set((()=>{ try{ return JSON.parse(localStorage.getItem("kh_list_open")||"[]"); }catch(e){ return []; } })());
+const saveLEXP = ()=>{ try{ localStorage.setItem("kh_list_open", JSON.stringify([...LEXP])); }catch(e){} };
 const PRIO_ORD = { high:0, med:1, low:2 };
 const ST_ORD = { todo:0, doing:1, done:2 };
 const tkey = t => t.task_no ? "KH-"+t.task_no : "KH-?";
@@ -1766,7 +1806,6 @@ function renderList(keepScroll){
           ${nf?`<a href="#" class="lclip" data-open="${isSub?t.parent_id:t.id}" title="${nf} ${nf===1?'fișier atașat':'fișiere atașate'} — deschide taskul">${ic("clip",13)}${nf}</a>`:''}
         </div>
       </td>
-      <td class="lcat">${isSub?'':`<span class="pd" style="background:${safeColor(pj.color)}"></span>${esc(pj.name)}`}</td>
       <td><select class="lsel lwho" data-f="assignee_name">${peopleOpt(t.assignee_name)}</select></td>
       <td class="lsup"><button class="lsupbtn" data-sup="${t.id}" title="Cine ajută la task">${(t.supporters||[]).length?(t.supporters||[]).map(esc).join(", "):'<span class="lmuted">+ suport</span>'}</button></td>
       <td class="lmuted">${esc(t.created_by_name)||'—'}</td>
@@ -1779,17 +1818,46 @@ function renderList(keepScroll){
     </tr>` + (open && !isSub ? subs.sort((a,b)=>(a.position||0)-(b.position||0)).map(x=>row(x,true)).join("") : "");
   };
   const th = (key,label,cls) => `<th class="${cls||''} ${LSORT.k===key?'sorted':''}" data-sort="${key}">${label}${LSORT.k===key?(LSORT.dir>0?' ↑':' ↓'):''}</th>`;
+  // grupare pe categorii (acordeon); cu filtre active sau o singură categorie aleasă, grupurile se deschid singure
+  const autoOpen = filtersOn() || CUR_PROJ!=="all";
+  const groups = scopeProjects().map(p=>{
+    const items = L.filter(t=>t.project_id===p.id);
+    return { p, items, open: autoOpen ? items.length>0 || CUR_PROJ===p.id : LEXP.has(p.id) };
+  }).filter(g=>g.items.length || !filtersOn());
+  const allOpen = groups.length && groups.every(g=>g.open);
+  const grpRow = g => {
+    const n=g.items.length, d=g.items.filter(t=>t.status==="done").length, lt=g.items.filter(isLate).length, ip=g.items.filter(t=>t.status==="doing").length;
+    return `<tr class="lgrp ${g.open?'open':''}" data-grp="${g.p.id}" style="--pc:${safeColor(g.p.color)}"><td colspan="10"><div class="lgh">
+      <span class="ltog ${g.open?'open':''}">${ic("chevron",15)}</span><span class="pd"></span><b>${esc(g.p.name)}</b>
+      <span class="lgc">${n} ${n===1?'task':'taskuri'}</span>
+      ${n?`<span class="lgbar" title="${d} din ${n} gata"><i style="width:${Math.round(d*100/n)}%"></i></span><span class="lgc">${d}/${n} gata</span>`:''}
+      ${ip?`<span class="lgtag t-doing">${ip} în lucru</span>`:''}
+      ${lt?`<span class="lgtag t-late">${lt} ${lt===1?'întârziat':'întârziate'}</span>`:''}
+      <button class="lgadd" data-addcat="${g.p.id}">+ Task</button></div></td></tr>`;
+  };
   $("#projWrap").innerHTML = projHeader() + (L.length ? `
     <div class="tscroll" id="listBox"><table class="ltable">
-      <thead><tr>${th("no","Task","lwork")}${th("cat","Categorie")}${th("who","Responsabil")}<th>Suport</th><th>Raportor</th>${th("prio","Prioritate")}${th("st","Stare")}${th("due","Termen")}<th class="lnotes">Observații</th>${th("created","Creat")}${th("updated","Actualizat")}</tr></thead>
-      <tbody>${L.map(t=>row(t,false)).join("")}</tbody>
+      <thead><tr>${th("no","Task","lwork")}${th("who","Responsabil")}<th>Suport</th><th>Raportor</th>${th("prio","Prioritate")}${th("st","Stare")}${th("due","Termen")}<th class="lnotes">Observații</th>${th("created","Creat")}${th("updated","Actualizat")}</tr></thead>
+      <tbody>${groups.map(g=>grpRow(g) + (g.open ? (g.items.length ? g.items.map(t=>row(t,false)).join("") : `<tr class="lempty"><td class="lwork" colspan="10"><span class="lmuted">Niciun task în această categorie.</span></td></tr>`) : "")).join("")}</tbody>
     </table></div>
-    <div class="lfoot"><button class="btn ghost sm" id="lAdd">+ Task</button><span class="day">${L.length} ${L.length===1?'task':'taskuri'} · click pe titlu pentru detalii, fișiere și subtaskuri</span></div>`
+    <div class="lfoot"><button class="btn ghost sm" id="lAdd">+ Task</button><span class="day">${L.length} ${L.length===1?'task':'taskuri'} în ${groups.length} ${groups.length===1?'categorie':'categorii'} · click pe o categorie ca s-o deschizi, pe titlu pentru detalii</span></div>`
     : '<div class="empty">Niciun task pentru filtrul ales.</div>');
   wireHeader();
   const nb = $("#listBox"); if(nb && sx) nb.scrollLeft = sx; if(keepScroll) window.scrollTo(0, sy);
   const la = $("#lAdd"); if(la) la.onclick = ()=>openTask(null,{status:"todo"});
   const W = $("#projWrap");
+  if(nb && !autoOpen){
+    const tg = document.createElement("button"); tg.className = "btn ghost sm"; tg.id = "lAll";
+    tg.textContent = allOpen ? "Restrânge tot" : "Desfășoară tot";
+    tg.onclick = ()=>{ if(allOpen) LEXP.clear(); else groups.forEach(g=>LEXP.add(g.p.id)); saveLEXP(); renderList(true); };
+    $("#lAdd").after(tg);
+  }
+  W.querySelectorAll("tr.lgrp").forEach(tr=>tr.onclick=e=>{
+    if(e.target.closest("[data-addcat]")) return;
+    if(autoOpen) return;   // cu filtre active grupurile rămân deschise
+    const id=tr.dataset.grp; LEXP.has(id)?LEXP.delete(id):LEXP.add(id); saveLEXP(); renderList(true);
+  });
+  W.querySelectorAll("[data-addcat]").forEach(b=>b.onclick=e=>{ e.stopPropagation(); openTask(null,{status:"todo", project_id:b.dataset.addcat}); });
   W.querySelectorAll("th[data-sort]").forEach(h=>h.onclick=()=>{ const k2=h.dataset.sort; LSORT = { k:k2, dir: LSORT.k===k2 ? -LSORT.dir : 1 }; renderList(true); });
   W.querySelectorAll("[data-tog]").forEach(b=>b.onclick=e=>{ e.preventDefault(); const id=b.dataset.tog; LOPEN.has(id)?LOPEN.delete(id):LOPEN.add(id); renderList(true); });
   W.querySelectorAll("[data-open]").forEach(a=>a.onclick=e=>{ e.preventDefault(); openTask(TASKS.find(x=>x.id===a.dataset.open)); });
@@ -2030,7 +2098,7 @@ function openTask(t, preset){
   const isNew=!t;
   const cur = t&&t.assignee_name;
   const people = (cur && !TEAM.includes(cur)) ? [...TEAM, cur] : TEAM;
-  const pid0 = t ? t.project_id : (CUR_PROJ!=="all" ? CUR_PROJ : (PROJ.find(p=>!p.archived)||{}).id);
+  const pid0 = t ? t.project_id : (preset.project_id || (CUR_PROJ!=="all" ? CUR_PROJ : (PROJ.find(p=>!p.archived)||{}).id));
   const projOpts = PROJ.filter(p=>!p.archived || p.id===pid0).map(p=>`<option value="${p.id}" ${p.id===pid0?'selected':''}>${esc(p.name)}</option>`).join("");
   const st0 = t ? t.status : (preset.status||"todo");
   const due0 = t ? (t.due_date||"") : (preset.due_date||"");
