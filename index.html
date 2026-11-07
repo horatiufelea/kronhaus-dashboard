@@ -131,6 +131,18 @@
   .chip::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor;flex-shrink:0}
   .c-ok{color:var(--ok)} .c-warn{color:var(--warn)} .c-grey{color:var(--grey)} .c-blue{color:var(--blue)}
   .c-grey::before{background:var(--faint)}
+  .c-err{color:var(--err)}
+  /* ---- Contracte ---- */
+  .ctable td{vertical-align:top}
+  .ctable .em{font-size:12px;color:var(--muted)}
+  .ctable tbody tr:nth-child(even) td{background:var(--zebra)}
+  .ctable tbody tr.rowwarn td:first-child{box-shadow:inset 3px 0 0 var(--warn)}
+  .ctable tbody tr.rowerr td:first-child{box-shadow:inset 3px 0 0 var(--err)}
+  .tline{display:flex;flex-direction:column;gap:0}
+  .tline .ti{display:grid;grid-template-columns:86px 1fr;gap:10px;padding:10px 0;border-bottom:1px solid var(--line2);font-size:13px}
+  .tline .ti:last-child{border-bottom:none}
+  .tline .ti .d{color:var(--muted);font-size:12px}
+  .syncinfo{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:6px;margin:-6px 0 14px}
   .badges{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
   .badge{font-size:11px;font-weight:500;padding:1px 7px;border-radius:4px;border:1px solid var(--line);color:var(--faint)}
   .badge.on{color:var(--ok);border-color:#CDE7D6;background:var(--okbg)}
@@ -416,6 +428,7 @@
       <button data-mod="comenzi" class="on"><i data-ic="receipt"></i><span>Comenzi</span><em class="cnt" id="navCntOrders"></em></button>
       <button data-mod="proiecte"><i data-ic="kanban"></i><span>Proiecte</span><em class="cnt" id="navCntProj"></em></button>
       <button data-mod="marketing"><i data-ic="megaphone"></i><span>Marketing</span></button>
+      <button data-mod="contracte"><i data-ic="sign"></i><span>Contracte</span><em class="cnt" id="navCntCtr"></em></button>
     </nav>
     <div class="sfoot">
       <div class="rate"><i data-ic="euro" data-s="14"></i><span id="rateTag">1 € = … Ft</span></div>
@@ -541,6 +554,27 @@
       </div>
     </div>
   </div>
+
+  <!-- ################ MODUL CONTRACTE (Zoho Sign) ################ -->
+  <div id="modContracte" class="hidden">
+    <div class="tabs" id="ctrTabs">
+      <button data-cv="people" class="on">Pe persoane</button>
+      <button data-cv="all">Toate trimiterile</button>
+    </div>
+    <div class="syncinfo" id="ctrSync"></div>
+    <div class="kpis" id="cKpis"></div>
+    <div id="cBanner"></div>
+    <div class="chart-grid" style="margin-bottom:16px">
+      <div class="chart-card"><h3>Trimise și semnate pe zile</h3><div class="cbox" style="height:220px"><canvas id="cTrend"></canvas></div></div>
+      <div class="chart-card"><h3>Starea trimiterilor</h3><div class="cbox" style="height:220px"><canvas id="cStatus"></canvas></div></div>
+    </div>
+    <div class="toolbar">
+      <input class="grow" type="text" id="cSearch" placeholder="Caută nume sau email…">
+      <div class="seg" id="cSeg"></div>
+      <label class="chk"><input type="checkbox" id="cTests"> Arată și testele interne</label>
+    </div>
+    <div id="cWrap"></div>
+  </div>
   </div>
   </main>
 </div>
@@ -618,7 +652,10 @@ const ICONS = {
   x:'<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',
   dashboard:'<rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/>',
   columns:'<rect width="18" height="18" x="3" y="3" rx="2"/><path d="M9 3v18"/><path d="M15 3v18"/>',
-  gantt:'<path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="M7 7h8"/><path d="M11 12h8"/><path d="M8 17h6"/>'
+  gantt:'<path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="M7 7h8"/><path d="M11 12h8"/><path d="M8 17h6"/>',
+  sign:'<path d="M20 19.5v.5a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8.5L18 5.5"/><path d="M8 18h1"/><path d="M18.42 9.61a2.1 2.1 0 1 1 2.97 2.97L16.95 17 13 18l.99-3.95 4.43-4.44Z"/>',
+  mail:'<rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>',
+  eye:'<path d="M2.06 12.35a1 1 0 0 1 0-.7 10.75 10.75 0 0 1 19.88 0 1 1 0 0 1 0 .7 10.75 10.75 0 0 1-19.88 0"/><circle cx="12" cy="12" r="3"/>'
 };
 const ic = (n, s=16) => '<svg class="ico" width="'+s+'" height="'+s+'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+(ICONS[n]||"")+'</svg>';
 document.querySelectorAll("i[data-ic]").forEach(e=>{ e.outerHTML = ic(e.dataset.ic, +(e.dataset.s||16)); });
@@ -1196,7 +1233,7 @@ async function loadHistory(){
 }
 
 /* ===================== MODULE (Comenzi / Proiecte / Marketing) ===================== */
-const MODS = { comenzi:"#modComenzi", proiecte:"#modProiecte", marketing:"#modMarketing" };
+const MODS = { comenzi:"#modComenzi", proiecte:"#modProiecte", marketing:"#modMarketing", contracte:"#modContracte" };
 function modFromHash(){ const h=(location.hash||"").replace("#",""); return MODS[h]?h:"comenzi"; }
 function showModule(m, fromBoot){
   activeMod = MODS[m]?m:"comenzi";
@@ -1205,15 +1242,17 @@ function showModule(m, fromBoot){
   if(location.hash!=="#"+activeMod) history.replaceState(null,"","#"+activeMod);
   const PT = { comenzi:["Comenzi","Comenzile Thermomix din shop, verificate cu plata și factura."],
               proiecte:["Proiecte","Categorii, taskuri și termene pentru toată echipa."],
-              marketing:["Marketing","De unde vin clienții și ce campanii aduc vânzări."] };
+              marketing:["Marketing","De unde vin clienții și ce campanii aduc vânzări."],
+              contracte:["Contracte","Contractele trimise prin Zoho Sign și stadiul semnării."] };
   $("#pageTitle").textContent = PT[activeMod][0]; $("#pageSub").textContent = PT[activeMod][1];
   document.title = PT[activeMod][0]+" · KronHaus Hub";
   $("#exportBtn").classList.toggle("hidden", activeMod!=="comenzi");
-  $("#refreshBtn").classList.toggle("hidden", activeMod==="proiecte");
+  $("#refreshBtn").classList.toggle("hidden", activeMod==="proiecte" || activeMod==="contracte");
   if(activeMod==="comenzi" && activeTab==="orders") buildTrend();
   if(activeMod==="comenzi" && activeTab==="stats") buildStats();
   if(activeMod==="proiecte") loadProjects();
   if(activeMod==="marketing") loadMarketing(false);
+  if(activeMod==="contracte") loadContracts();
 }
 $("#modnav").addEventListener("click", e=>{ const b=e.target.closest("button"); if(b) showModule(b.dataset.mod); });
 window.addEventListener("hashchange", ()=>{ if(!$("#app").classList.contains("hidden")) showModule(modFromHash()); });
@@ -1999,6 +2038,189 @@ $("#uCopy").addEventListener("click", async ()=>{
   try{ await navigator.clipboard.writeText(v); toast("Link copiat ✓"); }
   catch(e){ $("#uOut").select(); toast("Selectat — apăsați Ctrl+C"); }
 });
+
+
+/* ===================== CONTRACTE (Zoho Sign) ===================== */
+const ZS_OWNER = "szerzodes@kronhaus.hu";
+const RS = { completed:["c-ok","Semnat de toți"], inprogress:["c-blue","În curs de semnare"], expired:["c-warn","Expirat"],
+             recalled:["c-grey","Retras"], draft:["c-grey","Ciornă"], declined:["c-err","Refuzat"], onhold:["c-warn","În așteptare"],
+             archived:["c-grey","Arhivat"], deleted:["c-grey","Șters"] };
+const RCP = { SIGNED:["c-ok","a semnat"], VIEWED:["c-warn","a deschis, n-a semnat"], UNOPENED:["c-warn","n-a deschis emailul"],
+              NOACTION:["c-grey","nu e încă rândul"], DECLINED:["c-err","a refuzat"], INPROGRESS:["c-blue","în curs"] };
+const PST = { signed:["c-ok","Are contract semnat"], progress:["c-blue","În curs de semnare"], resend:["c-err","De retrimis"], draft:["c-grey","Doar ciornă"] };
+let ZS=[], CV="people", CF="all", CQ="", CTESTS=false, CCH={};
+const chip = (m,k) => { const v=m[k]||["c-grey",k||"—"]; return `<span class="chip ${v[0]}">${v[1]}</span>`; };
+const fdt = ts => ts ? new Date(ts).toLocaleDateString("ro-RO",{day:"numeric",month:"short",year:"numeric"}) : "—";
+const isPlaceholder = r => !r || !r.email || r.email.startsWith("$") ;
+const badName = n => !n || n.startsWith("$") || /^last name/i.test(n);
+function isInternal(q, rc){
+  const e=(rc&&rc.email)||"";
+  return /@(kronhaus|kronstadt)\.hu$/i.test(e) || /test/i.test(q.request_name||"") || /test/i.test(q.notes||"") || isPlaceholder(rc);
+}
+function counterpart(q){ return (q.recipients||[]).find(r=>(r.email||"").toLowerCase()!==ZS_OWNER) || null; }
+function ownerRc(q){ return (q.recipients||[]).find(r=>(r.email||"").toLowerCase()===ZS_OWNER) || null; }
+
+async function loadContracts(){
+  const { data, error } = await sb.from("zoho_sign_requests").select("*").order("created_at",{ascending:false});
+  if(error){ $("#cWrap").innerHTML='<div class="empty">Eroare: '+esc(error.message)+'</div>'; return; }
+  ZS = (data||[]).map(q=>{ const c=counterpart(q); return { ...q, _c:c, _o:ownerRc(q), _test:isInternal(q,c) }; });
+  const last = ZS.reduce((m,q)=>q.synced_at>m?q.synced_at:m,"");
+  $("#ctrSync").innerHTML = ic("refresh",13)+" Date din Zoho Sign (contul KronHaus Kft.) · actualizat "+(last?new Date(last).toLocaleString("ro-RO"):"—");
+  renderContracts();
+}
+
+/* starea finală pe persoană (după email) */
+function people(){
+  const map={};
+  ZS.filter(q=>CTESTS || !q._test).forEach(q=>{
+    const c=q._c; if(!c || isPlaceholder(c)) return;
+    const k=c.email.toLowerCase();
+    (map[k]=map[k]||{email:k, reqs:[]}).reqs.push(q);
+  });
+  return Object.values(map).map(P=>{
+    P.reqs.sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
+    const done=P.reqs.filter(q=>q.request_status==="completed");
+    const prog=P.reqs.filter(q=>q.request_status==="inprogress");
+    const named=P.reqs.find(q=>!badName(q._c.name));
+    P.name = (done[0]&&!badName(done[0]._c.name)) ? done[0]._c.name : (named?named._c.name:P.email);
+    P.last = P.reqs[0];
+    P.signed = done[0]||null;
+    if(done.length) P.st="signed";
+    else if(prog.length) P.st="progress";
+    else if(P.reqs.every(q=>q.request_status==="draft")) P.st="draft";
+    else P.st="resend";
+    P.test = P.reqs.every(q=>q._test);
+    // observații
+    const O=[]; const lastNon = P.reqs.find(q=>q.request_status!=="draft") || P.last;
+    if(P.st==="resend"){
+      const rs=lastNon._c.status;
+      O.push({l:"err", t:(lastNon.request_status==="expired"?"Contractul a expirat":"Contractul a fost retras")+" fără semnătură",
+              a: rs==="UNOPENED" ? "N-a deschis emailul — verificați adresa sau sunați persoana, apoi retrimiteți."
+                                 : "A deschis contractul dar nu l-a semnat — sunați persoana și retrimiteți."});
+    }
+    if(P.st==="progress"){
+      const q=prog[0], me=q._c.status, kh=q._o&&q._o.status;
+      if(me==="SIGNED" && kh!=="SIGNED") O.push({l:"warn",t:"Persoana a semnat — lipsește semnătura KronHaus",a:"Semnați contractul în Zoho Sign."});
+      else if(me==="UNOPENED") O.push({l:"warn",t:"N-a deschis încă emailul cu contractul",a:"Reamintiți-i sau verificați adresa de email."});
+      else if(me==="VIEWED") O.push({l:"warn",t:"A deschis contractul, încă nu l-a semnat",a:"Trimiteți o reamintire."});
+      if(q.expire_at){ const d=Math.ceil((new Date(q.expire_at)-Date.now())/864e5);
+        if(d<=3) O.push({l:d<0?"err":"warn",t:d<0?"Termenul de semnare a trecut":"Expiră în "+d+(d===1?" zi":" zile")+" ("+fdt(q.expire_at)+")",a:"Prelungiți termenul sau retrimiteți."}); }
+    }
+    if(P.st==="signed" && P.reqs.length>1) O.push({l:"info",t:P.reqs.length+" trimiteri până la semnare",a:""});
+    if(P.st==="signed" && P.reqs.length===1) O.push({l:"ok",t:"Semnat din prima",a:""});
+    P.obs=O;
+    return P;
+  }).sort((a,b)=>{ const o={resend:0,progress:1,draft:2,signed:3}; return (o[a.st]-o[b.st]) || (new Date(b.last.created_at)-new Date(a.last.created_at)); });
+}
+const cObs = (O,full) => '<div class="obs">'+O.map(c=>`<div class="${LVL[c.l][0]}">${LVL[c.l][1]}<div>${esc(c.t)}${full&&c.a?`<div class="act">→ ${esc(c.a)}</div>`:''}</div></div>`).join("")+'</div>';
+
+function renderContracts(){
+  document.querySelectorAll("#ctrTabs button").forEach(b=>b.classList.toggle("on",b.dataset.cv===CV));
+  const P = people();
+  const R = ZS.filter(q=>CTESTS || !q._test);
+  const nS=P.filter(p=>p.st==="signed").length, nP=P.filter(p=>p.st==="progress").length, nR=P.filter(p=>p.st==="resend").length;
+  const cnt=k=>R.filter(q=>q.request_status===k).length;
+  $("#cKpis").innerHTML = [
+    {n:nS, l:"Persoane cu contract semnat", e:"din "+P.length+" persoane"},
+    {n:nP, l:"În curs de semnare", e:""},
+    {n:nR, l:"De retrimis", e:"expirate / retrase, nesemnate", red:nR>0},
+    {n:R.length, l:"Trimiteri în total", e:cnt("completed")+" semnate · "+cnt("recalled")+" retrase · "+cnt("expired")+" expirate"},
+  ].map(k=>`<div class="kpi ${k.red?'red':''}"><div class="n">${k.n}</div><div class="l">${k.l}</div>${k.e?`<div class="e">${k.e}</div>`:''}</div>`).join("");
+  const nc=$("#navCntCtr"); if(nc){ nc.textContent=nR||""; nc.classList.toggle("warn",nR>0); }
+  $("#cBanner").innerHTML = nR ? `<div class="hint" id="cGo" style="cursor:pointer">${ic("alert",17)}<span><b>${nR} ${nR===1?'persoană nu are':'persoane nu au'} contract semnat</b> — trimiterea a expirat sau a fost retrasă și n-a mai fost retrimisă.</span><span class="go">Arată-le ${ic("arrow",14)}</span></div>` : "";
+  const g=$("#cGo"); if(g) g.onclick=()=>{ CV="people"; CF="resend"; renderContracts(); };
+
+  // filtre
+  const segs = CV==="people"
+    ? [["all","Toate"],["resend","De retrimis"],["progress","În curs"],["signed","Semnate"]]
+    : [["all","Toate"],["completed","Semnate"],["inprogress","În curs"],["expired","Expirate"],["recalled","Retrase"],["draft","Ciorne"]];
+  if(!segs.some(x=>x[0]===CF)) CF="all";
+  $("#cSeg").innerHTML = segs.map(([k,l])=>`<button data-f="${k}" class="${CF===k?'on':''}">${l}</button>`).join("");
+  const q=CQ.trim().toLowerCase();
+
+  if(CV==="people"){
+    const L=P.filter(p=>(CF==="all"||p.st===CF) && (!q || (p.name+" "+p.email).toLowerCase().includes(q)));
+    $("#cWrap").innerHTML = L.length ? `<div class="tscroll"><table class="ctable"><thead><tr>
+        <th>Persoană</th><th>Stare</th><th>Contract</th><th>Trimiteri</th><th>Ultima trimitere</th><th class="col-obs">Observații</th></tr></thead><tbody>
+      ${L.map(p=>`<tr data-e="${esc(p.email)}" class="${p.st==='resend'?'rowerr':(p.st==='progress'?'rowwarn':'')}">
+        <td><div class="nm">${esc(p.name)}${p.test?' <span class="chip c-grey">test</span>':''}</div><div class="em">${esc(p.email)}</div></td>
+        <td>${chip(PST,p.st)}</td>
+        <td>${p.signed?`${esc(p.signed.request_name)}<div class="em">semnat · trimis ${fdt(p.signed.created_at)}</div>`:`<span class="day">—</span>`}</td>
+        <td>${p.reqs.length}</td>
+        <td>${fdt(p.last.created_at)}<div class="em">${chip(RS,p.last.request_status)}</div></td>
+        <td class="col-obs">${cObs(p.obs,false)}</td></tr>`).join("")}
+      </tbody></table></div>` : '<div class="empty">Nicio persoană pentru filtrul ales.</div>';
+    $("#cWrap").querySelectorAll("tbody tr").forEach(tr=>tr.onclick=()=>openPerson(P.find(p=>p.email===tr.dataset.e)));
+  } else {
+    const L=R.filter(x=>(CF==="all"||x.request_status===CF) && (!q || ((x._c?x._c.name+" "+x._c.email:"")+" "+x.request_name).toLowerCase().includes(q)));
+    $("#cWrap").innerHTML = L.length ? `<div class="tscroll"><table class="ctable"><thead><tr>
+        <th>Trimis</th><th>Persoană</th><th>Contract</th><th>Stare</th><th>Persoana</th><th>KronHaus</th><th>Expiră</th></tr></thead><tbody>
+      ${L.map(x=>`<tr data-e="${esc(x._c?x._c.email:'')}">
+        <td class="day">${fdt(x.created_at)}</td>
+        <td><div class="nm">${x._c&&!badName(x._c.name)?esc(x._c.name):'<span class="day">(fără destinatar)</span>'}${x._test?' <span class="chip c-grey">test</span>':''}</div><div class="em">${x._c&&!isPlaceholder(x._c)?esc(x._c.email):''}</div></td>
+        <td>${esc(x.request_name)}<div class="em">${(x.documents||[]).map(d=>esc(d.name)+" · "+d.pages+" pag.").join(", ")}</div></td>
+        <td>${chip(RS,x.request_status)}</td>
+        <td>${x._c?chip(RCP,x._c.status):'—'}</td>
+        <td>${x._o?chip(RCP,x._o.status):'—'}</td>
+        <td class="day">${x.expire_at?fdt(x.expire_at):'—'}</td></tr>`).join("")}
+      </tbody></table></div>` : '<div class="empty">Nicio trimitere pentru filtrul ales.</div>';
+    $("#cWrap").querySelectorAll("tbody tr").forEach(tr=>tr.onclick=()=>{ const p=P.find(p=>p.email===tr.dataset.e); if(p) openPerson(p); });
+  }
+  buildContractCharts(R);
+}
+
+function buildContractCharts(R){
+  if(typeof Chart==="undefined") return;
+  Object.values(CCH).forEach(c=>{try{c.destroy();}catch(e){}}); CCH={};
+  Chart.defaults.font.family=C_FONT; Chart.defaults.color=C_MUT;
+  const days=R.map(q=>(q.created_at||"").slice(0,10)).filter(Boolean).sort();
+  if(days.length && cctx("cTrend")){
+    const keys=[]; for(let n=dnum(days[0]); n<=dnum(days[days.length-1]); n++) keys.push(dstr(n));
+    const sent=keys.map(k=>R.filter(q=>q.request_status!=="draft" && (q.created_at||"").slice(0,10)===k).length);
+    const signed=keys.map(k=>R.filter(q=>q.request_status==="completed" && (q.created_at||"").slice(0,10)===k).length);
+    const lbl=k=>new Date(k+"T00:00:00Z").toLocaleDateString("ro-RO",{day:"numeric",month:"short",timeZone:"UTC"});
+    CCH.t=new Chart(cctx("cTrend"),{type:"line",data:{labels:keys.map(lbl),datasets:[
+      {label:"Trimise",data:sent,borderColor:C_BLUE,backgroundColor:C_BLUE},
+      {label:"Semnate",data:signed,borderColor:C_GREEN,backgroundColor:"rgba(0,132,61,.08)",fill:true}].map(d=>Object.assign(d,{tension:.25,cubicInterpolationMode:"monotone",borderWidth:2,pointRadius:keys.length>40?0:3}))},
+      options:{maintainAspectRatio:false,responsive:true,interaction:{mode:"index",intersect:false},
+        plugins:{legend:{position:"top",align:"end",labels:{boxWidth:10,boxHeight:10,usePointStyle:true}}},
+        scales:{y:{beginAtZero:true,grid:{color:C_GRID},ticks:{precision:0}},x:{grid:{display:false},ticks:{maxRotation:0,autoSkip:true,maxTicksLimit:10}}}}});
+  }
+  if(cctx("cStatus")){
+    const ks=["completed","inprogress","expired","recalled","draft"].filter(k=>R.some(q=>q.request_status===k));
+    const col={completed:C_GREEN,inprogress:C_BLUE,expired:C_AMBER,recalled:"#A8A29E",draft:"#D6D3D1"};
+    CCH.s=new Chart(cctx("cStatus"),{type:"doughnut",data:{labels:ks.map(k=>RS[k][1]),datasets:[{data:ks.map(k=>R.filter(q=>q.request_status===k).length),backgroundColor:ks.map(k=>col[k]),borderColor:"#fff",borderWidth:2}]},
+      options:{maintainAspectRatio:false,responsive:true,cutout:"62%",plugins:{legend:{position:"right",labels:{boxWidth:10,boxHeight:10,usePointStyle:true,padding:12}}}}});
+  }
+}
+
+function openPerson(P){
+  if(!P) return;
+  const scrim=document.createElement("div"); scrim.className="scrim";
+  const dr=document.createElement("div"); dr.className="drawer";
+  dr.innerHTML=`
+    <header><div><p class="dtitle">${esc(P.name)}</p><p class="dsub">${esc(P.email)}</p></div><button class="x" id="closeDr">×</button></header>
+    <div class="body">
+      <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">${chip(PST,P.st)}<span class="day">${P.reqs.length} ${P.reqs.length===1?'trimitere':'trimiteri'}</span></div>
+      <div class="sect"><h4>Ce e de făcut</h4>${cObs(P.obs,true)}</div>
+      <div class="sect"><h4>Istoric trimiteri</h4><div class="tline">
+        ${P.reqs.map(q=>`<div class="ti"><div class="d">${fdt(q.created_at)}</div><div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center"><b style="font-weight:600">${esc(q.request_name)}</b>${chip(RS,q.request_status)}</div>
+          <div class="dsub" style="margin-top:4px">Persoana: ${chip(RCP,q._c&&q._c.status)} · KronHaus: ${chip(RCP,q._o&&q._o.status)}</div>
+          <div class="dsub">${(q.documents||[]).map(d=>esc(d.name)+" ("+d.pages+" pag.)").join(", ")}${q.expire_at?' · expiră '+fdt(q.expire_at):''}</div>
+        </div></div>`).join("")}
+      </div></div>
+      <p class="dsub" style="margin-top:16px">Documentele semnate se descarcă din Zoho Sign (sign.zoho.eu), la trimiterea respectivă.</p>
+    </div>`;
+  document.body.append(scrim,dr);
+  const close=()=>{ scrim.remove(); dr.remove(); };
+  scrim.onclick=close; dr.querySelector("#closeDr").onclick=close;
+}
+
+$("#ctrTabs").addEventListener("click",e=>{ const b=e.target.closest("button"); if(!b) return; CV=b.dataset.cv; CF="all"; renderContracts(); });
+$("#cSeg").addEventListener("click",e=>{ const b=e.target.closest("button"); if(!b) return; CF=b.dataset.f; renderContracts(); });
+$("#cSearch").addEventListener("input",e=>{ CQ=e.target.value; renderContracts(); });
+$("#cTests").addEventListener("change",e=>{ CTESTS=e.target.checked; renderContracts(); });
 
 /* ===================== START ===================== */
 boot();
