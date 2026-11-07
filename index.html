@@ -418,6 +418,14 @@
   .btn.go{background:var(--accent);border-color:var(--accent);padding:10px 18px}
   .btn.go:hover{background:#006B31}
 
+  /* ---- metodă de plată ---- */
+  .pmeth{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:700;letter-spacing:.02em;border-radius:5px;padding:2px 7px;margin-bottom:6px}
+  .pmeth .ico{vertical-align:0}
+  .pmeth.m-card{background:#EEF2FB;color:#3F5BA9}
+  .pmeth.m-transfer{background:#F1EAFB;color:#6B3FA0}
+  .pmeth.m-cash,.pmeth.m-cod,.pmeth.m-other{background:#FFF4E0;color:#9A5B00}
+  .c-err{color:var(--err)}
+
   /* ---- Proiecte · timeline ---- */
   .tlbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
   .tl{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);overflow:auto;max-height:70vh}
@@ -571,6 +579,11 @@
           <button data-st="confirmed">Încasate</button>
           <button data-st="pending">Neîncasate</button>
           <button data-st="issues">De verificat</button>
+        </div>
+        <div class="seg" id="segMethod">
+          <button data-m="all" class="on">Toate metodele</button>
+          <button data-m="card">Card</button>
+          <button data-m="transfer">Transfer</button>
         </div>
       </div>
       <div id="issueBanner"></div>
@@ -750,6 +763,9 @@ const ICONS = {
   list:'<path d="M3 12h.01"/><path d="M3 18h.01"/><path d="M3 6h.01"/><path d="M8 12h13"/><path d="M8 18h13"/><path d="M8 6h13"/>',
   chevron:'<path d="m9 18 6-6-6-6"/>',
   sub:'<path d="M4 4v7a4 4 0 0 0 4 4h12"/><path d="m15 10 5 5-5 5"/>',
+  card:'<rect width="20" height="14" x="2" y="5" rx="2"/><path d="M2 10h20"/>',
+  bank:'<path d="M3 22h18"/><path d="M6 18v-7"/><path d="M10 18v-7"/><path d="M14 18v-7"/><path d="M18 18v-7"/><path d="M12 2 20 7H4z"/>',
+  cash:'<rect width="20" height="12" x="2" y="6" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/>',
   users:'<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
   flag:'<path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><path d="M4 22v-7"/>',
   gantt:'<path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="M7 7h8"/><path d="M11 12h8"/><path d="M8 17h6"/>',
@@ -761,7 +777,7 @@ const ic = (n, s=16) => '<svg class="ico" width="'+s+'" height="'+s+'" viewBox="
 document.querySelectorAll("i[data-ic]").forEach(e=>{ e.outerHTML = ic(e.dataset.ic, +(e.dataset.s||16)); });
 let EUR = FALLBACK_RATE;
 let ROWS = [];
-let STATE = { status:"all", q:"" };
+let STATE = { status:"all", q:"", method:"all" };
 let ME = { id:null, name:"" };
 let activeMod = "comenzi";
 
@@ -846,12 +862,13 @@ async function boot(){
 async function loadOrders(){
   const [a,b] = await Promise.all([
     sb.from("v_orders_truth").select("*").order("order_day",{ascending:false,nullsFirst:false}),
-    sb.from("v_order_detail").select("key,invoice_status,payment_paid,customer_type,inv_tax_number")
+    sb.from("v_order_detail").select("key,invoice_status,payment_paid,customer_type,inv_tax_number,tx:details->transactions")
   ]);
   if(a.error){ toast("Eroare la încărcare: "+a.error.message); return; }
   const det = {}; (b.data||[]).forEach(d=>det[d.key]=d);
   ROWS = (a.data||[]).map(r=>({ ...r, unas_invoice_status: det[r.key]?det[r.key].invoice_status:null,
-                                 unas_paid_amount: det[r.key]?det[r.key].payment_paid:null }));
+                                 unas_paid_amount: det[r.key]?det[r.key].payment_paid:null,
+                                 _tx: (det[r.key] && Array.isArray(det[r.key].tx)) ? det[r.key].tx : [] }));
   computeChecks();
   render();
   if(activeMod==="comenzi" && activeTab==="stats") buildStats();
@@ -867,6 +884,7 @@ function filtered(){
     if(STATE.status==="confirmed" && !r.is_confirmed_sale) return false;
     if(STATE.status==="pending" && r.is_confirmed_sale) return false;
     if(STATE.status==="issues" && !needsAction(r)) return false;
+    if(STATE.method!=="all" && payKind(r)!==STATE.method) return false;
     if(q){
       const hay = [r.customer_name,r.inv_city,r.invoice_number,r.unas_status,HU_STATUS[r.unas_status],
                    ...(r._checks||[]).map(c=>c.t)].join(" ").toLowerCase();
@@ -893,7 +911,7 @@ function kpis(list){
   const rev = conf.reduce((s,r)=>s+Number(r.sum_gross||0),0);
   const pend = real.length-conf.length;
   const html = [
-    {n:real.length, l:"Comenzi Thermomix", e:""},
+    {n:real.length, l:"Comenzi Thermomix", e:(()=>{ const c=k=>real.filter(r=>payKind(r)===k).length; const parts=[]; if(c("transfer")) parts.push(c("transfer")+" transfer"); if(c("card")) parts.push(c("card")+" card"); const o=real.length-c("transfer")-c("card"); if(o) parts.push(o+" altele"); return parts.join(" · "); })()},
     {n:conf.length, l:"Vândute și încasate", e:""},
     {n:ft(rev), l:"Bani încasați", e:eur(rev)},
     {n:pend, l:"Încă neîncasate", e:""},
@@ -927,7 +945,17 @@ function payKind(r){
   if(/utal|transfer/.test(n)) return "transfer";
   return "other";
 }
-const PAY_LABEL = { card:"Card", transfer:"Transfer", cod:"Ramburs", cash:"Cash", other:"Altă metodă" };
+const PAY_LABEL = { card:"Card online", transfer:"Transfer bancar", cod:"Ramburs", cash:"Cash", other:"Altă metodă" };
+const PAY_IC = { card:"card", transfer:"bank", cod:"cash", cash:"cash", other:"cash" };
+function txInfo(r){
+  const tx = r._tx||[], ok = tx.filter(t=>t.status==="finish").length, fail = tx.filter(t=>t.status && t.status!=="finish" && t.status!=="pending").length;
+  return { n:tx.length, ok, fail };
+}
+function txText(r){
+  const i = txInfo(r); if(!i.n) return "nicio încercare de plată";
+  const parts=[]; if(i.fail) parts.push(i.fail+(i.fail===1?" eșuată":" eșuate")); if(i.ok) parts.push(i.ok+(i.ok===1?" reușită":" reușite"));
+  return i.n+(i.n===1?" încercare":" încercări")+(parts.length?" · "+parts.join(" · "):"");
+}
 const INV_TYPE = { SZ:"factură", SS:"factură storno", D:"proformă", DB:"proformă", E:"factură de avans", H:"factură de corecție", HE:"factură de corecție" };
 const ageDays = r => r.order_day ? Math.floor((Date.now()-new Date(r.order_day+"T00:00:00"))/864e5) : 0;
 const paidProof = r => !!(r.card_paid || r.invoice_paid || r.transfer_confirmed);
@@ -979,10 +1007,15 @@ function orderChecks(r, dupMap){
     if(pk==="transfer") age>3 ? add("warn","Transfer neîncasat de "+age+" zile","Verificați extrasul sau contactați clientul.")
                               : add("info","Așteaptă transferul ("+(age===0?"de azi":age+(age===1?" zi":" zile"))+")","Când intră banii: „Transfer bancar încasat”.");
     else if(pk==="cash") add(age>3?"warn":"info","Plată cash la fața locului, neconfirmată"+(age>0?" ("+age+" zile)":""),"După încasare, emiteți factura.");
-    else if(pk==="card") add("warn","Plată cu cardul nereușită sau neterminată","Verificați în UNAS / SimplePay; contactați clientul.");
+    else if(pk==="card"){
+      const ti=txInfo(r);
+      if(ti.fail) add("warn","Plata cu cardul a eșuat ("+ti.fail+(ti.fail===1?" încercare":" încercări")+")","Contactați clientul: poate reîncerca plata cu cardul sau poate plăti prin transfer.");
+      else add("warn","A ales plata cu cardul, dar n-a încercat să plătească","Trimiteți-i linkul de plată sau propuneți transfer bancar.");
+    }
   }
   // confirmare manuală inutilă
   if(r.card_paid && r.transfer_confirmed) add("info","Confirmată și manual ca transfer, deși a plătit cu cardul","Verificați că nu e o confirmare din greșeală.");
+  if(r.card_paid && txInfo(r).fail) add("info","Plătit cu cardul după "+txInfo(r).fail+(txInfo(r).fail===1?" încercare eșuată":" încercări eșuate"),"");
   // posibil duplicat
   const dups=(dupMap[dupKey(r)]||[]).filter(k=>k!==r.key);
   if(dups.length) add("warn","Posibil duplicat: același client, aceeași zi și sumă (#"+dups.join(", #")+")","Verificați și anulați comanda în plus.");
@@ -1012,11 +1045,14 @@ function unasCell(r){
 function payCell(r){
   const pk=payKind(r);
   let chip;
-  if(r.card_paid) chip='<span class="chip c-ok">card plătit</span>';
-  else if(r.transfer_confirmed) chip='<span class="chip c-ok">transfer confirmat</span>';
+  if(r.card_paid) chip='<span class="chip c-ok">plătit cu cardul</span>';
+  else if(r.transfer_confirmed) chip=`<span class="chip c-ok">${pk==="cash"||pk==="cod"?"încasare confirmată":"transfer confirmat"}</span>`;
   else if(r.invoice_paid) chip='<span class="chip c-ok">plătită (factură)</span>';
-  else chip=`<span class="chip c-warn">${pk==="card"?"card neplătit":pk==="transfer"?"transfer așteptat":pk==="cash"?"cash neconfirmat":pk==="cod"?"ramburs":"neîncasată"}</span>`;
-  return chip+`<div class="sub2">${PAY_LABEL[pk]}${r.transfer_confirmed&&r.transfer_confirmed_by?' · '+esc(r.transfer_confirmed_by):''}</div>`;
+  else if(pk==="card") chip=`<span class="chip ${txInfo(r).fail?'c-err':'c-warn'}">${txInfo(r).fail?'plata cu cardul a eșuat':'card neplătit'}</span>`;
+  else chip=`<span class="chip c-warn">${pk==="transfer"?"transfer așteptat":pk==="cash"?"cash neconfirmat":pk==="cod"?"ramburs":"neîncasată"}</span>`;
+  const meth = `<div class="pmeth m-${pk}">${ic(PAY_IC[pk],13)}${PAY_LABEL[pk]}</div>`;
+  const extra = pk==="card" ? `<div class="sub2">${txText(r)}</div>` : (r.transfer_confirmed&&r.transfer_confirmed_by?`<div class="sub2">de ${esc(r.transfer_confirmed_by)}</div>`:'');
+  return meth + chip + extra;
 }
 function invCell(r){
   const n=r.szamlaszam||r.invoice_number;
@@ -1136,8 +1172,11 @@ async function openDetail(key){
   const paidOk = r.is_confirmed_sale;
   const proofLine = (()=>{
     const by = r.transfer_confirmed ? ` de ${esc(r.transfer_confirmed_by)||'o colegă'}${r.transfer_confirmed_at?' · '+new Date(r.transfer_confirmed_at).toLocaleString("ro-RO"):''}` : "";
-    if(pk==="card") return ["Plată cu cardul", r.card_paid ? '<b style="color:var(--ok)">reușită</b> (tranzacție finalizată în SimplePay/UNAS)'
-                                                         : '<b style="color:var(--warn)">nefinalizată</b> — plata cu cardul nu a trecut; verificați în UNAS / SimplePay sau contactați clientul'];
+    if(pk==="card"){
+      const lst = (r._tx||[]).map(x=>`<div class="day" style="margin-top:3px">${x.status==="finish"?'<span style="color:var(--ok)">✓ reușită</span>':'<span style="color:var(--err)">✗ eșuată</span>'} · ${esc(x.tx_date||'')}${x.amount?' · '+ft(x.amount):''}</div>`).join("");
+      return ["Plată cu cardul", (r.card_paid ? '<b style="color:var(--ok)">reușită</b>' : (txInfo(r).fail?'<b style="color:var(--err)">a eșuat</b> — contactați clientul (poate reîncerca sau plăti prin transfer)':'<b style="color:var(--warn)">neîncercată</b> — clientul a ales cardul, dar n-a încercat plata'))
+        + `<div class="day">${txText(r)}</div>` + lst];
+    }
     if(pk==="transfer") return ["Transfer bancar", r.transfer_confirmed ? '<b style="color:var(--ok)">confirmat</b>'+by
                                                          : '<b style="color:var(--warn)">neconfirmat</b> — când vedeți banii în extrasul de cont, apăsați „Transfer bancar încasat” (sus)'];
     if(pk==="cash"||pk==="cod") return ["Încasare", r.transfer_confirmed ? '<b style="color:var(--ok)">confirmată</b>'+by
@@ -1277,6 +1316,8 @@ $("#refreshBtn").addEventListener("click", async ()=>{
 
 /* ===================== FILTER WIRING ===================== */
 $("#search").addEventListener("input", e=>{ STATE.q=e.target.value; render(); });
+$("#segMethod").addEventListener("click", e=>{ const b=e.target.closest("button"); if(!b)return;
+  STATE.method=b.dataset.m; $("#segMethod").querySelectorAll("button").forEach(x=>x.classList.toggle("on",x===b)); render(); });
 $("#segStatus").addEventListener("click", e=>{ const b=e.target.closest("button"); if(!b)return;
   STATE.status=b.dataset.st; $("#segStatus").querySelectorAll("button").forEach(x=>x.classList.toggle("on",x===b)); render(); });
 
