@@ -388,6 +388,36 @@
   .suppop input{accent-color:var(--accent)}
   .suppop .spf{display:flex;justify-content:flex-end;padding-top:6px}
 
+  /* ---- fereastra task: secțiuni colorate ---- */
+  .tdh{background:color-mix(in srgb, var(--pc) 12%, #fff);border-bottom:3px solid var(--pc)!important;align-items:flex-start!important}
+  .tdh-in{min-width:0}
+  .tdh-top{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+  .tdh-key{font-size:12px;font-weight:700;color:#fff;background:var(--pc);border-radius:5px;padding:2px 8px;letter-spacing:.02em}
+  .tdh-key.new{background:var(--ink)}
+  .tdh-cat{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;color:var(--ink);font-weight:600}
+  .tdh-cat .pd{width:9px;height:9px;border-radius:2px;background:var(--pc)}
+  .tdh .dtitle{font-size:19px;line-height:1.25;word-break:break-word}
+  .tbody{background:#FAFAF9}
+  .tsec{background:#fff;border:1px solid var(--line);border-left:4px solid var(--sc);border-radius:10px;padding:12px 14px 14px;margin-bottom:12px;background:color-mix(in srgb, var(--sc) 6%, #fff)}
+  .tsec h5{display:flex;align-items:center;gap:7px;margin:0 0 4px;font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--sc)}
+  .tsec h5 .ico{vertical-align:0}
+  .tsec label:first-of-type{margin-top:8px}
+  .s-about{--sc:#57534E} .s-status{--sc:#3F5BA9} .s-people{--sc:#6B3FA0} .s-time{--sc:#B7791F} .s-subs{--sc:#0F7A3D} .s-files{--sc:#C2410C}
+  .tsec input,.tsec select,.tsec textarea{background:#fff}
+  .notearea{background:#FFFBEA!important;border-color:#F3E3A6!important}
+  .catsel{border-left:6px solid var(--pc)!important}
+  .colsel{font-weight:600}
+  .colsel.st-todo{background:var(--greybg)!important;color:var(--grey)}
+  .colsel.st-doing{background:var(--bluebg)!important;color:var(--blue);border-color:#C9D5F2}
+  .colsel.st-done{background:var(--okbg)!important;color:var(--ok);border-color:#CDE7D6}
+  .colsel.pr-high{background:var(--errbg)!important;color:var(--err);border-color:#F5C9C4}
+  .colsel.pr-med{background:var(--warnbg)!important;color:var(--warn);border-color:#F1DDB0}
+  .colsel.pr-low{background:var(--greybg)!important;color:var(--grey)}
+  .s-people .supp button.on{background:#F1EAFB;border-color:#D9C8F2;color:#6B3FA0}
+  .tact{position:sticky;bottom:-20px;background:#FAFAF9;padding:12px 0;margin:4px 0 6px;border-top:1px solid var(--line);z-index:2}
+  .btn.go{background:var(--accent);border-color:var(--accent);padding:10px 18px}
+  .btn.go:hover{background:#006B31}
+
   /* ---- Proiecte · timeline ---- */
   .tlbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
   .tl{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);overflow:auto;max-height:70vh}
@@ -720,6 +750,8 @@ const ICONS = {
   list:'<path d="M3 12h.01"/><path d="M3 18h.01"/><path d="M3 6h.01"/><path d="M8 12h13"/><path d="M8 18h13"/><path d="M8 6h13"/>',
   chevron:'<path d="m9 18 6-6-6-6"/>',
   sub:'<path d="M4 4v7a4 4 0 0 0 4 4h12"/><path d="m15 10 5 5-5 5"/>',
+  users:'<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
+  flag:'<path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><path d="M4 22v-7"/>',
   gantt:'<path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="M7 7h8"/><path d="M11 12h8"/><path d="M8 17h6"/>',
   sign:'<path d="M20 19.5v.5a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8.5L18 5.5"/><path d="M8 18h1"/><path d="M18.42 9.61a2.1 2.1 0 1 1 2.97 2.97L16.95 17 13 18l.99-3.95 4.43-4.44Z"/>',
   mail:'<rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>',
@@ -1967,44 +1999,62 @@ function openTask(t, preset){
 
   const scrim=document.createElement("div"); scrim.className="scrim";
   const dr=document.createElement("div"); dr.className="drawer";
+  const pc0 = safeColor(PROJ.find(p=>p.id===pid0)?.color);
   dr.innerHTML=`
-    <header><div><p class="dtitle">${isNew?'Task nou':'Task'}</p>
-      <p class="dsub">${isNew?'':esc(projOf(t).name)}</p></div>
-      <button class="x" id="closeDr">×</button></header>
-    <div class="body">
-      <label>Titlu</label><input type="text" id="tTitle" maxlength="200" value="${esc(t?t.title:'')}" placeholder="ce trebuie făcut">
-      <label>Categorie</label><select id="tProj">${projOpts}</select>
-      <label>Detalii</label><textarea id="tDesc" rows="3" placeholder="detalii, linkuri, pași…">${esc(t?t.description||'':'')}</textarea>
-      <label>Observații</label><textarea id="tNotes" rows="2" placeholder="stadiu, ce s-a discutat, ce urmează…">${esc(t?t.notes||'':'')}</textarea>
-      <div class="row2">
-        <div><label>Stare</label><select id="tSt">${T_STATUS.map(s=>`<option value="${s.k}" ${st0===s.k?'selected':''}>${s.l}</option>`).join("")}</select></div>
-        <div><label>Prioritate</label><select id="tPr">${Object.entries(T_PRIO).map(([k,l])=>`<option value="${k}" ${((t&&t.priority)||'med')===k?'selected':''}>${l}</option>`).join("")}</select></div>
-        <div><label>Responsabil</label><select id="tWho"><option value="">— nimeni —</option>
-          ${people.map(n=>`<option ${n===cur?'selected':''}>${esc(n)}</option>`).join("")}</select></div>
-        <div><label>Suport <span class="day" style="font-weight:400">(cine ajută)</span></label><div class="supp" id="tSup">
-          ${[...new Set([...TEAM, ...((t&&t.supporters)||[])])].map(n=>`<button type="button" data-n="${esc(n)}" class="${((t&&t.supporters)||[]).includes(n)?'on':''}">${esc(n)}</button>`).join("")}</div></div>
+    <header class="tdh" style="--pc:${pc0}">
+      <div class="tdh-in">
+        <div class="tdh-top">${isNew?'<span class="tdh-key new">TASK NOU</span>':`<span class="tdh-key">${tkey(t)}</span>`}
+          <span class="tdh-cat"><span class="pd"></span><span id="tdhCat">${esc((PROJ.find(p=>p.id===pid0)||{}).name||'')}</span></span></div>
+        <p class="dtitle">${isNew?'Task nou':esc(t.title)}</p>
       </div>
+      <button class="x" id="closeDr">×</button></header>
+    <div class="body tbody">
+      <section class="tsec s-about"><h5>${ic("text",15)} Despre task</h5>
+        <label>Titlu</label><input type="text" id="tTitle" maxlength="200" value="${esc(t?t.title:'')}" placeholder="ce trebuie făcut">
+        <label>Categorie</label><select id="tProj" class="catsel" style="--pc:${pc0}">${projOpts}</select>
+        <label>Detalii</label><textarea id="tDesc" rows="3" placeholder="detalii, linkuri, pași…">${esc(t?t.description||'':'')}</textarea>
+        <label>Observații</label><textarea id="tNotes" class="notearea" rows="2" placeholder="stadiu, ce s-a discutat, ce urmează…">${esc(t?t.notes||'':'')}</textarea>
+      </section>
+
+      <section class="tsec s-status"><h5>${ic("flag",15)} Stare și prioritate</h5>
+        <div class="row2">
+          <div><label>Stare</label><select id="tSt" class="colsel">${T_STATUS.map(s=>`<option value="${s.k}" ${st0===s.k?'selected':''}>${s.l}</option>`).join("")}</select></div>
+          <div><label>Prioritate</label><select id="tPr" class="colsel">${Object.entries(T_PRIO).map(([k,l])=>`<option value="${k}" ${((t&&t.priority)||'med')===k?'selected':''}>${l}</option>`).join("")}</select></div>
+        </div>
+      </section>
+
+      <section class="tsec s-people"><h5>${ic("users",15)} Cine lucrează</h5>
+        <div class="row2">
+          <div><label>Responsabil</label><select id="tWho"><option value="">— nimeni —</option>
+            ${people.map(n=>`<option ${n===cur?'selected':''}>${esc(n)}</option>`).join("")}</select></div>
+          <div><label>Suport <span class="day" style="font-weight:400">(cine ajută)</span></label><div class="supp" id="tSup">
+            ${[...new Set([...TEAM, ...((t&&t.supporters)||[])])].map(n=>`<button type="button" data-n="${esc(n)}" class="${((t&&t.supporters)||[]).includes(n)?'on':''}">${esc(n)}</button>`).join("")}</div></div>
+        </div>
+      </section>
+
+      <section class="tsec s-time"><h5>${ic("calendar",15)} Termene</h5>
       ${HAS_START?`<div class="row3">
         <div><label>Început</label><input type="date" id="tStart" value="${esc(start0)}"></div>
         <div><label>Durată (zile)</label><input type="number" id="tDur" min="1" max="999" value="${dur0}" placeholder="ex. 5"></div>
         <div><label>Termen</label><input type="date" id="tDue" value="${esc(due0)}"></div>
-      </div><p class="cnote" style="margin:6px 0 0">Scrieți numărul de zile și termenul se calculează singur (sau invers).</p>`
+      </div><p class="cnote" style="margin:8px 0 0">Scrieți numărul de zile și termenul se calculează singur (sau invers).</p>`
       :`<label>Termen</label><input type="date" id="tDue" value="${esc(due0)}">`}
+      </section>
 
-      ${HAS_PARENT?`<div class="sect"><h4>Subtaskuri <span id="subCnt"></span></h4>
+      ${HAS_PARENT?`<section class="tsec s-subs"><h5>${ic("check",15)} Subtaskuri <span id="subCnt"></span></h5>
         <div id="subList" class="subs"></div>
-        <div class="subadd"><input type="text" id="subNew" placeholder="+ Adaugă subtask și apăsați Enter" maxlength="200"></div></div>`:''}
+        <div class="subadd"><input type="text" id="subNew" placeholder="+ Adaugă subtask și apăsați Enter" maxlength="200"></div></section>`:''}
 
-      <div class="sect"><h4>Fișiere atașate</h4>
+      <section class="tsec s-files"><h5>${ic("clip",15)} Fișiere atașate</h5>
         <div id="fileList" class="files"><span class="dsub">${isNew?'':'Se încarcă…'}</span></div>
         <label class="btn ghost sm fileBtn">${ic("clip",14)}Atașează fișiere<input type="file" id="fileIn" multiple hidden></label>
-      </div>
+      </section>
 
-      <div class="actions" style="margin-top:20px">
-        <button class="btn" id="tSave">${isNew?'Adaugă':'Salvează'}</button>
-        ${isNew?'':'<button class="btn ghost" id="tDel" style="color:#b3261e">Șterge</button>'}
+      <div class="actions tact">
+        <button class="btn go" id="tSave">${isNew?'Adaugă taskul':'Salvează'}</button>
+        ${isNew?'':'<button class="btn ghost" id="tDel" style="color:var(--err)">Șterge</button>'}
       </div>
-      ${isNew?'':`<p class="dsub">Creat ${t.created_at?new Date(t.created_at).toLocaleString("ro-RO"):''}${t.updated_at?' · modificat '+new Date(t.updated_at).toLocaleString("ro-RO"):''}</p>`}
+      ${isNew?'':`<p class="dsub">Creat ${t.created_at?new Date(t.created_at).toLocaleString("ro-RO"):''}${t.created_by_name?' de '+esc(t.created_by_name):''}${t.updated_at?' · modificat '+new Date(t.updated_at).toLocaleString("ro-RO"):''}</p>`}
       <div class="err" id="tErr"></div>
     </div>`;
   document.body.append(scrim,dr);
@@ -2012,6 +2062,14 @@ function openTask(t, preset){
   const q=s=>dr.querySelector(s);
   scrim.onclick=close; q("#closeDr").onclick=close;
   q("#tSup").querySelectorAll("button").forEach(b=>b.onclick=()=>b.classList.toggle("on"));
+  const paintSel = ()=>{
+    q("#tSt").className = "colsel st-"+q("#tSt").value;
+    q("#tPr").className = "colsel pr-"+q("#tPr").value;
+    const pc = safeColor(PROJ.find(p=>p.id===q("#tProj").value)?.color);
+    q("#tProj").style.setProperty("--pc", pc); dr.querySelector(".tdh").style.setProperty("--pc", pc);
+    q("#tdhCat").textContent = (PROJ.find(p=>p.id===q("#tProj").value)||{}).name||"";
+  };
+  ["#tSt","#tPr","#tProj"].forEach(id=>q(id).addEventListener("change", paintSel)); paintSel();
   setTimeout(()=>q("#tTitle").focus(),50);
 
   /* durată ↔ termen */
