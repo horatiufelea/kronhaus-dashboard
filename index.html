@@ -96,6 +96,26 @@
 
   .empty{padding:36px;text-align:center;color:var(--muted)}
 
+  /* ---- Comenzi: verificare platforme + observații ---- */
+  .tscroll{overflow-x:auto;border-radius:var(--radius)}
+  .otable td{vertical-align:top}
+  .otable .sub2{font-size:11px;color:var(--muted);margin-top:4px;line-height:1.3}
+  .otable tr.rowwarn td:first-child{box-shadow:inset 4px 0 0 #e0a92e}
+  .col-obs{min-width:230px;max-width:340px}
+  .obs{display:flex;flex-direction:column;gap:4px;font-size:12px;line-height:1.35}
+  .obs > div{padding:4px 8px;border-radius:7px}
+  .obs-err{background:#fbe4e2;color:#8c1d16;font-weight:700}
+  .obs-warn{background:var(--warnbg);color:#6b4a00;font-weight:700}
+  .obs-info{background:var(--greybg);color:var(--grey)}
+  .obs-ok{background:var(--okbg);color:var(--ok);font-weight:700}
+  .obs .act{font-weight:500;margin-top:2px;opacity:.9}
+  .pgrid3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+  .pgrid3 > div{border:1px solid var(--line);border-radius:10px;padding:8px 10px}
+  .pgrid3 .k{font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);font-weight:700;margin-bottom:5px}
+  .pgrid3 .sub2{font-size:11px;color:var(--muted);margin-top:4px}
+  @media(max-width:900px){ .otable .col-p{display:none} }
+  @media(max-width:720px){ .pgrid3{grid-template-columns:1fr} .col-obs{min-width:160px} }
+
   /* ---- Drawer ---- */
   .scrim{position:fixed;inset:0;background:rgba(10,20,15,.4);z-index:40}
   .drawer{position:fixed;top:0;right:0;height:100vh;width:min(560px,100vw);background:#fff;z-index:41;
@@ -348,8 +368,10 @@
           <button data-st="all" class="on">Toate</button>
           <button data-st="confirmed">Încasate</button>
           <button data-st="pending">Neîncasate</button>
+          <button data-st="issues">⚠ De verificat</button>
         </div>
       </div>
+      <div id="issueBanner"></div>
       <div id="tableWrap"></div>
     </div>
 
@@ -556,9 +578,15 @@ async function boot(){
 
 /* ===================== DATA ===================== */
 async function loadOrders(){
-  const { data, error } = await sb.from("v_orders_truth").select("*").order("order_day",{ascending:false,nullsFirst:false});
-  if(error){ toast("Eroare la încărcare: "+error.message); return; }
-  ROWS = data||[];
+  const [a,b] = await Promise.all([
+    sb.from("v_orders_truth").select("*").order("order_day",{ascending:false,nullsFirst:false}),
+    sb.from("v_order_detail").select("key,invoice_status,payment_paid,customer_type,inv_tax_number")
+  ]);
+  if(a.error){ toast("Eroare la încărcare: "+a.error.message); return; }
+  const det = {}; (b.data||[]).forEach(d=>det[d.key]=d);
+  ROWS = (a.data||[]).map(r=>({ ...r, unas_invoice_status: det[r.key]?det[r.key].invoice_status:null,
+                                 unas_paid_amount: det[r.key]?det[r.key].payment_paid:null }));
+  computeChecks();
   render();
   if(activeMod==="comenzi" && activeTab==="stats") buildStats();
   if(activeMod==="comenzi" && activeTab==="history") loadHistory();
@@ -572,8 +600,10 @@ function filtered(){
     if(!r.is_real) return false;
     if(STATE.status==="confirmed" && !r.is_confirmed_sale) return false;
     if(STATE.status==="pending" && r.is_confirmed_sale) return false;
+    if(STATE.status==="issues" && !needsAction(r)) return false;
     if(q){
-      const hay = [r.customer_name,r.inv_city,r.invoice_number,r.unas_status,HU_STATUS[r.unas_status]].join(" ").toLowerCase();
+      const hay = [r.customer_name,r.inv_city,r.invoice_number,r.unas_status,HU_STATUS[r.unas_status],
+                   ...(r._checks||[]).map(c=>c.t)].join(" ").toLowerCase();
       if(!hay.includes(q)) return false;
     }
     return true;
@@ -604,23 +634,155 @@ function kpis(list){
   ].map(k=>`<div class="kpi"><div class="n">${k.n}</div><div class="l">${k.l}</div>${k.e?`<div class="e">${k.e}</div>`:''}</div>`).join("");
   $("#kpis").innerHTML=html;
 }
+/* ===================== VERIFICARE PLATFORME (UNAS · plată · Számlázz) ===================== */
+const UNAS_STAGE = {
+  "Új":"new","Új rendelés":"new","Feldolgozásra vár":"new","Feldolgozás alatt":"new","Visszaigazolásra vár":"new","Fizetésre vár":"new",
+  "Visszaigazolva":"confirmed","Fizetve":"confirmed","Csomagolás alatt":"confirmed",
+  "Átadva szállításra":"shipping","Kiszállítás":"shipping","Kiszállítás alatt":"shipping","Szállítás alatt":"shipping",
+  "Kiszállítva":"delivered","Átvéve":"delivered","Teljesítve":"delivered","Megrendelés lezárva":"delivered","Lezárva":"delivered",
+  "Törölve":"cancelled","Sztornózva":"cancelled","Visszaküldve":"cancelled"
+};
+function unasStage(r){
+  const s = UNAS_STAGE[r.unas_status];
+  if(s) return s;
+  const t = r.status_type||"";
+  if(t==="close_ok") return "delivered";
+  if(t.startsWith("close")) return "cancelled";
+  return "new";
+}
+const STAGE_UI = { new:["c-warn","nou / în așteptare"], confirmed:["c-blue","confirmată"], shipping:["c-blue","în livrare"],
+                   delivered:["c-ok","livrată / închisă"], cancelled:["c-grey","anulată"] };
+const UNAS_INV = { "0":"nemarcată de facturat", "1":"de facturat", "2":"marcată facturată" };
+function payKind(r){
+  const n=(r.payment_name||"").toLowerCase();
+  if(/kárty|karty|card|simplepay/.test(n)) return "card";
+  if(/utánvét|utanvet|ramburs/.test(n)) return "cod";
+  if(/készpénz|keszpenz|cash/.test(n)) return "cash";
+  if(/utal|transfer/.test(n)) return "transfer";
+  return "other";
+}
+const PAY_LABEL = { card:"Card", transfer:"Transfer", cod:"Ramburs", cash:"Cash", other:"Altă metodă" };
+const INV_TYPE = { SZ:"factură", SS:"factură storno", D:"proformă", DB:"proformă", E:"factură de avans", H:"factură de corecție", HE:"factură de corecție" };
+const ageDays = r => r.order_day ? Math.floor((Date.now()-new Date(r.order_day+"T00:00:00"))/864e5) : 0;
+const paidProof = r => !!(r.card_paid || r.invoice_paid || r.transfer_confirmed);
+
+/* regulile: fiecare problemă = { l: nivel (err/warn/info/ok), t: ce e, a: ce trebuie făcut } */
+function orderChecks(r, dupMap){
+  const C=[], st=unasStage(r), pk=payKind(r), paid=paidProof(r), inv=!!(r.szamlaszam||r.invoice_number), age=ageDays(r);
+  const ui = r.unas_invoice_status==null ? null : String(r.unas_invoice_status);
+  const add=(l,t,a)=>C.push({l,t,a});
+
+  if(st==="cancelled"){
+    if(paid) add("err","Anulată în UNAS, dar plătită","Verificați rambursarea banilor către client.");
+    if(inv)  add("err","Anulată în UNAS, dar are factură","Emiteți factură storno în Számlázz.");
+    if(!paid && !inv) add("info","Comandă anulată","Nimic de făcut.");
+    return C;
+  }
+  // bani încasați, dar fără factură
+  if(paid && !inv) add("err","Plătită, dar nefacturată",
+      "Emiteți factura în Számlázz."+(ui==="0"?" (În UNAS nici nu e marcată „de facturat”.)":""));
+  // card OK, dar factura apare neplătită
+  if(r.card_paid && inv && r.invoice_paid===false) add("warn","Plătită cu cardul, dar factura apare neplătită în Számlázz",
+      "Marcați factura ca plătită în Számlázz.");
+  // transfer confirmat de colegă, dar factura apare neplătită
+  if(r.transfer_confirmed && !r.card_paid && inv && r.invoice_paid===false) add("warn","Transfer confirmat, dar factura apare neplătită în Számlázz",
+      "Marcați factura ca plătită în Számlázz.");
+  // plătită, dar UNAS rămas în urmă
+  if(paid && st==="new") add("warn","Plătită, dar în UNAS stă la „"+(HU_STATUS[r.unas_status]||r.unas_status||"nou")+"”",
+      "Actualizați statusul în UNAS (confirmare / pregătire livrare).");
+  // livrată fără dovadă de plată
+  if(!paid && (st==="shipping"||st==="delivered")){
+    if(pk==="cod") add("warn","Ramburs: livrată, încasarea nu e confirmată","Confirmați încasarea de la curier.");
+    else add("err","În livrare / livrată în UNAS, dar fără dovadă de plată","Verificați încasarea înainte de predare; dacă banii au intrat, confirmați transferul.");
+  }
+  // UNAS spune facturat, dar nu găsim factura
+  if(ui==="2" && !inv) add("warn","UNAS o arată „facturată”, dar factura nu apare în Számlázz","Verificați dacă factura a fost emisă și legată de comandă.");
+  // factura există, UNAS încă „de facturat / nefacturabil”
+  if(inv && ui && ui!=="2") add("info","Factura există, dar în UNAS comanda e „"+UNAS_INV[ui]+"”","Opțional: marcați comanda ca facturată în UNAS.");
+  // UNAS spune plătită, fără dovadă
+  if(r.payment_status==="paid" && !paid) add("warn","UNAS o arată plătită, dar nu avem dovadă (card / factură / transfer)","Verificați extrasul de cont.");
+  // sumă factură ≠ sumă comandă
+  if(inv && r.invoice_brutto!=null && Math.abs(Number(r.invoice_brutto)-Number(r.sum_gross||0))>1)
+    add("err","Suma facturii ("+ft(r.invoice_brutto)+") diferă de comandă ("+ft(r.sum_gross)+")","Verificați factura.");
+  // tip document
+  if(inv && r.invoice_type && r.invoice_type!=="SZ")
+    add(paid?"warn":"info","Documentul din Számlázz e "+(INV_TYPE[r.invoice_type]||r.invoice_type)+", nu factură finală",
+        paid?"Emiteți factura finală.":"După încasare, emiteți factura finală.");
+  // așteptăm banii
+  if(!paid && st!=="shipping" && st!=="delivered"){
+    if(pk==="transfer") age>3 ? add("warn","Transfer neîncasat de "+age+" zile","Verificați extrasul sau contactați clientul.")
+                              : add("info","Așteaptă transferul ("+(age===0?"de azi":age+(age===1?" zi":" zile"))+")","Când intră banii: „Transfer bancar încasat”.");
+    else if(pk==="cash") add(age>3?"warn":"info","Plată cash la fața locului, neconfirmată"+(age>0?" ("+age+" zile)":""),"După încasare, emiteți factura.");
+    else if(pk==="card") add("warn","Plată cu cardul nereușită sau neterminată","Verificați în UNAS / SimplePay; contactați clientul.");
+  }
+  // confirmare manuală inutilă
+  if(r.card_paid && r.transfer_confirmed) add("info","Confirmată și manual ca transfer, deși a plătit cu cardul","Verificați că nu e o confirmare din greșeală.");
+  // posibil duplicat
+  const dups=(dupMap[dupKey(r)]||[]).filter(k=>k!==r.key);
+  if(dups.length) add("warn","Posibil duplicat: același client, aceeași zi și sumă (#"+dups.join(", #")+")","Verificați și anulați comanda în plus.");
+
+  if(!C.some(c=>c.l==="err"||c.l==="warn") && paid && inv && (st==="shipping"||st==="delivered"||st==="confirmed"))
+    C.unshift({l:"ok",t:"Totul e în regulă",a:""});
+  return C;
+}
+const dupKey = r => [(r.customer_name||"").trim().toLowerCase(), r.order_day, Number(r.sum_gross||0)].join("|");
+function computeChecks(){
+  const dupMap={};
+  ROWS.filter(r=>r.is_real && unasStage(r)!=="cancelled").forEach(r=>{ (dupMap[dupKey(r)]=dupMap[dupKey(r)]||[]).push(r.key); });
+  ROWS.forEach(r=>{ r._checks = orderChecks(r, dupMap); });
+}
+const needsAction = r => (r._checks||[]).some(c=>c.l==="err"||c.l==="warn");
+const LVL = { err:["obs-err","⛔"], warn:["obs-warn","⚠️"], info:["obs-info","ℹ️"], ok:["obs-ok","✅"] };
+function obsHtml(r, full){
+  const C=r._checks||[];
+  if(!C.length) return '<span class="day">—</span>';
+  return '<div class="obs">'+C.map(c=>`<div class="${LVL[c.l][0]}">${LVL[c.l][1]} ${esc(c.t)}${full&&c.a?`<div class="act">→ ${esc(c.a)}</div>`:''}</div>`).join("")+'</div>';
+}
+function unasCell(r){
+  const [cls,lbl]=STAGE_UI[unasStage(r)];
+  const ui=r.unas_invoice_status==null?null:String(r.unas_invoice_status);
+  return `<span class="chip ${cls}">${lbl}</span><div class="sub2">${trStatus(r.unas_status)}</div>${ui&&UNAS_INV[ui]?`<div class="sub2">factură: ${UNAS_INV[ui]}</div>`:''}`;
+}
+function payCell(r){
+  const pk=payKind(r);
+  let chip;
+  if(r.card_paid) chip='<span class="chip c-ok">✓ card plătit</span>';
+  else if(r.transfer_confirmed) chip='<span class="chip c-ok">✓ transfer confirmat</span>';
+  else if(r.invoice_paid) chip='<span class="chip c-ok">✓ plătită (factură)</span>';
+  else chip=`<span class="chip c-warn">${pk==="card"?"card neplătit":pk==="transfer"?"transfer așteptat":pk==="cash"?"cash neconfirmat":pk==="cod"?"ramburs":"neîncasată"}</span>`;
+  return chip+`<div class="sub2">${PAY_LABEL[pk]}${r.transfer_confirmed&&r.transfer_confirmed_by?' · '+esc(r.transfer_confirmed_by):''}</div>`;
+}
+function invCell(r){
+  const n=r.szamlaszam||r.invoice_number;
+  if(!n) return '<span class="chip c-grey">fără factură</span>';
+  const paid=r.invoice_paid?'<span class="chip c-ok">plătită</span>':'<span class="chip c-warn">neplătită</span>';
+  return `${paid}<div class="sub2">${esc(n)}${r.invoice_type&&r.invoice_type!=="SZ"?' · '+(INV_TYPE[r.invoice_type]||esc(r.invoice_type)):''}</div>`;
+}
+
 function render(){
   const list = filtered();
   kpis(list);
-  if(!list.length){ $("#tableWrap").innerHTML='<div class="empty">Nicio comandă pentru filtrul selectat.</div>'; return; }
+  const real = ROWS.filter(r=>r.is_real), nIss = real.filter(needsAction).length;
+  const segI = document.querySelector('#segStatus [data-st="issues"]');
+  if(segI) segI.textContent = "⚠ De verificat"+(nIss?" ("+nIss+")":"");
+  $("#issueBanner").innerHTML = (nIss && STATE.status!=="issues")
+    ? `<div class="hint" id="issGo" style="cursor:pointer">⚠️ <b>${nIss} ${nIss===1?'comandă are':'comenzi au'} nevoie de atenție</b> — ceva nu se potrivește între UNAS, plată și Számlázz. Click aici ca să le vedeți doar pe ele.</div>` : "";
+  const ig=$("#issGo"); if(ig) ig.onclick=()=>{ STATE.status="issues"; $("#segStatus").querySelectorAll("button").forEach(x=>x.classList.toggle("on",x.dataset.st==="issues")); render(); };
+  if(!list.length){ $("#tableWrap").innerHTML='<div class="empty">'+(STATE.status==="issues"?'Nicio comandă de verificat 👍':'Nicio comandă pentru filtrul selectat.')+'</div>'; return; }
   const rows = list.map(r=>`
-    <tr data-key="${esc(r.key)}">
-      <td><div class="nm">${esc(r.customer_name)||'—'}</div>${badges(r)}</td>
-      <td class="day">${esc(r.order_day)||'—'}${r.inv_city?' · '+esc(r.inv_city):''}</td>
+    <tr data-key="${esc(r.key)}" class="${needsAction(r)?'rowwarn':''}">
+      <td><div class="nm">${esc(r.customer_name)||'—'}</div><div class="day">${esc(r.order_day)||'—'}${r.inv_city?' · '+esc(r.inv_city):''}</div></td>
       <td class="amt">${ft(r.sum_gross)}<span class="eu">${eur(r.sum_gross)}</span></td>
-      <td class="col-status">${statusChip(r)}</td>
-      <td class="col-unas day">${trStatus(r.unas_status)}</td>
+      <td class="col-p">${unasCell(r)}</td>
+      <td class="col-p">${payCell(r)}</td>
+      <td class="col-p">${invCell(r)}</td>
+      <td class="col-obs">${obsHtml(r,false)}</td>
     </tr>`).join("");
-  $("#tableWrap").innerHTML = `<table>
-    <thead><tr><th>Client</th><th>Dată / Oraș</th><th>Sumă</th>
-      <th class="col-status">Încasare</th><th class="col-unas">Status shop</th></tr></thead>
-    <tbody>${rows}</tbody></table>`;
-  document.querySelectorAll("tbody tr").forEach(tr=>tr.addEventListener("click",()=>openDetail(tr.dataset.key)));
+  $("#tableWrap").innerHTML = `<div class="tscroll"><table class="otable">
+    <thead><tr><th>Client</th><th>Sumă</th>
+      <th class="col-p">UNAS (shop)</th><th class="col-p">Plată</th><th class="col-p">Számlázz (factură)</th><th class="col-obs">Observații</th></tr></thead>
+    <tbody>${rows}</tbody></table></div>`;
+  $("#tableWrap").querySelectorAll("tbody tr").forEach(tr=>tr.addEventListener("click",()=>openDetail(tr.dataset.key)));
 }
 
 /* ===================== DETAIL DRAWER ===================== */
@@ -662,6 +824,15 @@ async function openDetail(key){
         <div class="amt" style="font-size:20px">${ft(r.sum_gross)} <span style="color:var(--green);font-size:14px">${eur(r.sum_gross)}</span></div>
       </div>
       ${badges(r)}
+
+      <div class="sect"><h4>Verificare pe platforme</h4>
+        <div class="pgrid3">
+          <div><div class="k">UNAS (shop)</div>${unasCell(r)}</div>
+          <div><div class="k">Plată</div>${payCell(r)}</div>
+          <div><div class="k">Számlázz (factură)</div>${invCell(r)}</div>
+        </div>
+        <div style="margin-top:10px">${obsHtml(r,true)}</div>
+      </div>
 
       <div class="actions">${invBtn} ${trBtn}</div>
       ${trLine}
