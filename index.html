@@ -431,6 +431,11 @@
   .s-about{--sc:#57534E} .s-status{--sc:#3F5BA9} .s-people{--sc:#6B3FA0} .s-time{--sc:#B7791F} .s-subs{--sc:#0F7A3D} .s-files{--sc:#C2410C}
   .tsec input,.tsec select,.tsec textarea{background:#fff}
   .notearea{background:#FFFBEA!important;border-color:#F3E3A6!important}
+  .mentpop{position:fixed;z-index:9999;background:#fff;border:1px solid var(--line);border-radius:9px;box-shadow:0 8px 24px rgba(0,0,0,.14);padding:4px;min-width:170px}
+  .mentpop .mh{font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);padding:5px 8px 4px}
+  .mentpop button{display:flex;align-items:center;gap:8px;width:100%;border:0;background:none;text-align:left;padding:6px 8px;border-radius:6px;font-size:13px;color:var(--ink);cursor:pointer}
+  .mentpop button.on,.mentpop button:hover{background:var(--okbg);color:var(--ok)}
+  .mentpop .ma{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;background:#F1EAFB;color:#6B3FA0;font-weight:700;font-size:11.5px}
   .catsel{border-left:6px solid var(--pc)!important}
   .colsel{font-weight:600}
   .colsel.st-todo{background:var(--greybg)!important;color:var(--grey)}
@@ -1473,6 +1478,46 @@ const P_COLORS = ["#00653e","#1256a0","#9a6b00","#b3261e","#6b3fa0","#0f7c86","#
 const T_STATUS = [ {k:"todo",l:"De făcut"}, {k:"doing",l:"În lucru"}, {k:"review",l:"De verificat"}, {k:"done",l:"Gata"} ];
 const T_PRIO = { high:"Urgent", med:"Normal", low:"Scăzut" };
 const TEAM = ["Horatiu","Floriana","Alina","Karola","Office"];   // cele 5 conturi KronHaus
+
+/* @mențiuni: când scrii „@” într-o observație apare lista colegilor */
+function attachMention(ta){
+  let pop=null, items=[], idx=0, start=-1;
+  const close=()=>{ if(pop){ pop.remove(); pop=null; } };
+  const pick=n=>{
+    const v=ta.value, c=ta.selectionStart;
+    ta.value = v.slice(0,start) + "@" + n + " " + v.slice(c);
+    const pos = start + n.length + 2; ta.setSelectionRange(pos,pos);
+    close(); ta.focus(); ta.dispatchEvent(new Event("input"));
+  };
+  const paint=()=>{ pop.querySelectorAll("button").forEach((b,i)=>b.classList.toggle("on",i===idx)); };
+  const show=()=>{
+    const m = ta.value.slice(0, ta.selectionStart).match(/(^|[\s(,.;:!?])@([A-Za-zĂÂÎȘȚăâîșț]*)$/);
+    if(!m){ close(); return; }
+    const pre=m[2].toLowerCase();
+    items = TEAM.filter(n=>n!==myFirst() && n.toLowerCase().startsWith(pre));
+    if(!items.length){ close(); return; }
+    start = ta.selectionStart - m[2].length - 1; idx = Math.min(idx, items.length-1);
+    if(!pop){ pop=document.createElement("div"); pop.className="mentpop"; document.body.appendChild(pop); }
+    pop.innerHTML = `<div class="mh">Anunță pe Slack:</div>` + items.map(n=>`<button type="button" data-n="${esc(n)}"><span class="ma">${esc(n[0])}</span>${esc(n)}</button>`).join("");
+    pop.querySelectorAll("button").forEach(b=>{ b.onmousedown=e=>{ e.preventDefault(); pick(b.dataset.n); }; });
+    paint();
+    const r=ta.getBoundingClientRect(), h=pop.offsetHeight;
+    pop.style.left = Math.min(r.left, innerWidth-pop.offsetWidth-8)+"px";
+    pop.style.top = (r.bottom+h+8 > innerHeight ? r.top-h-4 : r.bottom+4)+"px";
+  };
+  ta.addEventListener("keydown", e=>{
+    if(!pop) return;
+    if(e.key==="ArrowDown"){ idx=(idx+1)%items.length; paint(); }
+    else if(e.key==="ArrowUp"){ idx=(idx-1+items.length)%items.length; paint(); }
+    else if(e.key==="Enter"||e.key==="Tab"){ pick(items[idx]); }
+    else if(e.key==="Escape"){ close(); }
+    else return;
+    e.preventDefault(); e.stopImmediatePropagation();
+  });
+  ta.addEventListener("input", ()=>{ idx = pop?idx:0; show(); });
+  ta.addEventListener("click", show);
+  ta.addEventListener("blur", ()=>setTimeout(close,120));
+}
 const BUCKET = "task-files";
 let PROJ=[], TASKS=[], CUR_PROJ="all", SHOW_ARCH=false, PVIEW="dash", TL_ZOOM="auto", PCH={}, CAL_M=null;
 let F = { q:"", who:"", pr:"", late:false };
@@ -1881,6 +1926,7 @@ function renderList(keepScroll){
     if(dt) dt.onchange = async()=>{ if(await updTask(t, { due_date: dt.value || null })) renderList(true); };
     const nt = tr.querySelector("textarea.lnote");
     if(nt){
+      attachMention(nt);
       const fit = ()=>{ nt.style.height="auto"; nt.style.height=Math.min(nt.scrollHeight,160)+"px"; };
       fit(); nt.addEventListener("input", fit);
       nt.addEventListener("keydown", e=>{ if(e.key==="Enter" && !e.shiftKey){ e.preventDefault(); nt.blur(); } if(e.key==="Escape"){ nt.value=t.notes||""; nt.blur(); } });
@@ -2194,6 +2240,7 @@ function openTask(t, preset){
   };
   ["#tSt","#tPr","#tProj"].forEach(id=>q(id).addEventListener("change", paintSel)); paintSel();
   setTimeout(()=>q("#tTitle").focus(),50);
+  attachMention(q("#tNotes"));
 
   /* durată ↔ termen */
   if(HAS_START){
