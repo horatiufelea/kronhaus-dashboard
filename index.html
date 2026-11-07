@@ -1025,9 +1025,32 @@ async function openDetail(key){
     : `<span class="chip c-grey">Fără factură</span>`;
 
   const trConf = r.transfer_confirmed;
+  const pk = payKind(r);
+  const trLabel = (pk==="cash"||pk==="cod") ? "Bani încasați (cash / ramburs)" : "Transfer bancar încasat";
   const trBtn = trConf
-    ? `<button class="btn ghost sm" id="trBtn" data-v="0">Anulează transferul</button>`
-    : `<button class="btn sm" id="trBtn" data-v="1">${ic("check",15)}Transfer bancar încasat</button>`;
+    ? `<button class="btn ghost sm" id="trBtn" data-v="0">Anulează confirmarea</button>`
+    : (r.card_paid ? "" : `<button class="btn sm" id="trBtn" data-v="1">${ic("check",15)}${trLabel}</button>`);
+  // secțiunea Plată, adaptată metodei: ce dovadă de plată ar trebui să existe și dacă există
+  const PAY_RO = { card:"Card online", transfer:"Transfer bancar în avans", cash:"Cash la fața locului", cod:"Ramburs la curier", other:"Altă metodă" };
+  const paidOk = r.is_confirmed_sale;
+  const proofLine = (()=>{
+    const by = r.transfer_confirmed ? ` de ${esc(r.transfer_confirmed_by)||'o colegă'}${r.transfer_confirmed_at?' · '+new Date(r.transfer_confirmed_at).toLocaleString("ro-RO"):''}` : "";
+    if(pk==="card") return ["Plată cu cardul", r.card_paid ? '<b style="color:var(--ok)">reușită</b> (tranzacție finalizată în SimplePay/UNAS)'
+                                                         : '<b style="color:var(--warn)">nefinalizată</b> — plata cu cardul nu a trecut; verificați în UNAS / SimplePay sau contactați clientul'];
+    if(pk==="transfer") return ["Transfer bancar", r.transfer_confirmed ? '<b style="color:var(--ok)">confirmat</b>'+by
+                                                         : '<b style="color:var(--warn)">neconfirmat</b> — când vedeți banii în extrasul de cont, apăsați „Transfer bancar încasat” (sus)'];
+    if(pk==="cash"||pk==="cod") return ["Încasare", r.transfer_confirmed ? '<b style="color:var(--ok)">confirmată</b>'+by
+                                                         : '<b style="color:var(--warn)">neconfirmată</b> — după ce primiți banii, apăsați „Bani încasați” (sus)'];
+    return ["Dovadă plată", r.transfer_confirmed ? '<b style="color:var(--ok)">confirmată manual</b>'+by : '—'];
+  })();
+  const payBlock = `
+          <span class="k">Încasare</span><span>${paidOk?'<span class="chip c-ok">Încasată</span>':'<span class="chip c-warn">Neîncasată</span>'}
+            <span class="day" style="margin-left:6px">${paidOk?(r.card_paid?'prin card':(r.invoice_paid?'factura e plătită':'confirmată manual')):'nu avem încă dovada că au intrat banii'}</span></span>
+          <span class="k">Metodă de plată</span><span>${PAY_RO[pk]}${d.payment_name?` <span class="day">(${esc(d.payment_name)})</span>`:''}</span>
+          <span class="k">${proofLine[0]}</span><span>${proofLine[1]}</span>
+          ${(pk!=="card" && r.card_paid)?'<span class="k">Plată cu cardul</span><span><b style="color:var(--ok)">reușită</b></span>':''}
+          <span class="k">Factură</span><span>${d.invoice_number?esc(d.invoice_number)+(r.invoice_paid?' · <b style="color:var(--ok)">plătită</b>':' · <b style="color:var(--warn)">neplătită</b>'):'nu e emisă încă'}</span>
+          <span class="k">Status shop</span><span>${trStatus(d.unas_status)}${d.payment_status?` <span class="day">· plată în UNAS: ${trPay(d.payment_status)}</span>`:''}</span>`;
   const trLine = trConf
     ? `<div class="confirmed-line">Transfer confirmat de: ${esc(r.transfer_confirmed_by)||'—'} · ${r.transfer_confirmed_at?new Date(r.transfer_confirmed_at).toLocaleString("ro-RO"):''}</div>`
     : "";
@@ -1062,15 +1085,11 @@ async function openDetail(key){
 
       <div class="actions">${invBtn} ${trBtn}</div>
       ${trLine}
-      <label style="margin-top:4px">Observație la transfer (opțional)</label>
-      <textarea class="note" id="trNote" placeholder="ex. data extrasului bancar / identificator">${esc(r.transfer_note||'')}</textarea>
+      ${trBtn?`<label style="margin-top:4px">Observație la încasare (opțional)</label>
+      <textarea class="note" id="trNote" placeholder="ex. data extrasului bancar / identificator">${esc(r.transfer_note||'')}</textarea>`:''}
 
       <div class="sect"><h4>Plată</h4>
-        <div class="kv">
-          <span class="k">Status shop</span><span>${trStatus(d.unas_status)}</span>
-          <span class="k">Metodă de plată</span><span>${esc(d.payment_name)||'—'} (${trPay(d.payment_status)})</span>
-          <span class="k">Factură</span><span>${d.invoice_number?esc(d.invoice_number):'fără'} ${r.invoice_paid?'· <b style="color:var(--ok)">plătită</b>':(r.is_invoiced?'· <b style="color:var(--warn)">neplătită</b>':'')}</span>
-          <span class="k">Plată cu card</span><span>${r.card_paid?'<b style="color:var(--ok)">da (SimplePay/UNAS)</b>':'neconfirmată'}</span>
+        <div class="kv">${payBlock}
         </div>
       </div>
 
@@ -1103,7 +1122,8 @@ async function openDetail(key){
   const pdf=dr.querySelector("#pdfBtn");
   if(pdf) pdf.onclick=()=>openInvoice(d.invoice_number,pdf);
 
-  dr.querySelector("#trBtn").onclick=async (ev)=>{
+  const trEl = dr.querySelector("#trBtn");
+  if(trEl) trEl.onclick=async (ev)=>{
     const btn=ev.currentTarget; const makeConfirmed = btn.dataset.v==="1";
     btn.disabled=true; btn.innerHTML='<span class="spin"></span>Salvez…';
     const { error } = await sb.rpc("set_transfer",{ p_order_key:key, p_confirmed:makeConfirmed, p_note:dr.querySelector("#trNote").value||null });
