@@ -375,6 +375,19 @@
   .lnote:focus{background:#fff;border-color:var(--accent);box-shadow:0 0 0 3px rgba(0,132,61,.12)}
   .lfoot{display:flex;align-items:center;gap:12px;margin-top:10px}
 
+  /* ---- Suport ---- */
+  .supp{display:flex;flex-wrap:wrap;gap:6px;margin-top:2px}
+  .supp button{border:1px solid var(--line);background:#fff;border-radius:999px;padding:5px 11px;font-size:13px;color:var(--muted)}
+  .supp button.on{background:var(--okbg);border-color:#CDE7D6;color:var(--ok);font-weight:600}
+  .lsupbtn{border:1px solid transparent;background:transparent;padding:4px 6px;border-radius:5px;font-size:12.5px;color:var(--ink);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .lsupbtn:hover{border-color:var(--line);background:#fff}
+  .suppop{position:absolute;z-index:80;background:#fff;border:1px solid var(--line);border-radius:8px;box-shadow:0 10px 30px rgba(0,0,0,.12);padding:8px;width:220px}
+  .suppop .sph{font-size:12px;color:var(--muted);padding:2px 4px 6px}
+  .suppop label{display:flex;align-items:center;gap:8px;margin:0;padding:6px 4px;font-size:13.5px;color:var(--ink);font-weight:500;border-radius:5px;cursor:pointer}
+  .suppop label:hover{background:var(--hover)}
+  .suppop input{accent-color:var(--accent)}
+  .suppop .spf{display:flex;justify-content:flex-end;padding-top:6px}
+
   /* ---- Proiecte · timeline ---- */
   .tlbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
   .tl{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);overflow:auto;max-height:70vh}
@@ -1407,7 +1420,7 @@ function scopeProjects(){ return CUR_PROJ==="all" ? PROJ.filter(p=>!p.archived) 
 function applyF(list){
   const q=F.q.trim().toLowerCase();
   return list.filter(t=>{
-    if(F.who && t.assignee_name!==F.who) return false;
+    if(F.who && t.assignee_name!==F.who && !(t.supporters||[]).includes(F.who)) return false;
     if(F.pr && (t.priority||"med")!==F.pr) return false;
     if(F.late && !isLate(t)) return false;
     if(q){
@@ -1591,6 +1604,7 @@ function renderBoard(){
       <div class="meta">
         <span class="chip pr-${esc(t.priority||'med')}">${T_PRIO[t.priority]||'Normal'}</span>
         ${t.assignee_name?`<span class="who">${esc(t.assignee_name)}</span>`:''}
+        ${(t.supporters||[]).length?`<span title="Suport">+ ${(t.supporters||[]).map(esc).join(", ")}</span>`:''}
         ${t.due_date?`<span class="due ${late?'late':''}">${ic('calendar',13)}${fmtDay(t.due_date)}${late?' · întârziat':''}</span>`:''}
         ${durBadge(t)} ${subBadge(t)}
         ${t.description?'<span title="are detalii">'+ic('text',13)+'</span>':''}
@@ -1681,6 +1695,7 @@ function renderList(keepScroll){
       </td>
       <td class="lcat">${isSub?'':`<span class="pd" style="background:${safeColor(pj.color)}"></span>${esc(pj.name)}`}</td>
       <td><select class="lsel lwho" data-f="assignee_name">${peopleOpt(t.assignee_name)}</select></td>
+      <td class="lsup"><button class="lsupbtn" data-sup="${t.id}" title="Cine ajută la task">${(t.supporters||[]).length?(t.supporters||[]).map(esc).join(", "):'<span class="lmuted">+ suport</span>'}</button></td>
       <td class="lmuted">${esc(t.created_by_name)||'—'}</td>
       <td>${isSub?'<span class="lmuted">—</span>':prSel(t)}</td>
       <td>${stSel(t)}</td>
@@ -1693,7 +1708,7 @@ function renderList(keepScroll){
   const th = (key,label,cls) => `<th class="${cls||''} ${LSORT.k===key?'sorted':''}" data-sort="${key}">${label}${LSORT.k===key?(LSORT.dir>0?' ↑':' ↓'):''}</th>`;
   $("#projWrap").innerHTML = projHeader() + (L.length ? `
     <div class="tscroll" id="listBox"><table class="ltable">
-      <thead><tr>${th("no","Task","lwork")}${th("cat","Categorie")}${th("who","Responsabil")}<th>Raportor</th>${th("prio","Prioritate")}${th("st","Stare")}${th("due","Termen")}<th class="lnotes">Observații</th>${th("created","Creat")}${th("updated","Actualizat")}</tr></thead>
+      <thead><tr>${th("no","Task","lwork")}${th("cat","Categorie")}${th("who","Responsabil")}<th>Suport</th><th>Raportor</th>${th("prio","Prioritate")}${th("st","Stare")}${th("due","Termen")}<th class="lnotes">Observații</th>${th("created","Creat")}${th("updated","Actualizat")}</tr></thead>
       <tbody>${L.map(t=>row(t,false)).join("")}</tbody>
     </table></div>
     <div class="lfoot"><button class="btn ghost sm" id="lAdd">+ Task</button><span class="day">${L.length} ${L.length===1?'task':'taskuri'} · click pe titlu pentru detalii, fișiere și subtaskuri</span></div>`
@@ -1705,6 +1720,7 @@ function renderList(keepScroll){
   W.querySelectorAll("th[data-sort]").forEach(h=>h.onclick=()=>{ const k2=h.dataset.sort; LSORT = { k:k2, dir: LSORT.k===k2 ? -LSORT.dir : 1 }; renderList(true); });
   W.querySelectorAll("[data-tog]").forEach(b=>b.onclick=e=>{ e.preventDefault(); const id=b.dataset.tog; LOPEN.has(id)?LOPEN.delete(id):LOPEN.add(id); renderList(true); });
   W.querySelectorAll("[data-open]").forEach(a=>a.onclick=e=>{ e.preventDefault(); openTask(TASKS.find(x=>x.id===a.dataset.open)); });
+  W.querySelectorAll("[data-sup]").forEach(b=>b.onclick=e=>{ e.stopPropagation(); openSupPop(b, TASKS.find(x=>x.id===b.dataset.sup)); });
   W.querySelectorAll("tbody tr").forEach(tr=>{
     const t = TASKS.find(x=>x.id===tr.dataset.id); if(!t) return;
     tr.querySelectorAll("select.lsel").forEach(sel=>sel.onchange=async()=>{
@@ -1722,6 +1738,30 @@ function renderList(keepScroll){
       nt.addEventListener("blur", async()=>{ const v = nt.value.trim(); if(v === (t.notes||"")) return; if(await updTask(t, { notes: v||null }, "Observație salvată ✓")) renderList(true); });
     }
   });
+}
+
+
+/* mic meniu pentru „Suport” direct din Listă */
+function openSupPop(anchor, t){
+  document.querySelectorAll(".suppop").forEach(x=>x.remove());
+  if(!t) return;
+  const pop = document.createElement("div"); pop.className = "suppop";
+  const names = [...new Set([...TEAM, ...(t.supporters||[])])].filter(n=>n!==t.assignee_name);
+  pop.innerHTML = `<div class="sph">Cine ajută la ${esc(tkey(t))}</div>` + names.map(n=>`<label><input type="checkbox" value="${esc(n)}" ${(t.supporters||[]).includes(n)?'checked':''}> ${esc(n)}</label>`).join("")
+    + `<div class="spf"><button class="btn sm" id="spOk">Gata</button></div>`;
+  document.body.appendChild(pop);
+  const r = anchor.getBoundingClientRect();
+  pop.style.top = (window.scrollY + r.bottom + 4) + "px";
+  pop.style.left = Math.min(window.scrollX + r.left, window.scrollX + document.documentElement.clientWidth - 230) + "px";
+  const save = async ()=>{
+    const v = [...pop.querySelectorAll("input:checked")].map(i=>i.value);
+    pop.remove(); document.removeEventListener("mousedown", outside, true);
+    if(JSON.stringify(v) === JSON.stringify(t.supporters||[])) return;
+    if(await updTask(t, { supporters: v }, "Suport salvat ✓")) renderList(true);
+  };
+  const outside = e=>{ if(!pop.contains(e.target)) save(); };
+  setTimeout(()=>document.addEventListener("mousedown", outside, true), 0);
+  pop.querySelector("#spOk").onclick = save;
 }
 
 /* ---------- CALENDAR (lună) ---------- */
@@ -1941,7 +1981,8 @@ function openTask(t, preset){
         <div><label>Prioritate</label><select id="tPr">${Object.entries(T_PRIO).map(([k,l])=>`<option value="${k}" ${((t&&t.priority)||'med')===k?'selected':''}>${l}</option>`).join("")}</select></div>
         <div><label>Responsabil</label><select id="tWho"><option value="">— nimeni —</option>
           ${people.map(n=>`<option ${n===cur?'selected':''}>${esc(n)}</option>`).join("")}</select></div>
-        <div></div>
+        <div><label>Suport <span class="day" style="font-weight:400">(cine ajută)</span></label><div class="supp" id="tSup">
+          ${[...new Set([...TEAM, ...((t&&t.supporters)||[])])].map(n=>`<button type="button" data-n="${esc(n)}" class="${((t&&t.supporters)||[]).includes(n)?'on':''}">${esc(n)}</button>`).join("")}</div></div>
       </div>
       ${HAS_START?`<div class="row3">
         <div><label>Început</label><input type="date" id="tStart" value="${esc(start0)}"></div>
@@ -1970,6 +2011,7 @@ function openTask(t, preset){
   const close=()=>{ scrim.remove(); dr.remove(); };
   const q=s=>dr.querySelector(s);
   scrim.onclick=close; q("#closeDr").onclick=close;
+  q("#tSup").querySelectorAll("button").forEach(b=>b.onclick=()=>b.classList.toggle("on"));
   setTimeout(()=>q("#tTitle").focus(),50);
 
   /* durată ↔ termen */
@@ -2075,6 +2117,7 @@ function openTask(t, preset){
     const due=q("#tDue").value||null;
     const rec={ title, project_id:pid, description:q("#tDesc").value.trim()||null, notes:q("#tNotes").value.trim()||null, status:newSt,
       priority:q("#tPr").value, assignee_name:q("#tWho").value||null,
+      supporters:[...q("#tSup").querySelectorAll("button.on")].map(b=>b.dataset.n).filter(n=>n!==q("#tWho").value),
       due_date:due, updated_at:new Date().toISOString() };
     if(HAS_START){
       rec.start_date=q("#tStart").value||null;
