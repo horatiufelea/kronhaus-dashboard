@@ -16,11 +16,11 @@
   :root{
     --green:#1C1917; --green-d:#000000; --green-l:#F2F1EE; --accent:#00843D;
     --ink:#1C1917; --muted:#6F6A65; --faint:#A8A29E;
-    --line:#E7E5E4; --line2:#EFEDEA; --bg:#FAFAF9; --card:#FFFFFF; --hover:#F3F7F4; --zebra:#F7F7F5;
+    --line:#E2DED9; --line2:#EFEDEA; --bg:#F2F0EC; --card:#FFFFFF; --hover:#F3F7F4; --zebra:#F7F7F5;
     --ok:#0F7A3D; --okbg:#EAF6EE; --warn:#9A5B00; --warnbg:#FFF4E0; --err:#B42318; --errbg:#FEECEB;
     --grey:#57534E; --greybg:#F2F1EE; --blue:#3F5BA9; --bluebg:#EEF2FB;
-    --radius:8px; --rs:6px; --shadow:0 1px 2px rgba(28,25,23,.04);
-    --side:#FFFFFF; --side-ink:#1C1917; --side-muted:#78716C; --side-active:#F2F1EE; --side-line:#ECEAE6;
+    --radius:10px; --rs:6px; --shadow:0 1px 3px rgba(28,25,23,.07);
+    --side:#FFFFFF; --side-ink:#1C1917; --side-muted:#78716C; --side-active:#E9F4ED; --side-line:#ECEAE6;
     --font:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
     --serif:var(--font);
   }
@@ -76,7 +76,7 @@
   #modnav button .ico{color:var(--side-muted)}
   #modnav button:hover{background:var(--side-active)}
   #modnav button.on{background:var(--side-active)}
-  #modnav button.on{font-weight:600}
+  #modnav button.on{font-weight:600;color:var(--accent);box-shadow:inset 3px 0 0 var(--accent)}
   #modnav button.on .ico{color:var(--accent)}
   #modnav .cnt{margin-left:auto;font-style:normal;font-size:11.5px;color:var(--side-muted)}
   #modnav .cnt.warn{color:var(--warn);font-weight:700}
@@ -207,9 +207,10 @@
   .tabs button{border:none;background:none;padding:9px 12px;font-size:13.5px;font-weight:500;color:var(--muted);
                border-bottom:2px solid transparent;margin-bottom:-1px;display:inline-flex;align-items:center;gap:7px}
   .tabs button:hover{color:var(--ink)}
-  .tabs button.on{color:var(--ink);border-bottom-color:var(--accent);font-weight:600}
+  .tabs button.on{color:var(--accent);border-bottom-color:var(--accent);font-weight:600}
+  .tabs button.on .ico{color:var(--accent)}
   .chart-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
-  .chart-card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:18px}
+  .chart-card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:18px;box-shadow:var(--shadow)}
   .chart-card h3{margin:0 0 12px;font-size:15px;font-weight:600;line-height:1.3}
   .chart-card .cnote{font-size:12.5px;color:var(--muted);margin:-6px 0 12px}
   .chart-card.wide{grid-column:1 / -1}
@@ -513,6 +514,43 @@
   .adleg{display:flex;flex-wrap:wrap;gap:14px;margin-top:8px;font-size:12px;color:var(--muted)}
   .adleg i{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:5px}
   @media (max-width:700px){ .adline{grid-template-columns:1fr} .adk{width:auto} .adtime input[type=date]{margin-left:0} .adgh .adbar{display:none} }
+
+  /* ---- culoare: KPI pe plăci, categorii, carduri ---- */
+  .kpis.tiles{background:none;border:0;box-shadow:none;gap:12px;overflow:visible}
+  .kpis.tiles .kpi{border:1px solid var(--kb);border-left:4px solid var(--kc);border-radius:var(--radius);background:var(--kt);box-shadow:var(--shadow)}
+  .kpis.tiles .kpi:first-child{border-left:4px solid var(--kc)}
+  .kpis.tiles .kpi .n{color:var(--kc)}
+  .kpis.tiles .kpi .l{display:flex;align-items:center;gap:6px;color:var(--ink);font-weight:600}
+  .kpis.tiles .kpi .l .ico{color:var(--kc)}
+  .kpi.k-blue{--kc:#3F5BA9;--kt:#EEF2FB;--kb:#D3DCF2}
+  .kpi.k-red{--kc:#B42318;--kt:#FEECEB;--kb:#F5C9C4}
+  .kpi.k-green{--kc:#0F7A3D;--kt:#EAF6EE;--kb:#CDE7D6}
+  .kpi.k-amber{--kc:#9A5B00;--kt:#FFF4E0;--kb:#F1DDB0}
+  .kpi.k-purple{--kc:#6B3FA0;--kt:#F4EEFB;--kb:#DECDF3}
+  .kbar{order:4;height:6px;border-radius:99px;background:rgba(15,122,61,.15);margin-top:8px;overflow:hidden}
+  .kbar i{display:block;height:100%;background:var(--kc);border-radius:99px}
+  .chart-card[class*="cc-"]{border-top:3px solid var(--cc)}
+  .chart-card[class*="cc-"] h3{display:flex;align-items:center;gap:8px}
+  .chart-card[class*="cc-"] h3 .ico{color:var(--cc)}
+  .cc-ink{--cc:#1C1917} .cc-blue{--cc:#3F5BA9} .cc-amber{--cc:#C27A12} .cc-green{--cc:#0F7A3D}
+  .pcard{background:color-mix(in srgb, var(--pc) 7%, #fff)!important;border-color:color-mix(in srgb, var(--pc) 28%, #fff)!important;border-left:4px solid var(--pc)!important}
+  .pcard:hover{background:color-mix(in srgb, var(--pc) 13%, #fff)!important}
+  .pcard .nm{font-weight:700}
+  .pcard .pbar{height:8px;background:color-mix(in srgb, var(--pc) 16%, #fff)}
+  .pcard .ppct{color:var(--pc);font-size:15px}
+  .pchip{background:color-mix(in srgb, var(--pc,#1C1917) 7%, #fff);border-color:color-mix(in srgb, var(--pc,#1C1917) 25%, #fff)}
+  .pchip:hover{background:color-mix(in srgb, var(--pc,#1C1917) 14%, #fff)}
+  .pchip.on{background:var(--pc);border-color:var(--pc);color:#fff;box-shadow:none}
+  .pchip.on .pd{background:#fff!important}
+  .pchip.on .cnt{color:rgba(255,255,255,.8)}
+  .dlist .d{background:var(--warnbg);color:var(--warn);border-radius:5px;padding:2px 7px;width:auto;min-width:58px;justify-content:center}
+  .dlist .d.late{background:var(--errbg)}
+  .cc-green .dlist .d{background:var(--greybg);color:var(--muted)}
+  .adcard{background:#F7F2FC;border-color:#DECDF3;border-left:4px solid #6B3FA0}
+  .adcard h3 .ico{color:#6B3FA0}
+  .adnums > div{background:#fff;border:1px solid #E6DAF5;border-radius:8px;padding:8px 14px;min-width:120px}
+  .adnums b{color:#6B3FA0}
+  @media (max-width:900px){ .kpis.tiles{grid-template-columns:1fr 1fr} }
 
   /* ---- Proiecte · timeline ---- */
   .tlbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
@@ -1683,10 +1721,10 @@ function renderProjects(){
   const openAll = topLevel(TASKS).filter(t=>activeIds.has(t.project_id) && t.status!=="done").length;
   { const nc=$("#navCntProj"); if(nc) nc.textContent = openAll||""; }
   $("#projBar").innerHTML =
-    `<button class="pchip ${CUR_PROJ==='all'?'on':''}" data-id="all"><span class="pd" style="background:conic-gradient(#00653e,#1256a0,#9a6b00,#00653e)"></span>Toate categoriile<span class="cnt">${openAll}</span></button>`
+    `<button class="pchip pall ${CUR_PROJ==='all'?'on':''}" data-id="all" style="--pc:#1C1917"><span class="pd" style="background:conic-gradient(#00653e,#1256a0,#9a6b00,#00653e)"></span>Toate categoriile<span class="cnt">${openAll}</span></button>`
     + visible.map(p=>{
       const open = topLevel(TASKS).filter(t=>t.project_id===p.id && t.status!=="done").length;
-      return `<button class="pchip ${p.id===CUR_PROJ?'on':''} ${p.archived?'arch':''}" data-id="${p.id}">
+      return `<button class="pchip ${p.id===CUR_PROJ?'on':''} ${p.archived?'arch':''}" data-id="${p.id}" style="--pc:${safeColor(p.color)}">
         <span class="pd" style="background:${safeColor(p.color)}"></span>${esc(p.name)}<span class="cnt">${open}</span></button>`;
     }).join("") + `<button class="btn sm" id="newProj">+ Categorie</button>`
     + (nArch?`<button class="btn ghost sm" id="togArch">${SHOW_ARCH?'Ascunde arhivate':'Arhivate ('+nArch+')'}</button>`:'');
@@ -1803,7 +1841,7 @@ function renderAdhoc(){
   const recentWho = [...new Set([...TEAM, ...ADH.map(x=>x.for_whom).filter(Boolean)])].slice(0,40);
   $("#projWrap").innerHTML = `
     <div class="phead"><h2>${ic("timer",18)} Ad-hoc</h2><span class="adpriv">doar tu vezi aceste intrări</span></div>
-    <div class="kpis" id="adKpis"></div>
+    <div class="kpis tiles" id="adKpis"></div>
     <div class="chart-card adform" id="adForm">
       <h3 id="adFormTitle">Ce ai rezolvat?</h3>
       <div class="adline">
@@ -1879,11 +1917,11 @@ function adPaint(){
   const st=adStats();
   const top=st.byKind[0];
   $("#adKpis").innerHTML = [
-    {n:fmtEst(st.today)||"0 min", l:"Azi"},
-    {n:fmtEst(st.week)||"0 min", l:"Ultimele 7 zile", e:st.weekN+" "+(st.weekN===1?"intrare":"intrări")},
-    {n:fmtEst(st.month)||"0 min", l:"Luna aceasta"},
-    {n:top?AD_KIND[top.k].l:"—", l:"Cel mai mult timp (7 zile)", e:top?fmtEst(top.m):""},
-  ].map(k=>`<div class="kpi"><div class="n">${k.n}</div><div class="l">${k.l}</div>${k.e?`<div class="e">${k.e}</div>`:''}</div>`).join("");
+    {n:fmtEst(st.today)||"0 min", l:"Azi", c:"k-purple"},
+    {n:fmtEst(st.week)||"0 min", l:"Ultimele 7 zile", e:st.weekN+" "+(st.weekN===1?"intrare":"intrări"), c:"k-blue"},
+    {n:fmtEst(st.month)||"0 min", l:"Luna aceasta", c:"k-green"},
+    {n:top?AD_KIND[top.k].l:"—", l:"Cel mai mult timp (7 zile)", e:top?fmtEst(top.m):"", c:"k-amber"},
+  ].map(k=>`<div class="kpi ${k.c}"><div class="n">${k.n}</div><div class="l">${k.l}</div>${k.e?`<div class="e">${k.e}</div>`:''}</div>`).join("");
   const t0=dnum(todayISO());
   const B=[{k:"w0",l:"Ultimele 7 zile",a:-1e9,b:6},{k:"w1",l:"Acum 1–4 săptămâni",a:7,b:30},{k:"m1",l:"Acum 1–2 luni",a:31,b:60},
            {k:"m2",l:"Acum 2–3 luni",a:61,b:91},{k:"old",l:"Mai vechi de 3 luni",a:92,b:1e9}];
@@ -1926,11 +1964,11 @@ function renderProjDash(){
   const pct = L.length ? Math.round(done.length*100/L.length) : 0;
 
   const kp = [
-    {n:open.length, l:"Taskuri active", e:L.filter(t=>t.status==="doing").length+" în lucru acum"},
-    {n:late.length, l:"Întârziate", e:late.length?"termenul a trecut":"nimic întârziat", red:late.length>0},
-    {n:week.length, l:"Termen în 7 zile", e:""},
-    {n:pct+"%", l:"Progres", e:done.length+" din "+L.length+" gata · "+doneWeek+" săpt. asta"},
-  ].map(k=>`<div class="kpi ${k.red?'red':''}"><div class="n">${k.n}</div><div class="l">${k.l}</div>${k.e?`<div class="e">${k.e}</div>`:''}</div>`).join("");
+    {n:open.length, l:"Taskuri active", e:L.filter(t=>t.status==="doing").length+" în lucru acum", c:"k-blue", i:"kanban"},
+    {n:late.length, l:"Întârziate", e:late.length?"termenul a trecut":"nimic întârziat ✓", c:late.length?"k-red":"k-green", i:"alert"},
+    {n:week.length, l:"Termen în 7 zile", e:week.length?"de urmărit săptămâna asta":"nimic urgent", c:"k-amber", i:"calendar"},
+    {n:pct+"%", l:"Progres", e:done.length+" din "+L.length+" gata · "+doneWeek+" săpt. asta", c:"k-green", i:"check", bar:pct},
+  ].map(k=>`<div class="kpi ${k.c}"><div class="n">${k.n}</div><div class="l">${ic(k.i,14)}${k.l}</div>${k.e?`<div class="e">${k.e}</div>`:''}${k.bar!==undefined?`<div class="kbar"><i style="width:${k.bar}%"></i></div>`:''}</div>`).join("");
 
   const projCards = scopeProjects().map(p=>{
     const pt = L.filter(t=>t.project_id===p.id);
@@ -1942,7 +1980,7 @@ function renderProjDash(){
     return `<div class="pcard" data-id="${p.id}" style="--pc:${c}">
       <div class="nm">${esc(p.name)}</div>
       <div class="pbar"><i style="width:${pc}%;background:${c}"></i></div>
-      <div class="meta"><b style="color:var(--ink)">${pc}%</b> · ${d}/${pt.length} gata
+      <div class="meta"><b class="ppct">${pc}%</b> · ${d}/${pt.length} gata
         ${lt?`<span class="chip pr-high">${lt} întârziate</span>`:''}
         ${nx?`<span>· următorul: ${fmtDay(nx.due_date)}</span>`:''}</div></div>`;
   }).join("");
@@ -1963,13 +2001,13 @@ function renderProjDash(){
     : '<div class="empty" style="padding:18px">Nicio activitate încă.</div>';
 
   $("#projWrap").innerHTML = projHeader() + `
-    <div class="kpis">${kp}</div>
+    <div class="kpis tiles">${kp}</div>
     ${adDashCard()}
     <div class="chart-grid">
-      ${CUR_PROJ==="all"?`<div class="chart-card wide"><h3>Categorii</h3><div class="pgrid">${projCards||'<div class="empty">Nicio categorie activă.</div>'}</div></div>`:''}
-      <div class="chart-card"><h3>Pe cine e munca</h3><p class="cnote">Taskuri pe colegă, după stare</p><div class="cbox"><canvas id="pWho"></canvas></div></div>
-      <div class="chart-card"><h3>Urmează (14 zile) și întârziate</h3><div class="dlist">${upHtml}</div></div>
-      <div class="chart-card wide"><h3>Activitate recentă</h3><div class="dlist">${recHtml}</div></div>
+      ${CUR_PROJ==="all"?`<div class="chart-card wide cc-ink"><h3>${ic("columns",16)} Categorii</h3><div class="pgrid">${projCards||'<div class="empty">Nicio categorie activă.</div>'}</div></div>`:''}
+      <div class="chart-card cc-blue"><h3>${ic("users",16)} Pe cine e munca</h3><p class="cnote">Taskuri pe colegă, după stare</p><div class="cbox"><canvas id="pWho"></canvas></div></div>
+      <div class="chart-card cc-amber"><h3>${ic("calendar",16)} Urmează (14 zile) și întârziate</h3><div class="dlist">${upHtml}</div></div>
+      <div class="chart-card wide cc-green"><h3>${ic("clock",16)} Activitate recentă</h3><div class="dlist">${recHtml}</div></div>
     </div>`;
   wireHeader();
   $("#projWrap").querySelectorAll(".pcard").forEach(c=>c.onclick=()=>{ CUR_PROJ=c.dataset.id; PVIEW="board"; renderProjects(); });
@@ -1982,7 +2020,7 @@ function renderProjDash(){
     const cnt=(n,s)=>L.filter(t=>(t.assignee_name||"Nealocat")===n && (t.status||"todo")===s).length;
     PCH.who=new Chart(cctx("pWho"),{type:"bar",
       data:{labels:names,datasets:[
-        {label:"De făcut",data:names.map(n=>cnt(n,"todo")),backgroundColor:"#c9d3ce",borderRadius:3},
+        {label:"De făcut",data:names.map(n=>cnt(n,"todo")),backgroundColor:"#A8A29E",borderRadius:3},
         {label:"În lucru",data:names.map(n=>cnt(n,"doing")),backgroundColor:C_BLUE,borderRadius:3},
         {label:"De verificat",data:names.map(n=>cnt(n,"review")),backgroundColor:"#8B6BC4",borderRadius:3},
         {label:"Gata",data:names.map(n=>cnt(n,"done")),backgroundColor:C_GREEN,borderRadius:3}]},
