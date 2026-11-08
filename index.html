@@ -645,6 +645,15 @@
   .pwrow{display:flex;gap:8px;align-items:center}
   .pwrow input{flex:1;font-family:ui-monospace,Consolas,monospace;letter-spacing:.03em}
 
+  /* ---- spațiu Echipă / Doar eu ---- */
+  .pspace{display:inline-flex;gap:4px;background:#fff;border:1px solid var(--line);border-radius:10px;padding:4px;margin-bottom:14px}
+  .pspace button{display:inline-flex;align-items:center;gap:7px;border:0;background:none;border-radius:7px;padding:7px 14px;font-size:13.5px;font-weight:600;color:var(--muted);cursor:pointer}
+  .pspace button:hover{color:var(--ink);background:#F1F8F3}
+  .pspace button.on{background:#00653E;color:#fff}
+  .pspace button.on .adpriv{background:rgba(255,255,255,.2);color:#fff}
+  #modProiecte.space-me #projWrap{border-left:4px solid #00653E;padding-left:14px}
+  #modProiecte.space-me .projbar{padding-left:18px}
+
   /* ---- Proiecte · timeline ---- */
   .tlbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
   .tl{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);overflow:auto;max-height:70vh}
@@ -837,6 +846,10 @@
 
   <!-- ################ MODUL PROIECTE ################ -->
   <div id="modProiecte" class="hidden">
+    <div class="pspace" id="pSpace">
+      <button data-s="team"><i data-ic="users" data-s="15"></i>Taskuri echipă</button>
+      <button data-s="me"><i data-ic="key" data-s="15"></i>Doar eu <span class="adpriv">privat</span></button>
+    </div>
     <div class="projbar" id="projBar"></div>
     <div class="tabs" id="projTabs">
       <button data-pv="dash" class="on"><i data-ic="dashboard" data-s="15"></i>Rezumat</button>
@@ -2067,6 +2080,21 @@ function attachMention(ta){
 const BUCKET = "task-files";
 let PROJ=[], TASKS=[], CUR_PROJ="all", SHOW_ARCH=false, PVIEW="dash", TL_ZOOM="auto", PCH={}, CAL_M=null;
 let F = { q:"", who:"", pr:"", late:false, due:"" };
+// spațiu: „team” = categoriile comune, „me” = categoriile mele private (le vede doar proprietarul — regulă în baza de date)
+let PSPACE = (()=>{ try{ return localStorage.getItem("kh_pspace")==="me" ? "me" : "team"; }catch(e){ return "team"; } })();
+let ALLPROJ = [], ALLTASKS = [];
+function applySpace(){
+  const mine = p => p.is_private && p.owner_id === ME.id;
+  PROJ = ALLPROJ.filter(p => PSPACE==="me" ? mine(p) : !p.is_private);
+  const ids = new Set(PROJ.map(p=>p.id));
+  TASKS = ALLTASKS.filter(t => ids.has(t.project_id));
+}
+function setSpace(sp){
+  PSPACE = sp; try{ localStorage.setItem("kh_pspace", sp); }catch(e){}
+  CUR_PROJ = "all"; if(PVIEW==="adhoc") PVIEW="dash";
+  applySpace(); renderProjects();
+}
+$("#pSpace").addEventListener("click", e=>{ const b=e.target.closest("button"); if(b && b.dataset.s!==PSPACE) setSpace(b.dataset.s); });
 // filtru termen: azi / în 3 zile / în 7 zile / fără termen (doar taskuri nefinalizate)
 const DUE_F = { today:"Expiră azi", d3:"Expiră în 3 zile", d7:"Expiră în 7 zile", none:"Fără termen" };
 function dueMatch(t, k){
@@ -2114,7 +2142,7 @@ async function loadProjects(){
     sb.from("tasks").select("*").order("position").order("created_at")
   ]);
   if(p.error||t.error){ $("#projWrap").innerHTML='<div class="empty">Eroare: '+esc((p.error||t.error).message)+'</div>'; return; }
-  PROJ=p.data||[]; TASKS=t.data||[];
+  ALLPROJ=p.data||[]; ALLTASKS=t.data||[]; applySpace();
   if(HAS_START===null){
     if(TASKS.length){ HAS_START=("start_date" in TASKS[0]); HAS_PARENT=("parent_id" in TASKS[0]); HAS_EST=("estimate_min" in TASKS[0]); }
     else {
@@ -2177,7 +2205,7 @@ function renderProjects(){
   const openAll = topLevel(TASKS).filter(t=>activeIds.has(t.project_id) && t.status!=="done").length;
   { const nc=$("#navCntProj"); if(nc) nc.textContent = openAll||""; }
   $("#projBar").innerHTML =
-    `<button class="pchip pall ${CUR_PROJ==='all'?'on':''}" data-id="all" style="--pc:#00653E"><span class="pd" style="background:#00653E"></span>Toate categoriile<span class="cnt">${openAll}</span></button>`
+    `<button class="pchip pall ${CUR_PROJ==='all'?'on':''}" data-id="all" style="--pc:#00653E"><span class="pd" style="background:#00653E"></span>${PSPACE==="me"?"Toate categoriile mele":"Toate categoriile"}<span class="cnt">${openAll}</span></button>`
     + visible.map(p=>{
       const open = topLevel(TASKS).filter(t=>t.project_id===p.id && t.status!=="done").length;
       return `<button class="pchip ${p.id===CUR_PROJ?'on':''} ${p.archived?'arch':''}" data-id="${p.id}" style="--pc:${safeColor(p.color)}">
@@ -2188,11 +2216,15 @@ function renderProjects(){
   $("#newProj").onclick=()=>openProjModal(null);
   const ta=$("#togArch"); if(ta) ta.onclick=()=>{ SHOW_ARCH=!SHOW_ARCH; renderProjects(); };
   document.querySelectorAll("#projTabs button").forEach(b=>b.classList.toggle("on", b.dataset.pv===PVIEW));
+  document.querySelectorAll("#pSpace button").forEach(b=>b.classList.toggle("on", b.dataset.s===PSPACE));
+  $("#modProiecte").classList.toggle("space-me", PSPACE==="me");
   $("#projBar").classList.toggle("hidden", PVIEW==="adhoc");
   if(PVIEW==="adhoc"){ renderAdhoc(); return; }
 
   Object.values(PCH).forEach(c=>{try{c&&c.destroy();}catch(e){}}); PCH={};
-  if(!PROJ.length){ $("#projWrap").innerHTML='<div class="empty">Nicio categorie încă. Apăsați „+ Categorie” ca să începeți (ex. „Lansare TM7”, „Evenimente”, „Administrativ”).</div>'; return; }
+  if(!PROJ.length){ $("#projWrap").innerHTML = PSPACE==="me"
+      ? '<div class="empty"><b>Spațiul tău privat</b><br>Aici categoriile și taskurile le vezi doar tu — colegii nu le văd, nu apar pe Slack și nici în rezumatul de dimineață.<br>Apăsați „+ Categorie” ca să începeți (ex. „Idei”, „Personal”, „De urmărit”).</div>'
+      : '<div class="empty">Nicio categorie încă. Apăsați „+ Categorie” ca să începeți (ex. „Lansare TM7”, „Evenimente”, „Administrativ”).</div>'; return; }
   if(PVIEW==="dash") renderProjDash();
   else if(PVIEW==="timeline") renderTimeline();
   else if(PVIEW==="calendar") renderCalendar();
@@ -2209,7 +2241,7 @@ function projHeader(){
   const pct = all.length ? Math.round(done*100/all.length) : 0;
   const people = [...new Set([...TEAM, ...all.map(t=>t.assignee_name).filter(Boolean)])];
   return `<div class="phead">
-      <h2>${p?`<span class="pd" style="background:${safeColor(p.color)}"></span>${esc(p.name)}${p.archived?' <span class="chip c-grey">arhivată</span>':''}`:'Toate categoriile'}</h2>
+      <h2>${p?`<span class="pd" style="background:${safeColor(p.color)}"></span>${esc(p.name)}${p.archived?' <span class="chip c-grey">arhivată</span>':''}`:(PSPACE==="me"?'Toate categoriile mele':'Toate categoriile')}</h2>
       <span class="chip c-ok">${done}/${all.length} gata · ${pct}%</span>
       <span class="spacer"></span>
       <button class="btn sm" id="addTaskTop">+ Task</button>
@@ -2899,6 +2931,7 @@ function openProjModal(p){
   projEditing=p; projColor=p?safeColor(p.color):P_COLORS[PROJ.length % P_COLORS.length];
   $("#projModalTitle").textContent = p?"Editează categoria":"Categorie nouă";
   $("#projName").value = p?p.name:""; $("#projErr").textContent="";
+  $("#projModalTitle").textContent = p ? "Editează categoria" : (PSPACE==="me" ? "Categorie privată nouă (doar tu)" : "Categorie nouă");
   $("#projSw").innerHTML = P_COLORS.map(c=>`<button type="button" data-c="${c}" style="background:${c}" class="${c===projColor?'on':''}"></button>`).join("");
   $("#projSw").querySelectorAll("button").forEach(b=>b.onclick=()=>{ projColor=b.dataset.c; $("#projSw").querySelectorAll("button").forEach(x=>x.classList.toggle("on",x===b)); });
   $("#projModal").classList.remove("hidden"); setTimeout(()=>$("#projName").focus(),50);
@@ -2910,12 +2943,13 @@ $("#projSave").addEventListener("click", async ()=>{
   $("#projSave").disabled=true;
   const res = projEditing
     ? await sb.from("projects").update({ name, color:projColor }).eq("id",projEditing.id).select().single()
-    : await sb.from("projects").insert({ name, color:projColor, created_by:ME.id, created_by_name:ME.name }).select().single();
+    : await sb.from("projects").insert({ name, color:projColor, created_by:ME.id, created_by_name:ME.name,
+        ...(PSPACE==="me" ? { is_private:true, owner_id:ME.id, owner_name:myFirst() } : {}) }).select().single();
   $("#projSave").disabled=false;
   if(res.error){ $("#projErr").textContent="Eroare: "+res.error.message; return; }
   $("#projModal").classList.add("hidden");
   CUR_PROJ=res.data.id; if(!projEditing) PVIEW="board";
-  toast(projEditing?"Categorie salvată ✓":"Categorie creată ✓");
+  toast(projEditing?"Categorie salvată ✓":(PSPACE==="me"?"Categorie privată creată ✓ — o vezi doar tu":"Categorie creată ✓"));
   await loadProjects();
 });
 
@@ -2945,7 +2979,7 @@ function openTask(t, preset){
   preset = preset||{};
   if(!t && !PROJ.some(p=>!p.archived)){ toast("Creați întâi o categorie (+ Categorie)."); return; }
   const isNew=!t;
-  const cur = t&&t.assignee_name;
+  const cur = t ? t.assignee_name : (PSPACE==="me" ? myFirst() : null);
   const people = (cur && !TEAM.includes(cur)) ? [...TEAM, cur] : TEAM;
   const pid0 = t ? t.project_id : (preset.project_id || (CUR_PROJ!=="all" ? CUR_PROJ : (PROJ.find(p=>!p.archived)||{}).id));
   const projOpts = PROJ.filter(p=>!p.archived || p.id===pid0).map(p=>`<option value="${p.id}" ${p.id===pid0?'selected':''}>${esc(p.name)}</option>`).join("");
