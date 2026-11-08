@@ -637,6 +637,14 @@
   .invpop button .ico{color:#2E6B4A}
   .invpop .iext{margin-left:auto;font-size:11px;color:var(--muted)}
 
+  /* ---- Echipă ---- */
+  .tmtable td{white-space:nowrap}
+  .tmact{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;max-width:290px;margin-left:auto}
+  .tmtable tbody tr{cursor:default}
+  .tmdanger{color:var(--err)!important}
+  .pwrow{display:flex;gap:8px;align-items:center}
+  .pwrow input{flex:1;font-family:ui-monospace,Consolas,monospace;letter-spacing:.03em}
+
   /* ---- Proiecte · timeline ---- */
   .tlbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
   .tl{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);overflow:auto;max-height:70vh}
@@ -743,6 +751,7 @@
       <button data-mod="proiecte"><i data-ic="kanban"></i><span>Proiecte</span><em class="cnt" id="navCntProj"></em></button>
       <button data-mod="marketing"><i data-ic="megaphone"></i><span>Marketing</span></button>
       <button data-mod="contracte"><i data-ic="sign"></i><span>Contracte</span><em class="cnt" id="navCntCtr"></em></button>
+      <button data-mod="echipa" id="navTeam" class="hidden"><i data-ic="users"></i><span>Echipă</span><em class="cnt">admin</em></button>
     </nav>
     <div class="sfoot">
       <div class="rate"><i data-ic="euro" data-s="14"></i><span id="rateTag">1 € = … Ft</span></div>
@@ -891,6 +900,15 @@
       <input class="grow" type="text" id="iSearch" placeholder="Caută număr de factură sau client…">
     </div>
     <div id="iWrap"><div class="empty">Se încarcă…</div></div>
+  </div>
+
+  <!-- ################ MODUL ECHIPĂ (doar administrator) ################ -->
+  <div id="modEchipa" class="hidden">
+    <div class="toolbar">
+      <button class="btn" id="tmAdd">+ Coleg nou</button>
+      <span class="day">Doar administratorul vede această pagină. Colegii adăugați aici apar automat în liste, la @mențiuni și pe Slack.</span>
+    </div>
+    <div id="tmWrap"><div class="empty">Se încarcă…</div></div>
   </div>
 
   <!-- ################ MODUL CONTRACTE (Zoho Sign) ################ -->
@@ -1087,6 +1105,10 @@ async function boot(){
   ME = { id:session.user.id, name: md.full_name || md.name || session.user.email.split("@")[0] };
   { const nm = ME.name.replace(/[._-]+/g," ").replace(/\b\w/g,c=>c.toUpperCase());
     ME.disp = nm; $("#meName").textContent = nm; $("#avTag").textContent = nm.split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase(); }
+  ME.email = String(session.user.email||"").toLowerCase();
+  await loadTeam();
+  { const row = TEAM_ROWS.find(r=>r.email===ME.email);
+    if(row && !md.full_name && row.full_name){ ME.disp=row.full_name; $("#meName").textContent=row.full_name; $("#avTag").textContent=row.full_name.split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase(); } }
   await loadRate();
   await loadOrders();
   showModule(modFromHash(), true);
@@ -1720,6 +1742,112 @@ $("#iSeg").addEventListener("click", e=>{ const b=e.target.closest("button"); if
 $("#iSearch").addEventListener("input", e=>{ INVF.q=e.target.value; renderInvoices(); });
 $("#iYear").addEventListener("change", e=>{ INVF.year=e.target.value; renderInvoices(); });
 
+/* ===================== ECHIPĂ (doar administrator; verificarea reală e pe server, în team-admin) ===================== */
+async function teamCall(action, payload){
+  const { data:{ session } } = await sb.auth.getSession();
+  const r = await fetch(FN+"/team-admin",{ method:"POST", headers:{ Authorization:"Bearer "+session.access_token, apikey:SUPABASE_KEY, "Content-Type":"application/json" }, body:JSON.stringify({ action, ...(payload||{}) }) });
+  const j = await r.json().catch(()=>({ ok:false, error:"răspuns necitibil ("+r.status+")" }));
+  if(!j.ok) throw new Error(j.error||("eroare "+r.status));
+  return j;
+}
+function genPw(){
+  const A="ABCDEFGHJKLMNPQRSTUVWXYZ", a="abcdefghijkmnopqrstuvwxyz", d="23456789", all=A+a+d;
+  const rnd = n => { const b=new Uint32Array(n); crypto.getRandomValues(b); return [...b]; };
+  const pick = (set, n) => rnd(n).map(x=>set[x%set.length]).join("");
+  return "Kh-" + pick(A,1) + pick(a,3) + "-" + pick(d,4) + pick(all,2);
+}
+async function loadTeamAdmin(){
+  if(!IS_ADMIN){ $("#tmWrap").innerHTML='<div class="empty">Doar administratorul are acces la această pagină.</div>'; return; }
+  $("#tmWrap").innerHTML='<div class="empty">Se încarcă…</div>';
+  let j, who={};
+  try{
+    const { data:{ session } } = await sb.auth.getSession();
+    const [a, w] = await Promise.all([ teamCall("list"),
+      fetch(FN+"/slack-notify",{ method:"POST", headers:{ Authorization:"Bearer "+session.access_token, apikey:SUPABASE_KEY, "Content-Type":"application/json" }, body:JSON.stringify({ kind:"who" }) }).then(r=>r.json()).catch(()=>({})) ]);
+    j=a; who=(w&&w.who)||{};
+  }catch(e){ $("#tmWrap").innerHTML='<div class="empty">Eroare: '+esc(e.message)+'</div>'; return; }
+  const users = j.users||[], team = j.team||[];
+  const rows = [
+    ...team.map(m=>({ m, u: users.find(u=>u.email===m.email) })),
+    ...users.filter(u=>!team.some(m=>m.email===u.email)).map(u=>({ m:null, u })),
+  ];
+  const lastIn = u => !u ? '<span class="lmuted">fără cont</span>' : u.last_sign_in_at ? ago(u.last_sign_in_at) : '<span class="lmuted">niciodată</span>';
+  const blocked = u => u && u.banned_until && new Date(u.banned_until) > new Date();
+  $("#tmWrap").innerHTML = `<div class="tscroll"><table class="itable tmtable">
+    <thead><tr><th>Coleg</th><th>Prenume în liste</th><th>Email</th><th>Rol</th><th>Ultima logare</th><th>Slack</th><th>Stare</th><th></th></tr></thead>
+    <tbody>${rows.map(({m,u})=>{ const b=blocked(u), me=(u&&u.email||m&&m.email)===j.me;
+      const sl = m ? (who[m.first_name]==="în Slack" ? '<span class="chip c-ok">mesaje private</span>' : '<span class="chip c-grey" title="Nu e găsit(ă) în Slack după email — mesajele merg pe #alerte-tasks">pe canal</span>') : '—';
+      return `<tr data-id="${esc(u?u.id:'')}" data-email="${esc(u?u.email:m.email)}">
+        <td><div class="nm">${esc((m&&m.full_name)||(u&&u.full_name)||(m&&m.first_name)||'—')}${me?' <span class="lmuted">(tu)</span>':''}</div></td>
+        <td>${m?`<b>${esc(m.first_name)}</b>`:'<span class="lmuted">— nu e în liste</span>'}</td>
+        <td>${esc(u?u.email:m.email)}</td>
+        <td>${m&&m.role==="admin"?'<span class="chip c-ok">Administrator</span>':'Coleg'}</td>
+        <td>${lastIn(u)}</td>
+        <td>${sl}</td>
+        <td>${!u?'<span class="chip c-warn">fără cont</span>':b?'<span class="chip c-err">blocat</span>':'<span class="chip c-ok">activ</span>'}</td>
+        <td><div class="tmact">
+          ${!u?`<button class="btn sm" data-createacc>Creează cont</button>`:''}
+          ${u?`<button class="btn ghost sm" data-pw>Resetează parola</button>`:''}
+          ${u && !me ? (b?`<button class="btn ghost sm" data-unblock>Deblochează</button>`:`<button class="btn ghost sm tmdanger" data-block>Blochează</button>`) : ''}
+          ${u && !m ? `<button class="btn ghost sm" data-addlist>Adaugă în liste</button>` : m ? `<button class="btn ghost sm" data-rename>Schimbă numele</button>` : ''}
+        </div></td></tr>`; }).join("")}</tbody></table></div>
+    <p class="cnote" style="margin-top:10px">„Blochează” oprește imediat accesul (de ex. când pleacă cineva); se poate debloca oricând. Istoricul colegei (taskuri, confirmări) rămâne.</p>`;
+  const W=$("#tmWrap");
+  W.querySelectorAll("tr[data-email]").forEach(tr=>{
+    const id=tr.dataset.id, email=tr.dataset.email, m=team.find(x=>x.email===email), u=users.find(x=>x.email===email);
+    const ca=tr.querySelector("[data-createacc]"); if(ca) ca.onclick=()=>openTeamForm("create",{ email, first:m&&m.first_name, full:m&&m.full_name });
+    const pw=tr.querySelector("[data-pw]"); if(pw) pw.onclick=()=>openTeamForm("password",{ id, email, name:(m&&m.full_name)||email });
+    const bl=tr.querySelector("[data-block]"); if(bl) bl.onclick=async()=>{ if(!confirm(`Blocați accesul pentru ${email}?\nNu se mai poate loga până o deblocați.`)) return;
+      try{ await teamCall("block",{ id }); toast("Cont blocat"); await loadTeam(); loadTeamAdmin(); }catch(e){ toast("Eroare: "+e.message); } };
+    const ub=tr.querySelector("[data-unblock]"); if(ub) ub.onclick=async()=>{ try{ await teamCall("unblock",{ id }); toast("Cont deblocat ✓"); await loadTeam(); loadTeamAdmin(); }catch(e){ toast("Eroare: "+e.message); } };
+    const al=tr.querySelector("[data-addlist]"); if(al) al.onclick=()=>openTeamForm("rename",{ email, first:(u&&u.full_name||"").split(" ")[0], full:u&&u.full_name||"" });
+    const rn=tr.querySelector("[data-rename]"); if(rn) rn.onclick=()=>openTeamForm("rename",{ email, first:m.first_name, full:m.full_name||"" });
+  });
+}
+function openTeamForm(kind, x){
+  x = x||{};
+  const scrim=document.createElement("div"); scrim.className="scrim";
+  const dr=document.createElement("div"); dr.className="drawer";
+  const title = kind==="create"?"Coleg nou":kind==="password"?"Resetează parola":"Nume în liste";
+  dr.innerHTML = `<header><div><p class="dtitle">${title}</p><p class="dsub">${kind==="password"?esc(x.name)+' · '+esc(x.email):kind==="rename"?esc(x.email):'Contul se creează direct, fără email de confirmare'}</p></div><button class="x" id="closeDr">×</button></header>
+    <div class="body">
+      ${kind!=="password"?`
+        <label>Prenume <span class="day" style="font-weight:400">(un cuvânt — apare în liste și la @mențiuni, ex. „Diana”)</span></label>
+        <input type="text" id="tfFirst" maxlength="30" value="${esc(x.first||'')}">
+        <label>Nume complet</label>
+        <input type="text" id="tfFull" maxlength="80" value="${esc(x.full||'')}" placeholder="ex. Diana Turoczi">`:''}
+      ${kind==="create"?`<label>Email</label><input type="email" id="tfEmail" maxlength="120" placeholder="prenume.nume@kronhaus.hu" value="${esc(x.email||'')}">`:''}
+      ${kind!=="rename"?`
+        <label>${kind==="create"?"Parolă inițială":"Parolă nouă"} <span class="day" style="font-weight:400">(minim 8 caractere)</span></label>
+        <div class="pwrow"><input type="text" id="tfPw" autocomplete="new-password" spellcheck="false"><button type="button" class="btn ghost sm" id="tfGen">Generează</button></div>
+        <p class="cnote" style="margin-top:8px">Comunicați parola colegei pe un canal privat și rugați-o s-o schimbe la prima logare, din butonul „Parola” (stânga jos).</p>`:''}
+      <div class="actions"><button class="btn go" id="tfSave">${kind==="create"?"Creează contul":kind==="password"?"Schimbă parola":"Salvează"}</button></div>
+      <div class="err" id="tfErr"></div>
+    </div>`;
+  document.body.append(scrim,dr);
+  const q=s=>dr.querySelector(s), close=()=>{ scrim.remove(); dr.remove(); };
+  scrim.onclick=close; q("#closeDr").onclick=close;
+  if(q("#tfGen")) q("#tfGen").onclick=()=>{ q("#tfPw").value=genPw(); };
+  if(q("#tfFull") && q("#tfFirst")) q("#tfFull").addEventListener("input",()=>{ if(!q("#tfFirst").dataset.touched) q("#tfFirst").value=(q("#tfFull").value.trim().split(/\s+/)[0]||""); });
+  if(q("#tfFirst")) q("#tfFirst").addEventListener("input",()=>{ q("#tfFirst").dataset.touched="1"; });
+  setTimeout(()=>{ const f=q("#tfFull")||q("#tfPw"); f&&f.focus(); },60);
+  q("#tfSave").onclick=async()=>{
+    const btn=q("#tfSave"); q("#tfErr").textContent=""; btn.disabled=true;
+    try{
+      if(kind==="create"){
+        await teamCall("create",{ first_name:q("#tfFirst").value.trim(), full_name:q("#tfFull").value.trim(), email:q("#tfEmail").value.trim(), password:q("#tfPw").value });
+        toast("Cont creat ✓ — colega se poate loga acum");
+      } else if(kind==="password"){
+        await teamCall("password",{ id:x.id, password:q("#tfPw").value }); toast("Parola a fost schimbată ✓");
+      } else {
+        await teamCall("rename",{ email:x.email, first_name:q("#tfFirst").value.trim(), full_name:q("#tfFull").value.trim() }); toast("Salvat ✓");
+      }
+      close(); await loadTeam(); loadTeamAdmin();
+    }catch(e){ q("#tfErr").textContent=e.message; btn.disabled=false; }
+  };
+}
+$("#tmAdd").addEventListener("click", ()=>openTeamForm("create"));
+
 /* ===================== ACTUALIZARE (sync) ===================== */
 let lastRefresh=0;
 $("#refreshBtn").addEventListener("click", async ()=>{
@@ -1840,7 +1968,7 @@ async function loadHistory(){
 }
 
 /* ===================== MODULE (Comenzi / Proiecte / Marketing) ===================== */
-const MODS = { comenzi:"#modComenzi", facturi:"#modFacturi", proiecte:"#modProiecte", marketing:"#modMarketing", contracte:"#modContracte" };
+const MODS = { comenzi:"#modComenzi", facturi:"#modFacturi", proiecte:"#modProiecte", marketing:"#modMarketing", contracte:"#modContracte", echipa:"#modEchipa" };
 function modFromHash(){ const h=(location.hash||"").replace("#",""); return MODS[h]?h:"comenzi"; }
 function showModule(m, fromBoot){
   activeMod = MODS[m]?m:"comenzi";
@@ -1851,17 +1979,19 @@ function showModule(m, fromBoot){
               proiecte:["Proiecte","Categorii, taskuri și termene pentru toată echipa."],
               marketing:["Marketing","De unde vin clienții și ce campanii aduc vânzări."],
               contracte:["Contracte","Contractele trimise prin Zoho Sign și stadiul semnării."],
-              facturi:["Facturi","Facturile emise în Számlázz.hu, traduse în română."] };
+              facturi:["Facturi","Facturile emise în Számlázz.hu, traduse în română."],
+              echipa:["Echipă","Conturile colegilor: creare, parole, blocare."] };
   $("#pageTitle").textContent = PT[activeMod][0]; $("#pageSub").textContent = PT[activeMod][1];
   document.title = PT[activeMod][0]+" · KronHaus Hub";
   $("#exportBtn").classList.toggle("hidden", activeMod!=="comenzi");
-  $("#refreshBtn").classList.toggle("hidden", activeMod==="proiecte");
+  $("#refreshBtn").classList.toggle("hidden", activeMod==="proiecte" || activeMod==="echipa");
   if(activeMod==="comenzi" && activeTab==="orders") buildTrend();
   if(activeMod==="comenzi" && activeTab==="stats") buildStats();
   if(activeMod==="proiecte") loadProjects();
   if(activeMod==="marketing") loadMarketing(false);
   if(activeMod==="contracte") loadContracts();
   if(activeMod==="facturi") loadInvoices();
+  if(activeMod==="echipa") loadTeamAdmin();
 }
 $("#modnav").addEventListener("click", e=>{ const b=e.target.closest("button"); if(b) showModule(b.dataset.mod); });
 window.addEventListener("hashchange", ()=>{ if(!$("#app").classList.contains("hidden")) showModule(modFromHash()); });
@@ -1883,7 +2013,17 @@ const recurNext = (rule, due) => { if(!rule) return ""; const t0=todayISO(); let
   d=step(d); let g=0; while(d<t0 && g++<500) d=step(d); return d; };
 const prLbl = t => (t.priority==="high" && t.urgency) ? "Urgent "+t.urgency+"/5"
   : (t.priority==="recurring" && t.recur_rule) ? "↻ Recurent "+RECUR_L[t.recur_rule] : (T_PRIO[t.priority]||"Normal");
-const TEAM = ["Horatiu","Floriana","Alina","Karola","Diana","Office"];   // conturile KronHaus
+// colegii vin din tabelul team_members (pagina Echipă); lista de mai jos e doar rezervă dacă tabelul nu răspunde
+let TEAM = ["Horatiu","Floriana","Alina","Karola","Diana","Office"], TEAM_ROWS = [], IS_ADMIN = false;
+async function loadTeam(){
+  try{
+    const { data, error } = await sb.from("team_members").select("*").order("sort");
+    if(error || !data || !data.length) return;
+    TEAM_ROWS = data; TEAM = data.filter(r=>r.active).map(r=>r.first_name);
+    IS_ADMIN = data.some(r=>r.email===ME.email && r.role==="admin" && r.active);
+  }catch(e){ /* rămâne lista de rezervă */ }
+  const nb=$("#navTeam"); if(nb) nb.classList.toggle("hidden", !IS_ADMIN);
+}
 
 /* @mențiuni: când scrii „@” într-o observație apare lista colegilor */
 function attachMention(ta){
