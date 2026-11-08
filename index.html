@@ -953,15 +953,19 @@ async function boot(){
 
 /* ===================== DATA ===================== */
 async function loadOrders(){
-  const [a,b] = await Promise.all([
+  const [a,b,c] = await Promise.all([
     sb.from("v_orders_truth").select("*").order("order_day",{ascending:false,nullsFirst:false}),
-    sb.from("v_order_detail").select("key,invoice_status,payment_paid,customer_type,inv_tax_number,tx:details->transactions")
+    sb.from("v_order_detail").select("key,invoice_status,payment_paid,customer_type,inv_tax_number,tx:details->transactions"),
+    sb.from("v_order_times").select("key,order_time")      // ora comenzii (dacă există în baza de date)
   ]);
+  const tm = {}; if(!c.error) (c.data||[]).forEach(x=>{ const m=String(x.order_time||"").match(/(\d{1,2}):(\d{2})/); if(m) tm[x.key]=m[1].padStart(2,"0")+":"+m[2]; });
   if(a.error){ toast("Eroare la încărcare: "+a.error.message); return; }
   const det = {}; (b.data||[]).forEach(d=>det[d.key]=d);
   ROWS = (a.data||[]).map(r=>({ ...r, unas_invoice_status: det[r.key]?det[r.key].invoice_status:null,
                                  unas_paid_amount: det[r.key]?det[r.key].payment_paid:null,
-                                 _tx: (det[r.key] && Array.isArray(det[r.key].tx)) ? det[r.key].tx : [] }));
+                                 _tx: (det[r.key] && Array.isArray(det[r.key].tx)) ? det[r.key].tx : [],
+                                 _time: tm[r.key]||"" }));
+  ROWS.sort((x,y)=>(y.order_day||"").localeCompare(x.order_day||"") || (y._time||"").localeCompare(x._time||""));
   computeChecks();
   render();
   if(activeMod==="comenzi" && activeTab==="stats") buildStats();
@@ -1168,7 +1172,7 @@ function render(){
   if(!list.length){ $("#tableWrap").innerHTML='<div class="empty">'+(STATE.status==="issues"?'Nicio comandă de verificat — totul se potrivește.':'Nicio comandă pentru filtrul selectat.')+'</div>'; return; }
   const rows = list.map(r=>`
     <tr data-key="${esc(r.key)}" class="${needsAction(r)?'rowwarn':''}">
-      <td><div class="nm">${esc(r.customer_name)||'—'}</div><div class="day">${esc(roDay(r.order_day))||'—'}${r.inv_city?' · oraș: '+esc(r.inv_city):''}</div></td>
+      <td><div class="nm">${esc(r.customer_name)||'—'}</div><div class="day">${esc(roDay(r.order_day))||'—'}${r._time?`, ora <span title="ora Budapestei">${esc(r._time)}</span>`:''}${r.inv_city?' · oraș: '+esc(r.inv_city):''}</div></td>
       <td class="amt">${ft(r.sum_gross)}<span class="eu">${eur(r.sum_gross)}</span></td>
       <td class="col-p">${unasCell(r)}</td>
       <td class="col-p">${payCell(r)}</td>
@@ -1299,7 +1303,7 @@ async function openDetail(key){
     <header>
       <div>
         <p class="dtitle">${esc(r.customer_name)||'—'}</p>
-        <p class="dsub">#${esc(r.key)} · ${esc(roDay(r.order_day))}</p>
+        <p class="dsub">#${esc(r.key)} · ${esc(roDay(r.order_day))}${r._time?', ora '+esc(r._time)+' (ora Budapestei)':''}</p>
       </div>
       <button class="x" id="closeDr">×</button>
     </header>
