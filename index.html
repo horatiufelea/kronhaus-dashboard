@@ -598,6 +598,32 @@
   .tdh-key{background:#00653E}
   .adkinds button.on{background:#00653E;border-color:#00653E}
 
+  /* ---- Facturi ---- */
+  .itable td{vertical-align:middle;padding:10px 12px;border-bottom:1px solid var(--line)}
+  .itable thead th{padding:10px 12px;background:#F5F5F4;border-bottom:1px solid #DCD9D6;color:#57534E;font-weight:600}
+  .itable tbody tr{cursor:pointer}
+  .itable tbody tr:nth-child(even) td{background:var(--zebra)}
+  .itable .r{text-align:right}
+  .itable .ic{width:34px;text-align:center;padding-left:6px;padding-right:6px}
+  .itable .sub2{font-size:12px;color:var(--muted);margin-top:2px}
+  .itable tfoot td{padding:11px 12px;background:#F5F5F4;border-top:1px solid #DCD9D6;font-size:13px}
+  .itable tr.istorno td{color:var(--muted)}
+  .inum{color:var(--accent);font-weight:600;text-decoration:none}
+  .inum:hover{text-decoration:underline}
+  .idoc{display:inline-grid;place-items:center;width:28px;height:28px;border-radius:6px;background:#EDF6F0;color:#00653E}
+  .idoc.storno,.idoc.stornoed{background:var(--errbg);color:var(--err)}
+  .ilate{color:var(--err);font-weight:600}
+  .imenu{border:1px solid var(--line);background:#fff;border-radius:6px;width:30px;height:30px;font-size:18px;line-height:1;cursor:pointer;color:var(--ink)}
+  .imenu:hover{background:#F1F8F3}
+  .invpop{position:fixed;z-index:9999;background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.16);padding:12px;width:340px}
+  .invpop .ih{font-weight:700;font-size:15px}
+  .invpop .inr{font-size:13px;color:var(--muted);margin:2px 0 6px}
+  .invpop .isec{font-size:12px;font-weight:600;color:#2E6B4A;background:#EDF6F0;border-radius:6px;padding:5px 8px;margin:8px 0 4px}
+  .invpop button{display:flex;align-items:center;gap:9px;width:100%;border:0;background:none;padding:7px 8px;border-radius:6px;font-size:13.5px;color:var(--ink);cursor:pointer;text-align:left}
+  .invpop button:hover{background:#F1F8F3}
+  .invpop button .ico{color:#2E6B4A}
+  .invpop .iext{margin-left:auto;font-size:11px;color:var(--muted)}
+
   /* ---- Proiecte · timeline ---- */
   .tlbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
   .tl{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);overflow:auto;max-height:70vh}
@@ -700,6 +726,7 @@
     <div class="grp">Module</div>
     <nav id="modnav">
       <button data-mod="comenzi" class="on"><i data-ic="receipt"></i><span>Comenzi</span><em class="cnt" id="navCntOrders"></em></button>
+      <button data-mod="facturi"><i data-ic="file"></i><span>Facturi</span><em class="cnt" id="navCntInv"></em></button>
       <button data-mod="proiecte"><i data-ic="kanban"></i><span>Proiecte</span><em class="cnt" id="navCntProj"></em></button>
       <button data-mod="marketing"><i data-ic="megaphone"></i><span>Marketing</span></button>
       <button data-mod="contracte"><i data-ic="sign"></i><span>Contracte</span><em class="cnt" id="navCntCtr"></em></button>
@@ -834,6 +861,23 @@
         <div class="utm-out"><input type="text" id="uOut" readonly placeholder="Linkul apare aici"><button class="btn sm" id="uCopy" type="button">Copiază</button></div>
       </div>
     </div>
+  </div>
+
+  <!-- ################ MODUL FACTURI (Számlázz) ################ -->
+  <div id="modFacturi" class="hidden">
+    <div class="syncinfo" id="invSync"></div>
+    <div class="kpis tiles" id="iKpis"></div>
+    <div class="toolbar">
+      <select id="iYear" style="width:auto"></select>
+      <div class="seg" id="iSeg">
+        <button data-f="all" class="on">Toate</button>
+        <button data-f="open">De încasat</button>
+        <button data-f="paid">Plătite</button>
+        <button data-f="storno">Storno</button>
+      </div>
+      <input class="grow" type="text" id="iSearch" placeholder="Caută număr de factură sau client…">
+    </div>
+    <div id="iWrap"><div class="empty">Se încarcă…</div></div>
   </div>
 
   <!-- ################ MODUL CONTRACTE (Zoho Sign) ################ -->
@@ -1484,6 +1528,185 @@ async function openInvoice(szamlaszam, btn){
   btn.disabled=false; btn.innerHTML=old;
 }
 
+/* ===================== FACTURI (Számlázz, doar citire) ===================== */
+let INV=[], INVF={ f:"all", q:"", year:String(new Date().getFullYear()) };
+const unent = (()=>{ const t=document.createElement("textarea"); return v=>{ if(typeof v!=="string" || v.indexOf("&")<0) return v; t.innerHTML=v; return t.value; }; })();
+const deepUnent = o => Array.isArray(o) ? o.map(deepUnent) : (o && typeof o==="object") ? Object.fromEntries(Object.entries(o).map(([k,v])=>[k,deepUnent(v)])) : unent(o);
+const fmtD = d => d ? String(d).replace(/^(\d{4})-(\d{2})-(\d{2}).*$/,"$1.$2.$3") : "—";
+const payWay = s => { s=String(s||"").toLowerCase();
+  if(/simplepay|kártya|karty|card/.test(s)) return "Card"; if(/utal|virament|transfer/.test(s)) return "Transfer bancar";
+  if(/készpénz|keszpenz|cash/.test(s)) return "Numerar"; if(/utánvét|utanvet/.test(s)) return "Ramburs"; return s||"—"; };
+const SZAMLAZZ_URL = "https://www.szamlazz.hu/szamla/";
+function invState(x){
+  const a=x.details&&x.details.alap||{};
+  if(x.tipus==="SS") return { k:"storno", l:"Storno"+(a.hivszamlaszam?" pt. "+a.hivszamlaszam:""), c:"c-grey" };
+  if(String(a.sztornozott)==="true") return { k:"stornoed", l:"Stornată", c:"c-grey" };
+  if(x.is_paid) return { k:"paid", l:"Plătită", c:"c-ok" };
+  const left=Math.max(0,Number(x.brutto||0)-Number(x.paid_amount||0));
+  const late = x.fizh && x.fizh < todayISO();
+  return { k:"open", l: late?"Restantă":"De încasat", c: late?"c-err":"c-warn", left, late };
+}
+async function loadInvoices(){
+  const { data, error } = await sb.from("v_invoices").select("*").order("kelt",{ascending:false}).order("szamlaszam",{ascending:false});
+  if(error){ $("#iWrap").innerHTML='<div class="empty">Eroare: '+esc(error.message)+'</div>'; return; }
+  INV = (data||[]).map(x=>({ ...x, partner_name:unent(x.partner_name), details:deepUnent(x.details||{}) }));
+  const last = INV.reduce((m,x)=>x.synced_at>m?x.synced_at:m,"");
+  $("#invSync").innerHTML = ic("refresh",13)+" Date din Számlázz.hu · se actualizează cu butonul „Actualizează” · ultima dată: "+(last?new Date(last).toLocaleString("ro-RO"):"—");
+  const years=[...new Set(INV.map(x=>(x.kelt||"").slice(0,4)).filter(Boolean))].sort().reverse();
+  if(!years.includes(INVF.year)) years.unshift(INVF.year);
+  $("#iYear").innerHTML = years.map(y=>`<option ${y===INVF.year?'selected':''}>${y}</option>`).join("") + `<option value="all" ${INVF.year==="all"?'selected':''}>Toți anii</option>`;
+  renderInvoices();
+}
+function renderInvoices(){
+  const q=INVF.q.trim().toLowerCase();
+  const inYear = INV.filter(x=>INVF.year==="all" || (x.kelt||"").startsWith(INVF.year));
+  const L = inYear.filter(x=>{
+    const st=invState(x);
+    if(INVF.f==="open" && st.k!=="open") return false;
+    if(INVF.f==="paid" && st.k!=="paid") return false;
+    if(INVF.f==="storno" && st.k!=="storno" && st.k!=="stornoed") return false;
+    if(q && !((x.szamlaszam||"")+" "+(x.partner_name||"")).toLowerCase().includes(q)) return false;
+    return true;
+  });
+  // cifrele de sus (pe anul ales)
+  const real = inYear.filter(x=>x.tipus!=="SS" && invState(x).k!=="stornoed");
+  const sumB = inYear.reduce((s,x)=>s+Number(x.brutto||0),0);
+  const paid = real.reduce((s,x)=>s+Math.min(Number(x.paid_amount||0),Number(x.brutto||0)),0);
+  const open = real.filter(x=>invState(x).k==="open");
+  const left = open.reduce((s,x)=>s+invState(x).left,0), late=open.filter(x=>invState(x).late).length;
+  $("#navCntInv").textContent = INV.filter(x=>invState(x).k==="open").length || "";
+  $("#iKpis").innerHTML = [
+    {n:real.length, l:"Facturi emise", e:inYear.length-real.length?(inYear.length-real.length)+" storno / stornate":"", i:"file"},
+    {n:ft(sumB), l:"Total facturat (brut)", e:eur(sumB), i:"receipt"},
+    {n:ft(paid), l:"Încasat", e:eur(paid), i:"check", bar: sumB>0?Math.round(paid*100/sumB):0},
+    {n:ft(left), l:"De încasat", e: open.length ? open.length+(open.length===1?" factură":" facturi")+(late?" · "+late+" restante":"") : "nimic de încasat ✓", i:"clock", red: late>0},
+  ].map(k=>`<div class="kpi ${k.red?'k-red':''}"><div class="n">${k.n}</div><div class="l">${ic(k.i,14)}${k.l}</div>${k.e?`<div class="e">${k.e}</div>`:''}${k.bar!==undefined?`<div class="kbar"><i style="width:${k.bar}%"></i></div>`:''}</div>`).join("");
+
+  if(!L.length){ $("#iWrap").innerHTML='<div class="empty">Nicio factură pentru filtrul ales.</div>'; return; }
+  const money = (n,cur) => { const v=Number(n||0); return `<div class="amt">${v.toLocaleString("hu-HU")} ${cur&&cur!=="HUF"?esc(cur):"Ft"}</div><div class="eu">${eur(v)}</div>`; };
+  const tN=L.reduce((s,x)=>s+Number(x.netto||0),0), tB=L.reduce((s,x)=>s+Number(x.brutto||0),0), tL=L.reduce((s,x)=>s+(invState(x).left||0),0);
+  $("#iWrap").innerHTML = `<div class="tscroll"><table class="itable">
+    <thead><tr><th class="ic"></th><th>Număr factură</th><th>Data emiterii</th><th>Termen de plată</th><th>Client</th><th class="r">Net</th><th class="r">Brut</th><th class="r">De încasat</th><th class="ic"></th></tr></thead>
+    <tbody>${L.map(x=>{ const st=invState(x), a=x.details.alap||{};
+      return `<tr data-n="${esc(x.szamlaszam)}" class="${st.k==='storno'||st.k==='stornoed'?'istorno':''}">
+        <td class="ic"><span class="idoc ${st.k}" title="${st.k==='storno'?'Factură storno':st.k==='stornoed'?'Factură stornată':'Factură'}">${ic("file",15)}</span></td>
+        <td><a href="#" class="inum" data-open="${esc(x.szamlaszam)}">${esc(x.szamlaszam)}</a><div class="sub2">${esc(payWay(a.fizmod))}</div></td>
+        <td>${fmtD(x.kelt)}</td>
+        <td class="${st.late?'ilate':''}">${fmtD(x.fizh)}</td>
+        <td><div class="nm">${esc(x.partner_name)||'—'}</div>${x.order_key?`<div class="sub2">comanda #${esc(x.order_key)}</div>`:''}</td>
+        <td class="r">${money(x.netto,x.devizanem)}</td>
+        <td class="r">${money(x.brutto,x.devizanem)}</td>
+        <td class="r">${st.k==='open'?`<div class="amt ${st.late?'ilate':''}">${st.left.toLocaleString("hu-HU")} Ft</div><div class="chip ${st.c}">${st.l}</div>`:`<span class="chip ${st.c}">${esc(st.l)}</span>`}</td>
+        <td class="ic"><button class="imenu" data-menu="${esc(x.szamlaszam)}" title="Acțiuni">⋮</button></td></tr>`; }).join("")}</tbody>
+    <tfoot><tr><td></td><td colspan="4">Număr de facturi: <b>${L.length}</b></td><td class="r"><b>${tN.toLocaleString("hu-HU")} Ft</b></td><td class="r"><b>${tB.toLocaleString("hu-HU")} Ft</b></td><td class="r"><b>${tL.toLocaleString("hu-HU")} Ft</b></td><td></td></tr></tfoot>
+  </table></div>`;
+  const W=$("#iWrap");
+  W.querySelectorAll("tbody tr").forEach(tr=>tr.onclick=e=>{ if(e.target.closest("[data-menu]")) return; e.preventDefault(); openInvDetail(INV.find(x=>x.szamlaszam===tr.dataset.n)); });
+  W.querySelectorAll("[data-menu]").forEach(b=>b.onclick=e=>{ e.stopPropagation(); openInvMenu(b, INV.find(x=>x.szamlaszam===b.dataset.menu)); });
+}
+async function invPdf(num){
+  const { data:{ session } } = await sb.auth.getSession();
+  const r = await fetch(FN+"/invoice-pdf?szamlaszam="+encodeURIComponent(num),{ headers:{ Authorization:"Bearer "+session.access_token, apikey:SUPABASE_KEY }});
+  if(!r.ok) throw new Error("HTTP "+r.status);
+  return await r.blob();
+}
+async function invAction(kind, x){
+  try{
+    if(kind==="view"){ toast("Se deschide factura…"); const u=URL.createObjectURL(await invPdf(x.szamlaszam)); window.open(u,"_blank"); setTimeout(()=>URL.revokeObjectURL(u),60000); }
+    else if(kind==="download"){ toast("Se descarcă…"); const u=URL.createObjectURL(await invPdf(x.szamlaszam));
+      const a=document.createElement("a"); a.href=u; a.download=x.szamlaszam+".pdf"; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(u),60000); }
+    else if(kind==="print"){ toast("Se pregătește printarea…"); const u=URL.createObjectURL(await invPdf(x.szamlaszam));
+      const f=document.createElement("iframe"); f.style.cssText="position:fixed;right:0;bottom:0;width:0;height:0;border:0"; f.src=u; document.body.appendChild(f);
+      f.onload=()=>{ try{ f.contentWindow.focus(); f.contentWindow.print(); }catch(e){ window.open(u,"_blank"); } setTimeout(()=>{ f.remove(); URL.revokeObjectURL(u); },60000); }; }
+  }catch(e){ toast("Factura nu a putut fi încărcată ("+e.message+")"); }
+}
+function openInvMenu(btn, x){
+  const old=$("#invPop"); if(old){ const same=old.dataset.n===x.szamlaszam; old.remove(); if(same) return; }
+  const ext = (k,l)=>`<button data-ext="${k}">${l}<span class="iext">în Számlázz ↗</span></button>`;
+  const pop=document.createElement("div"); pop.id="invPop"; pop.className="invpop"; pop.dataset.n=x.szamlaszam;
+  pop.innerHTML = `<div class="ih">Acțiuni</div><div class="inr">${esc(x.szamlaszam)}</div>
+    <div class="isec">Gestionare plăți</div>
+    <button data-act="payments">${ic("cash",15)} Încasări</button>
+    <div class="isec">Operațiuni factură</div>
+    <button data-act="detail">${ic("eye",15)} Vezi detaliile</button>
+    <button data-act="view">${ic("file",15)} Vezi factura</button>
+    <button data-act="download">${ic("download",15)} Descarcă</button>
+    <button data-act="print">${ic("receipt",15)} Printează</button>
+    ${ext("copy",ic("clip",15)+" Copiază")}
+    ${ext("recur",ic("refresh",15)+" Setează recurența")}
+    ${ext("corr",ic("text",15)+" Factură de corecție")}
+    ${ext("storno",ic("x",15)+" Factură storno")}
+    ${ext("partner",ic("users",15)+" Editează partenerul")}
+    <div class="isec">Notificări și recuperare creanțe</div>
+    ${ext("post",ic("mail",15)+" Trimite prin poștă")}
+    ${ext("mail",ic("alert",15)+" Notificări și somații pe email")}`;
+  document.body.appendChild(pop);
+  const r=btn.getBoundingClientRect();
+  let top=r.bottom+6; if(top+pop.offsetHeight>innerHeight-8) top=Math.max(8, r.top-pop.offsetHeight-6);
+  pop.style.top=top+"px"; pop.style.left=Math.max(8, r.right-pop.offsetWidth)+"px";
+  const close=()=>{ pop.remove(); document.removeEventListener("mousedown",outside); };
+  const outside=e=>{ if(!pop.contains(e.target) && !btn.contains(e.target)) close(); };
+  setTimeout(()=>document.addEventListener("mousedown",outside),0);
+  pop.querySelectorAll("[data-act]").forEach(b=>b.onclick=()=>{ const k=b.dataset.act; close();
+    if(k==="detail") openInvDetail(x); else if(k==="payments") openInvDetail(x,"pay"); else invAction(k,x); });
+  pop.querySelectorAll("[data-ext]").forEach(b=>b.onclick=async()=>{ close();
+    try{ await navigator.clipboard.writeText(x.szamlaszam); }catch(e){}
+    toast("Se face direct în Számlázz.hu — numărul "+x.szamlaszam+" e copiat, lipiți-l la căutare");
+    window.open(SZAMLAZZ_URL,"_blank","noopener"); });
+}
+function openInvDetail(x, focus){
+  if(!x) return;
+  const d=x.details||{}, a=d.alap||{}, v=d.vevo||{}, c=v.cim||{}, st=invState(x);
+  const items=d.tetelek||[], pays=d.kifizetesek||[];
+  const n = v => Number(v||0).toLocaleString("hu-HU");
+  const scrim=document.createElement("div"); scrim.className="scrim";
+  const dr=document.createElement("div"); dr.className="drawer";
+  dr.innerHTML=`
+    <header><div><p class="dtitle">${esc(x.szamlaszam)}</p><p class="dsub">${esc(x.partner_name)||'—'} · emisă ${roDay(x.kelt)}</p></div><button class="x" id="closeDr">×</button></header>
+    <div class="body">
+      <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+        <span class="chip ${st.c}">${esc(st.l)}</span>
+        <div class="amt" style="font-size:20px">${n(x.brutto)} Ft <span style="color:var(--green);font-size:14px">${eur(x.brutto)}</span></div>
+      </div>
+      <div class="actions">
+        <button class="btn sm" data-act="view">${ic("file",14)} Vezi factura</button>
+        <button class="btn ghost sm" data-act="download">${ic("download",14)} Descarcă</button>
+        <button class="btn ghost sm" data-act="print">${ic("receipt",14)} Printează</button>
+      </div>
+      <div class="sect"><h4>Factura</h4><div class="kv">
+        <span class="k">Tip</span><span>${x.tipus==="SS"?"Factură storno"+(a.hivszamlaszam?" (anulează "+esc(a.hivszamlaszam)+")":""):(x.eszamla>0?"Factură electronică":"Factură")}</span>
+        <span class="k">Data emiterii</span><span>${roDay(x.kelt)}</span>
+        <span class="k">Data livrării</span><span>${roDay(x.telj)||'—'}</span>
+        <span class="k">Termen de plată</span><span class="${st.late?'ilate':''}">${roDay(x.fizh)||'—'}${st.late?' — a trecut':''}</span>
+        <span class="k">Metodă de plată</span><span>${esc(payWay(a.fizmod))}</span>
+        ${a.rendelesszam?`<span class="k">Comanda</span><span>#${esc(a.rendelesszam)}</span>`:''}
+        ${a.megjegyzes?`<span class="k">Observație</span><span>${esc(a.megjegyzes)}</span>`:''}
+      </div></div>
+      <div class="sect"><h4>Produse</h4><table class="items"><thead><tr><th>Denumire</th><th class="r">Cant.</th><th class="r">Preț net</th><th class="r">TVA</th><th class="r">Brut</th></tr></thead><tbody>
+        ${items.map(t=>`<tr><td>${esc(t.nev)}</td><td class="r">${esc(t.mennyiseg)} ${esc(t.mennyisegiegyseg==="db"?"buc":t.mennyisegiegyseg||"")}</td><td class="r">${n(t.netto)} Ft</td><td class="r">${Math.round(Number(t.afakulcs||0))}%</td><td class="r">${n(t.brutto)} Ft</td></tr>`).join("")||'<tr><td colspan="5" class="dsub">—</td></tr>'}
+      </tbody><tfoot><tr><td colspan="2"><b>Total</b></td><td class="r">${n(x.netto)} Ft</td><td class="r">${n(x.afa)} Ft</td><td class="r"><b>${n(x.brutto)} Ft</b></td></tr></tfoot></table></div>
+      <div class="sect" id="invPays"><h4>Încasări</h4>
+        ${pays.length?`<table class="items"><thead><tr><th>Data</th><th>Cum</th><th class="r">Sumă</th></tr></thead><tbody>${pays.map(p=>`<tr><td>${roDay(p.datum)}</td><td>${esc(payWay(p.jogcim))}</td><td class="r">${n(p.osszeg)} Ft</td></tr>`).join("")}</tbody></table>`
+          :`<p class="dsub">${x.tipus==="SS"||st.k==="stornoed"?"Nu e cazul (factură storno / stornată).":"Nicio plată înregistrată în Számlázz."}</p>`}
+        ${st.k==="open"?`<p class="dsub" style="margin-top:8px">Rămas de încasat: <b>${n(st.left)} Ft</b> (${eur(st.left)}). Plata se înregistrează în Számlázz.</p>`:''}
+      </div>
+      <div class="sect"><h4>Client</h4><div class="kv">
+        <span class="k">Nume</span><span>${esc(v.nev)||'—'}</span>
+        <span class="k">Adresă</span><span>${esc([c.irsz,c.telepules,c.cim].filter(Boolean).join(" "))||'—'}</span>
+        <span class="k">Email</span><span>${v.email?`<a href="mailto:${esc(v.email)}">${esc(v.email)}</a>`:'—'}</span>
+        ${v.adoszam?`<span class="k">Cod fiscal</span><span>${esc(v.adoszam)}</span>`:''}
+      </div></div>
+    </div>`;
+  document.body.append(scrim,dr);
+  const close=()=>{ scrim.remove(); dr.remove(); };
+  scrim.onclick=close; dr.querySelector("#closeDr").onclick=close;
+  dr.querySelectorAll("[data-act]").forEach(b=>b.onclick=()=>invAction(b.dataset.act,x));
+  if(focus==="pay") setTimeout(()=>dr.querySelector("#invPays").scrollIntoView({behavior:"smooth"}),80);
+}
+$("#iSeg").addEventListener("click", e=>{ const b=e.target.closest("button"); if(!b) return; INVF.f=b.dataset.f; $("#iSeg").querySelectorAll("button").forEach(x=>x.classList.toggle("on",x===b)); renderInvoices(); });
+$("#iSearch").addEventListener("input", e=>{ INVF.q=e.target.value; renderInvoices(); });
+$("#iYear").addEventListener("change", e=>{ INVF.year=e.target.value; renderInvoices(); });
+
 /* ===================== ACTUALIZARE (sync) ===================== */
 let lastRefresh=0;
 $("#refreshBtn").addEventListener("click", async ()=>{
@@ -1494,6 +1717,13 @@ $("#refreshBtn").addEventListener("click", async ()=>{
   try{
     const { data:{ session } } = await sb.auth.getSession();
     const h={ Authorization:"Bearer "+session.access_token, apikey:SUPABASE_KEY };
+    if(activeMod==="facturi"){
+      const r = await fetch(FN+"/szamla-sync",{ method:"POST", headers:h });
+      const j = await r.json().catch(()=>({}));
+      await loadInvoices();
+      toast(j.ok ? "Actualizat din Számlázz ✓ ("+j.upserted+" facturi)" : "Számlázz: "+(j.error||("eroare "+r.status)));
+      btn.disabled=false; btn.innerHTML=old; return;
+    }
     if(activeMod==="contracte"){
       const r = await fetch(FN+"/zoho-sign-sync",{ method:"POST", headers:h });
       const j = await r.json().catch(()=>({}));
@@ -1597,7 +1827,7 @@ async function loadHistory(){
 }
 
 /* ===================== MODULE (Comenzi / Proiecte / Marketing) ===================== */
-const MODS = { comenzi:"#modComenzi", proiecte:"#modProiecte", marketing:"#modMarketing", contracte:"#modContracte" };
+const MODS = { comenzi:"#modComenzi", facturi:"#modFacturi", proiecte:"#modProiecte", marketing:"#modMarketing", contracte:"#modContracte" };
 function modFromHash(){ const h=(location.hash||"").replace("#",""); return MODS[h]?h:"comenzi"; }
 function showModule(m, fromBoot){
   activeMod = MODS[m]?m:"comenzi";
@@ -1607,7 +1837,8 @@ function showModule(m, fromBoot){
   const PT = { comenzi:["Comenzi","Comenzile Thermomix din shop, verificate cu plata și factura."],
               proiecte:["Proiecte","Categorii, taskuri și termene pentru toată echipa."],
               marketing:["Marketing","De unde vin clienții și ce campanii aduc vânzări."],
-              contracte:["Contracte","Contractele trimise prin Zoho Sign și stadiul semnării."] };
+              contracte:["Contracte","Contractele trimise prin Zoho Sign și stadiul semnării."],
+              facturi:["Facturi","Facturile emise în Számlázz.hu, traduse în română."] };
   $("#pageTitle").textContent = PT[activeMod][0]; $("#pageSub").textContent = PT[activeMod][1];
   document.title = PT[activeMod][0]+" · KronHaus Hub";
   $("#exportBtn").classList.toggle("hidden", activeMod!=="comenzi");
@@ -1617,6 +1848,7 @@ function showModule(m, fromBoot){
   if(activeMod==="proiecte") loadProjects();
   if(activeMod==="marketing") loadMarketing(false);
   if(activeMod==="contracte") loadContracts();
+  if(activeMod==="facturi") loadInvoices();
 }
 $("#modnav").addEventListener("click", e=>{ const b=e.target.closest("button"); if(b) showModule(b.dataset.mod); });
 window.addEventListener("hashchange", ()=>{ if(!$("#app").classList.contains("hidden")) showModule(modFromHash()); });
