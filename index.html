@@ -532,7 +532,8 @@
   .chart-card[class*="cc-"]{border-top:3px solid var(--cc)}
   .chart-card[class*="cc-"] h3{display:flex;align-items:center;gap:8px}
   .chart-card[class*="cc-"] h3 .ico{color:var(--cc)}
-  .cc-ink{--cc:#1C1917} .cc-blue{--cc:#3F5BA9} .cc-amber{--cc:#C27A12} .cc-green{--cc:#0F7A3D}
+  .trend-h h3{display:flex;align-items:center;gap:8px}
+  .cc-ink{--cc:#1C1917} .cc-blue{--cc:#3F5BA9} .cc-amber{--cc:#C27A12} .cc-green{--cc:#0F7A3D} .cc-purple{--cc:#6B3FA0}
   .pcard{background:color-mix(in srgb, var(--pc) 7%, #fff)!important;border-color:color-mix(in srgb, var(--pc) 28%, #fff)!important;border-left:4px solid var(--pc)!important}
   .pcard:hover{background:color-mix(in srgb, var(--pc) 13%, #fff)!important}
   .pcard .nm{font-weight:700}
@@ -685,13 +686,13 @@
       <button data-tab="history">Istoric</button>
     </div>
 
-    <div class="kpis" id="kpis"></div>
+    <div class="kpis tiles" id="kpis"></div>
 
     <!-- ===== COMENZI ===== -->
     <div id="viewOrders" class="hidden">
-      <div class="chart-card trend">
+      <div class="chart-card trend cc-blue">
         <div class="trend-h">
-          <h3>Evoluția comenzilor</h3>
+          <h3><i data-ic="gantt" data-s="16"></i> Evoluția comenzilor</h3>
           <span class="spacer"></span>
           <div class="seg" id="trMetric"><button data-m="orders" class="on">Comenzi</button><button data-m="money">Bani încasați</button></div>
           <div class="seg" id="trPeriod"><button data-p="day" class="on">Zile</button><button data-p="week">Săptămâni</button><button data-p="month">Luni</button></div>
@@ -718,8 +719,8 @@
 
     <!-- ===== STATISTICI ===== -->
     <div id="viewStats">
-      <div class="chart-card" style="margin-bottom:14px">
-        <h3>Ce înseamnă „încasată"?</h3>
+      <div class="chart-card cc-green" style="margin-bottom:14px">
+        <h3><i data-ic="check" data-s="16"></i> Ce înseamnă „încasată"?</h3>
         <p class="cnote" style="margin:0;line-height:1.5">
           O comandă e <b style="color:var(--ok)">încasată</b> când avem dovada că au intrat banii:
           <b>factură plătită</b>, <b>plată cu cardul</b> sau <b>transfer confirmat</b> de o colegă.
@@ -727,10 +728,10 @@
         </p>
       </div>
       <div class="chart-grid">
-        <div class="chart-card"><h3>De la comandă la bani în cont</h3><div class="cbox"><canvas id="chFunnel"></canvas></div></div>
-        <div class="chart-card"><h3>Cum s-a plătit</h3><div class="cbox"><canvas id="chMethod"></canvas></div></div>
-        <div class="chart-card wide"><h3>Încasări pe zi</h3><div class="cbox"><canvas id="chDaily"></canvas></div></div>
-        <div class="chart-card wide"><h3>Comenzi pe oraș</h3><div class="cbox"><canvas id="chCity"></canvas></div></div>
+        <div class="chart-card cc-green"><h3><i data-ic="arrow" data-s="16"></i> De la comandă la bani în cont</h3><div class="cbox"><canvas id="chFunnel"></canvas></div></div>
+        <div class="chart-card cc-blue"><h3><i data-ic="card" data-s="16"></i> Cum s-a plătit</h3><div class="cbox"><canvas id="chMethod"></canvas></div></div>
+        <div class="chart-card cc-purple wide"><h3><i data-ic="euro" data-s="16"></i> Încasări pe zi</h3><div class="cbox"><canvas id="chDaily"></canvas></div></div>
+        <div class="chart-card cc-amber wide"><h3><i data-ic="pin" data-s="16"></i> Comenzi pe oraș</h3><div class="cbox"><canvas id="chCity"></canvas></div></div>
       </div>
     </div>
 
@@ -763,17 +764,17 @@
         <button data-p="month">Luna aceasta</button>
       </div>
     </div>
-    <div class="kpis" id="mKpis"></div>
+    <div class="kpis tiles" id="mKpis"></div>
     <div id="mHint"></div>
     <div class="chart-grid">
-      <div class="chart-card"><h3>De unde vin comenzile (sursă)</h3><div class="cbox"><canvas id="mSource"></canvas></div></div>
-      <div class="chart-card"><h3>Metoda de plată aleasă</h3><div class="cbox"><canvas id="mPay"></canvas></div></div>
-      <div class="chart-card wide"><h3>Vânzări pe lună</h3><p class="cnote">Comenzi Thermomix (bare) și bani încasați (linie)</p><div class="cbox"><canvas id="mMonthly"></canvas></div></div>
-      <div class="chart-card wide"><h3>Campanii</h3><div id="mCampaigns"></div></div>
-      <div class="chart-card"><h3>Cupoane folosite</h3><div id="mCoupons"></div></div>
-      <div class="chart-card"><h3>Orașe (top 10)</h3><div class="cbox"><canvas id="mCity"></canvas></div></div>
-      <div class="chart-card wide">
-        <h3>Generator link de campanie (UTM)</h3>
+      <div class="chart-card cc-blue"><h3><i data-ic="megaphone" data-s="16"></i> De unde vin comenzile (sursă)</h3><div class="cbox"><canvas id="mSource"></canvas></div></div>
+      <div class="chart-card cc-purple"><h3><i data-ic="card" data-s="16"></i> Metoda de plată aleasă</h3><div class="cbox"><canvas id="mPay"></canvas></div></div>
+      <div class="chart-card cc-green wide"><h3><i data-ic="gantt" data-s="16"></i> Vânzări pe lună</h3><p class="cnote">Comenzi Thermomix (bare) și bani încasați (linie)</p><div class="cbox"><canvas id="mMonthly"></canvas></div></div>
+      <div class="chart-card cc-amber wide"><h3><i data-ic="flag" data-s="16"></i> Campanii</h3><div id="mCampaigns"></div></div>
+      <div class="chart-card cc-purple"><h3><i data-ic="receipt" data-s="16"></i> Cupoane folosite</h3><div id="mCoupons"></div></div>
+      <div class="chart-card cc-amber"><h3><i data-ic="pin" data-s="16"></i> Orașe (top 10)</h3><div class="cbox"><canvas id="mCity"></canvas></div></div>
+      <div class="chart-card wide cc-ink">
+        <h3><i data-ic="clip" data-s="16"></i> Generator link de campanie (UTM)</h3>
         <p class="cnote">Puneți acest link în postări / reclame / emailuri — comenzile venite pe el apar mai sus la „Sursă” și „Campanii”.</p>
         <div class="utm-grid">
           <div><label>Link pagină</label><input type="text" id="uBase" placeholder="https://… (pagina din shop)"></div>
@@ -797,11 +798,11 @@
       <button data-cv="all">Toate trimiterile</button>
     </div>
     <div class="syncinfo" id="ctrSync"></div>
-    <div class="kpis" id="cKpis"></div>
+    <div class="kpis tiles" id="cKpis"></div>
     <div id="cBanner"></div>
     <div class="chart-grid" style="margin-bottom:16px">
-      <div class="chart-card"><h3>Trimise și semnate pe zile</h3><div class="cbox" style="height:220px"><canvas id="cTrend"></canvas></div></div>
-      <div class="chart-card"><h3>Starea trimiterilor</h3><div class="cbox" style="height:220px"><canvas id="cStatus"></canvas></div></div>
+      <div class="chart-card cc-green"><h3><i data-ic="gantt" data-s="16"></i> Trimise și semnate pe zile</h3><div class="cbox" style="height:220px"><canvas id="cTrend"></canvas></div></div>
+      <div class="chart-card cc-blue"><h3><i data-ic="sign" data-s="16"></i> Starea trimiterilor</h3><div class="cbox" style="height:220px"><canvas id="cStatus"></canvas></div></div>
     </div>
     <div class="toolbar">
       <input class="grow" type="text" id="cSearch" placeholder="Caută nume sau email…">
@@ -1046,11 +1047,11 @@ function kpis(list){
   const rev = conf.reduce((s,r)=>s+Number(r.sum_gross||0),0);
   const pend = real.length-conf.length;
   const html = [
-    {n:real.length, l:"Comenzi Thermomix", e:(()=>{ const c=k=>real.filter(r=>payKind(r)===k).length; const parts=[]; if(c("transfer")) parts.push(c("transfer")+" transfer"); if(c("card")) parts.push(c("card")+" card"); const o=real.length-c("transfer")-c("card"); if(o) parts.push(o+" altele"); return parts.join(" · "); })()},
-    {n:conf.length, l:"Vândute și încasate", e:""},
-    {n:ft(rev), l:"Bani încasați", e:eur(rev)},
-    {n:pend, l:"Încă neîncasate", e:""},
-  ].map(k=>`<div class="kpi"><div class="n">${k.n}</div><div class="l">${k.l}</div>${k.e?`<div class="e">${k.e}</div>`:''}</div>`).join("");
+    {c:"k-blue", i:"receipt", n:real.length, l:"Comenzi Thermomix", e:(()=>{ const c=k=>real.filter(r=>payKind(r)===k).length; const parts=[]; if(c("transfer")) parts.push(c("transfer")+" transfer"); if(c("card")) parts.push(c("card")+" card"); const o=real.length-c("transfer")-c("card"); if(o) parts.push(o+" altele"); return parts.join(" · "); })()},
+    {n:conf.length, l:"Vândute și încasate", e:real.length?Math.round(conf.length*100/real.length)+"% din comenzi":"", c:"k-green", i:"check", bar:real.length?Math.round(conf.length*100/real.length):0},
+    {n:ft(rev), l:"Bani încasați", e:eur(rev), c:"k-purple", i:"euro"},
+    {n:pend, l:"Încă neîncasate", e:pend?"de urmărit plata":"toate sunt încasate ✓", c:pend?"k-amber":"k-green", i:"clock"},
+  ].map(k=>`<div class="kpi ${k.c}"><div class="n">${k.n}</div><div class="l">${ic(k.i,14)}${k.l}</div>${k.e?`<div class="e">${k.e}</div>`:''}${k.bar!==undefined?`<div class="kbar"><i style="width:${k.bar}%"></i></div>`:''}</div>`).join("");
   $("#kpis").innerHTML=html;
 }
 /* ===================== VERIFICARE PLATFORME (UNAS · plată · Számlázz) ===================== */
@@ -2739,11 +2740,11 @@ function renderMarketing(){
   const tracked = L.filter(r=>r.utm_source||r.utm_campaign||r.coupon).length;
   const conv = L.length ? Math.round(conf.length*100/L.length) : 0;
   $("#mKpis").innerHTML = [
-    {n:L.length, l:"Comenzi Thermomix", e:""},
-    {n:conv+"%", l:"Comenzi încasate", e:conf.length+" din "+L.length},
-    {n:ft(Math.round(avg)), l:"Valoare medie comandă", e:eur(avg)},
-    {n:(L.length?Math.round(tracked*100/L.length):0)+"%", l:"Cu sursă cunoscută", e:tracked+" comenzi cu UTM / cupon"},
-  ].map(k=>`<div class="kpi"><div class="n">${k.n}</div><div class="l">${k.l}</div>${k.e?`<div class="e">${k.e}</div>`:''}</div>`).join("");
+    {n:L.length, l:"Comenzi Thermomix", e:"", c:"k-blue", i:"receipt"},
+    {n:conv+"%", l:"Comenzi încasate", e:conf.length+" din "+L.length, c:"k-green", i:"check", bar:conv},
+    {n:ft(Math.round(avg)), l:"Valoare medie comandă", e:eur(avg), c:"k-purple", i:"euro"},
+    {n:(L.length?Math.round(tracked*100/L.length):0)+"%", l:"Cu sursă cunoscută", e:tracked+" comenzi cu UTM / cupon", c:"k-amber", i:"megaphone", bar:(L.length?Math.round(tracked*100/L.length):0)},
+  ].map(k=>`<div class="kpi ${k.c}"><div class="n">${k.n}</div><div class="l">${ic(k.i,14)}${k.l}</div>${k.e?`<div class="e">${k.e}</div>`:''}${k.bar!==undefined?`<div class="kbar"><i style="width:${k.bar}%"></i></div>`:''}</div>`).join("");
 
   $("#mHint").innerHTML = (L.length && !tracked) ? `<div class="hint">${ic("info",17)}<span>
     <b>Încă nu știm de unde vin clienții.</b> Nicio comandă din perioada aleasă nu are sursă (UTM) sau cupon.
@@ -2911,11 +2912,11 @@ function renderContracts(){
   const nS=P.filter(p=>p.st==="signed").length, nP=P.filter(p=>p.st==="progress").length, nR=P.filter(p=>p.st==="resend").length;
   const cnt=k=>R.filter(q=>q.request_status===k).length;
   $("#cKpis").innerHTML = [
-    {n:nS, l:"Persoane cu contract semnat", e:"din "+P.length+" persoane"},
-    {n:nP, l:"În curs de semnare", e:""},
-    {n:nR, l:"De retrimis", e:"expirate / retrase, nesemnate", red:nR>0},
-    {n:R.length, l:"Trimiteri în total", e:cnt("completed")+" semnate · "+cnt("recalled")+" retrase · "+cnt("expired")+" expirate"},
-  ].map(k=>`<div class="kpi ${k.red?'red':''}"><div class="n">${k.n}</div><div class="l">${k.l}</div>${k.e?`<div class="e">${k.e}</div>`:''}</div>`).join("");
+    {n:nS, l:"Persoane cu contract semnat", e:"din "+P.length+" persoane", c:"k-green", i:"check", bar:P.length?Math.round(nS*100/P.length):0},
+    {n:nP, l:"În curs de semnare", e:nP?"așteaptă semnătura":"nimic în așteptare", c:"k-blue", i:"clock"},
+    {n:nR, l:"De retrimis", e:nR?"expirate / retrase, nesemnate":"nimic de retrimis ✓", c:nR?"k-red":"k-green", i:"alert"},
+    {n:R.length, l:"Trimiteri în total", e:cnt("completed")+" semnate · "+cnt("recalled")+" retrase · "+cnt("expired")+" expirate", c:"k-purple", i:"sign"},
+  ].map(k=>`<div class="kpi ${k.c}"><div class="n">${k.n}</div><div class="l">${ic(k.i,14)}${k.l}</div>${k.e?`<div class="e">${k.e}</div>`:''}${k.bar!==undefined?`<div class="kbar"><i style="width:${k.bar}%"></i></div>`:''}</div>`).join("");
   const nc=$("#navCntCtr"); if(nc){ nc.textContent=nR||""; nc.classList.toggle("warn",nR>0); }
   $("#cBanner").innerHTML = nR ? `<div class="hint" id="cGo" style="cursor:pointer">${ic("alert",17)}<span><b>${nR} ${nR===1?'persoană nu are':'persoane nu au'} contract semnat</b> — trimiterea a expirat sau a fost retrasă și n-a mai fost retrimisă.</span><span class="go">Arată-le ${ic("arrow",14)}</span></div>` : "";
   const g=$("#cGo"); if(g) g.onclick=()=>{ CV="people"; CF="resend"; renderContracts(); };
