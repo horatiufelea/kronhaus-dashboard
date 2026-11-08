@@ -18,7 +18,7 @@
     --ink:#1C1917; --muted:#6F6A65; --faint:#A8A29E;
     --line:#E2DED9; --line2:#EFEDEA; --bg:#F2F0EC; --card:#FFFFFF; --hover:#F3F7F4; --zebra:#F7F7F5;
     --ok:#0F7A3D; --okbg:#EAF6EE; --warn:#9A5B00; --warnbg:#FFF4E0; --err:#B42318; --errbg:#FEECEB;
-    --grey:#57534E; --greybg:#F2F1EE; --blue:#3F5BA9; --bluebg:#EEF2FB;
+    --grey:#57534E; --greybg:#F2F1EE; --blue:#0B4D2A; --bluebg:#E8F3EC;
     --radius:10px; --rs:6px; --shadow:0 1px 3px rgba(28,25,23,.07);
     --side:#FFFFFF; --side-ink:#1C1917; --side-muted:#78716C; --side-active:#E9F4ED; --side-line:#ECEAE6;
     --font:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
@@ -236,8 +236,8 @@
   .phead .spacer{flex:1}
   .phead select{width:auto;padding:6px 10px;font-size:13px}
   .board{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;align-items:start}
-  .col[data-st="review"]{background:#F3EEFB}
-  .card .rev{color:#6B3FA0;font-weight:600}
+  .col[data-st="review"]{background:#EFF7F2}
+  .card .rev{color:#2E6B4A;font-weight:600}
   .col{background:#F2F1EE;border-radius:var(--radius);padding:10px;min-height:160px;transition:background .15s}
   .col.over{background:var(--green-l);box-shadow:inset 0 0 0 1px var(--green)}
   .col h3{margin:2px 4px 10px;font-size:13px;font-weight:600;color:var(--ink);display:flex;gap:8px;align-items:center}
@@ -259,7 +259,7 @@
   .card.done .t .mv{text-decoration:none}
   .card .who{color:var(--ink);font-weight:500}
   .card .due.late{color:var(--err);font-weight:600}
-  .pr-high{color:var(--err)} .pr-med{color:var(--warn)} .pr-low{color:var(--grey)}
+  .pr-high{color:var(--err)} .pr-med{color:#2E6B4A} .pr-low{color:var(--grey)}
   .pr-low::before{background:var(--faint)}
   .swatches{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px}
   .swatches button{width:28px;height:28px;border-radius:6px;border:2px solid #fff;box-shadow:0 0 0 1px var(--line)}
@@ -337,7 +337,25 @@
   .ltable tbody tr:hover td{background:var(--hover)!important}
   .ltable tbody tr:nth-child(even) td{background:var(--zebra)}
   .ltable tr.lsub td{background:#FCFCFB}
-  .ltable .lwork{min-width:320px;max-width:440px}
+  .ltable .lwork{min-width:220px;max-width:380px}
+  .tscroll.lbox{max-height:calc(100vh - 170px);overflow:auto;border:1px solid var(--line);background:#fff}
+  .tscroll.lbox .ltable{border:0;border-radius:0}
+  .tscroll.lbox thead th{position:sticky;top:0;z-index:3}
+  .tscroll.lbox thead th.lwork{z-index:5}
+  .ltools{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:-4px 0 8px}
+  .ltools .btn{display:inline-flex;align-items:center;gap:6px}
+  .lcolpop{position:fixed;z-index:9999;background:#fff;border:1px solid var(--line);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.14);padding:8px 10px;min-width:210px}
+  .lcolpop .mh{font-size:11.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;padding:4px 2px 6px}
+  .lcolpop label{display:flex;align-items:center;gap:8px;padding:5px 2px;font-size:13px;cursor:pointer;margin:0}
+  .lcolpop input{width:auto;margin:0;accent-color:var(--accent)}
+  .lcolf{display:flex;gap:6px;border-top:1px solid var(--line);margin-top:6px;padding-top:8px}
+  .ltable td[data-c="due"] input.ldate{width:112px}
+  .ltable .lnotes{min-width:140px}
+  .ltable td input.lest{width:72px;min-width:0}
+  .ltable .lw{max-width:280px}
+  .ltable th[data-c="est"],.ltable th[data-c="real"]{padding-left:6px;padding-right:6px}
+  .ltable td[data-c="est"],.ltable td[data-c="real"]{padding-left:4px;padding-right:4px}
+  @media (min-width:1600px){ .ltable .lw{max-width:400px} .ltable .lwork{min-width:300px} .ltable .lnotes{min-width:240px} .ltable td input.lest{width:84px} }
   .ltable td.lwork,.ltable th.lwork{position:sticky;left:0;z-index:2;background:#fff;box-shadow:inset -1px 0 0 var(--line)}
   .ltable thead th.lwork{background:#F5F5F4;z-index:3}
   .ltable tbody tr:nth-child(even) td.lwork{background:var(--zebra)}
@@ -367,8 +385,8 @@
   .lsel.st-todo{background:var(--greybg);color:var(--grey);font-weight:600}
   .lsel.st-doing{background:var(--bluebg);color:var(--blue);font-weight:600}
   .lsel.st-done{background:var(--okbg);color:var(--ok);font-weight:600}
-  .lsel.st-review{background:#F1EAFB;color:#6B3FA0;font-weight:600}
-  .lsel.pr-high{color:var(--err);font-weight:600} .lsel.pr-med{color:var(--warn)} .lsel.pr-low{color:var(--grey)}
+  .lsel.st-review{background:#E6F2EA;color:#2E6B4A;font-weight:600}
+  .lsel.pr-high{color:var(--err);font-weight:600} .lsel.pr-med{color:#2E6B4A} .lsel.pr-low{color:var(--grey)}
   .ldate{width:auto;border:1px solid transparent;background:transparent;padding:2px 4px;font-size:12px;border-radius:5px;color:var(--ink)}
   .ldate:hover,.ldate:focus{border-color:var(--line);background:#fff}
   .ldate.late{color:var(--err);font-weight:600}
@@ -437,25 +455,25 @@
   .tsec h5{display:flex;align-items:center;gap:7px;margin:0 0 4px;font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--sc)}
   .tsec h5 .ico{vertical-align:0}
   .tsec label:first-of-type{margin-top:8px}
-  .s-about{--sc:#57534E} .s-status{--sc:#3F5BA9} .s-people{--sc:#6B3FA0} .s-time{--sc:#B7791F} .s-subs{--sc:#0F7A3D} .s-files{--sc:#C2410C}
+  .s-about{--sc:#57534E} .s-status{--sc:#0B4D2A} .s-people{--sc:#2E6B4A} .s-time{--sc:#4FA874} .s-subs{--sc:#0F7A3D} .s-files{--sc:#2E6B4A}
   .tsec input,.tsec select,.tsec textarea{background:#fff}
-  .notearea{background:#FFFBEA!important;border-color:#F3E3A6!important}
+  .notearea{background:#F4FAF6!important;border-color:#CFE6D8!important}
   .mentpop{position:fixed;z-index:9999;background:#fff;border:1px solid var(--line);border-radius:9px;box-shadow:0 8px 24px rgba(0,0,0,.14);padding:4px;min-width:170px}
   .mentpop .mh{font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);padding:5px 8px 4px}
   .mentpop button{display:flex;align-items:center;gap:8px;width:100%;border:0;background:none;text-align:left;padding:6px 8px;border-radius:6px;font-size:13px;color:var(--ink);cursor:pointer}
   .mentpop button.on,.mentpop button:hover{background:var(--okbg);color:var(--ok)}
   .mentpop .mme{margin-left:auto;font-size:11px;color:var(--muted)}
-  .mentpop .ma{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;background:#F1EAFB;color:#6B3FA0;font-weight:700;font-size:11.5px}
+  .mentpop .ma{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;background:#E6F2EA;color:#2E6B4A;font-weight:700;font-size:11.5px}
   .catsel{border-left:6px solid var(--pc)!important}
   .colsel{font-weight:600}
   .colsel.st-todo{background:var(--greybg)!important;color:var(--grey)}
-  .colsel.st-doing{background:var(--bluebg)!important;color:var(--blue);border-color:#C9D5F2}
+  .colsel.st-doing{background:var(--bluebg)!important;color:var(--blue);border-color:#CFE6D8}
   .colsel.st-done{background:var(--okbg)!important;color:var(--ok);border-color:#CDE7D6}
-  .colsel.st-review{background:#F1EAFB!important;color:#6B3FA0;border-color:#D9C8F2}
+  .colsel.st-review{background:#E6F2EA!important;color:#2E6B4A;border-color:#CFE6D8}
   .colsel.pr-high{background:var(--errbg)!important;color:var(--err);border-color:#F5C9C4}
-  .colsel.pr-med{background:var(--warnbg)!important;color:var(--warn);border-color:#F1DDB0}
+  .colsel.pr-med{background:#EDF6F0!important;color:#2E6B4A;border-color:#CFE6D8}
   .colsel.pr-low{background:var(--greybg)!important;color:var(--grey)}
-  .s-people .supp button.on{background:#F1EAFB;border-color:#D9C8F2;color:#6B3FA0}
+  .s-people .supp button.on{background:#E6F2EA;border-color:#CFE6D8;color:#2E6B4A}
   .tact{position:sticky;bottom:-20px;background:#FAFAF9;padding:12px 0;margin:4px 0 6px;border-top:1px solid var(--line);z-index:2}
   .btn.go{background:var(--accent);border-color:var(--accent);padding:10px 18px}
   .btn.go:hover{background:#006B31}
@@ -463,13 +481,13 @@
   /* ---- metodă de plată ---- */
   .pmeth{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:700;letter-spacing:.02em;border-radius:5px;padding:2px 7px;margin-bottom:6px}
   .pmeth .ico{vertical-align:0}
-  .pmeth.m-card{background:#EEF2FB;color:#3F5BA9}
-  .pmeth.m-transfer{background:#F1EAFB;color:#6B3FA0}
-  .pmeth.m-cash,.pmeth.m-cod,.pmeth.m-other{background:#FFF4E0;color:#9A5B00}
+  .pmeth.m-card{background:#E8F3EC;color:#0B4D2A}
+  .pmeth.m-transfer{background:#E6F2EA;color:#2E6B4A}
+  .pmeth.m-cash,.pmeth.m-cod,.pmeth.m-other{background:#EFF7F2;color:#2E6B4A}
   .c-err{color:var(--err)}
 
   /* ---- Ad-hoc ---- */
-  .adpriv{font-size:11px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;color:#6B3FA0;background:#F1EAFB;border-radius:4px;padding:1px 6px;margin-left:6px;vertical-align:1px}
+  .adpriv{font-size:11px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;color:#2E6B4A;background:#E6F2EA;border-radius:4px;padding:1px 6px;margin-left:6px;vertical-align:1px}
   .adform{margin-bottom:16px;border-left:4px solid var(--accent)}
   .adline{display:grid;grid-template-columns:1fr 220px;gap:10px}
   .adkinds,.adtime{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:10px}
@@ -522,18 +540,18 @@
   .kpis.tiles .kpi .n{color:var(--kc)}
   .kpis.tiles .kpi .l{display:flex;align-items:center;gap:6px;color:var(--ink);font-weight:600}
   .kpis.tiles .kpi .l .ico{color:var(--kc)}
-  .kpi.k-blue{--kc:#3F5BA9;--kt:#EEF2FB;--kb:#D3DCF2}
+  .kpi.k-blue{--kc:#0B4D2A;--kt:#E8F3EC;--kb:#CFE6D8}
   .kpi.k-red{--kc:#B42318;--kt:#FEECEB;--kb:#F5C9C4}
   .kpi.k-green{--kc:#0F7A3D;--kt:#EAF6EE;--kb:#CDE7D6}
   .kpi.k-amber{--kc:#9A5B00;--kt:#FFF4E0;--kb:#F1DDB0}
-  .kpi.k-purple{--kc:#6B3FA0;--kt:#F4EEFB;--kb:#DECDF3}
+  .kpi.k-purple{--kc:#2E6B4A;--kt:#EFF7F2;--kb:#CFE6D8}
   .kbar{order:4;height:6px;border-radius:99px;background:rgba(15,122,61,.15);margin-top:8px;overflow:hidden}
   .kbar i{display:block;height:100%;background:var(--kc);border-radius:99px}
   .chart-card[class*="cc-"]{border-top:3px solid var(--cc)}
   .chart-card[class*="cc-"] h3{display:flex;align-items:center;gap:8px}
   .chart-card[class*="cc-"] h3 .ico{color:var(--cc)}
   .trend-h h3{display:flex;align-items:center;gap:8px}
-  .cc-ink{--cc:#1C1917} .cc-blue{--cc:#3F5BA9} .cc-amber{--cc:#C27A12} .cc-green{--cc:#0F7A3D} .cc-purple{--cc:#6B3FA0}
+  .cc-ink{--cc:#1C1917} .cc-blue{--cc:#0B4D2A} .cc-amber{--cc:#8CC8A2} .cc-green{--cc:#0F7A3D} .cc-purple{--cc:#2E6B4A}
   .pcard{background:color-mix(in srgb, var(--pc) 7%, #fff)!important;border-color:color-mix(in srgb, var(--pc) 28%, #fff)!important;border-left:4px solid var(--pc)!important}
   .pcard:hover{background:color-mix(in srgb, var(--pc) 13%, #fff)!important}
   .pcard .nm{font-weight:700}
@@ -547,11 +565,38 @@
   .dlist .d{background:var(--warnbg);color:var(--warn);border-radius:5px;padding:2px 7px;width:auto;min-width:58px;justify-content:center}
   .dlist .d.late{background:var(--errbg)}
   .cc-green .dlist .d{background:var(--greybg);color:var(--muted)}
-  .adcard{background:#F7F2FC;border-color:#DECDF3;border-left:4px solid #6B3FA0}
-  .adcard h3 .ico{color:#6B3FA0}
-  .adnums > div{background:#fff;border:1px solid #E6DAF5;border-radius:8px;padding:8px 14px;min-width:120px}
-  .adnums b{color:#6B3FA0}
+  .adcard{background:#EFF7F2;border-color:#CFE6D8;border-left:4px solid #2E6B4A}
+  .adcard h3 .ico{color:#2E6B4A}
+  .adnums > div{background:#fff;border:1px solid #CFE6D8;border-radius:8px;padding:8px 14px;min-width:120px}
+  .adnums b{color:#2E6B4A}
   @media (max-width:900px){ .kpis.tiles{grid-template-columns:1fr 1fr} }
+
+  /* ---- paletă doar verde (suprascrie culorile de mai sus) ---- */
+  .kpis.tiles .kpi{--kc:#00653E;--kb:#CFE6D8}
+  .kpis.tiles .kpi:nth-child(odd){--kt:#FFFFFF}
+  .kpis.tiles .kpi:nth-child(even){--kt:#EDF6F0}
+  .kpis.tiles .kpi.k-red .n{color:var(--err)}
+  .kbar{background:#DCEEE3}
+  .chart-card[class*="cc-"]{--cc:#00843D}
+  .dlist .d{background:#EDF6F0;color:#2E6B4A}
+  .pchip{background:#fff;border-color:var(--line)}
+  .pchip:hover{background:#F1F8F3}
+  .pchip.on{background:#00653E;border-color:#00653E;color:#fff}
+  .pcard{background:#fff!important;border-color:var(--line)!important;border-left:4px solid #00843D!important}
+  .pcard:nth-child(even){background:#F4FAF6!important}
+  .pcard:hover{background:#EAF5EE!important}
+  .pcard .pbar{background:#DCEEE3}
+  .pcard .pbar i{background:#00843D}
+  .pcard .ppct{color:#00653E}
+  .ltable tr.lgrp td{background:#EEF6F1!important;border-top:2px solid #CFE6D8;border-bottom:1px solid #DCEEE3}
+  .ltable tr.lgrp:hover td{background:#E3F1E8!important}
+  .lgh .ltog{color:#00843D}
+  .lgbar i{background:#00843D}
+  .lgadd{border-color:#CFE6D8;color:#00653E}
+  .lgadd:hover{background:#00653E;color:#fff}
+  .tdh{background:#EEF6F1;border-bottom-color:#00843D!important}
+  .tdh-key{background:#00653E}
+  .adkinds button.on{background:#00653E;border-color:#00653E}
 
   /* ---- Proiecte · timeline ---- */
   .tlbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
@@ -858,7 +903,7 @@ const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 const FN = SUPABASE_URL + "/functions/v1";
 const FALLBACK_RATE = 365;          // 1 € = Ft, dacă nu se încarcă cursul live
 const REAL_THRESHOLD = 50000;       // prag comandă reală (Ft)
-const C_GREEN="#00843D", C_BLUE="#3F5BA9", C_AMBER="#C27A12", C_GRID="#EFEDEA", C_MUT="#6F6A65";
+const C_GREEN="#00843D", C_BLUE="#0B4D2A", C_AMBER="#8CC8A2", C_GRID="#EFEDEA", C_MUT="#6F6A65";
 const C_FONT="IBM Plex Sans, system-ui, sans-serif";
 
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -1722,7 +1767,7 @@ function renderProjects(){
   const openAll = topLevel(TASKS).filter(t=>activeIds.has(t.project_id) && t.status!=="done").length;
   { const nc=$("#navCntProj"); if(nc) nc.textContent = openAll||""; }
   $("#projBar").innerHTML =
-    `<button class="pchip pall ${CUR_PROJ==='all'?'on':''}" data-id="all" style="--pc:#1C1917"><span class="pd" style="background:conic-gradient(#00653e,#1256a0,#9a6b00,#00653e)"></span>Toate categoriile<span class="cnt">${openAll}</span></button>`
+    `<button class="pchip pall ${CUR_PROJ==='all'?'on':''}" data-id="all" style="--pc:#00653E"><span class="pd" style="background:#00653E"></span>Toate categoriile<span class="cnt">${openAll}</span></button>`
     + visible.map(p=>{
       const open = topLevel(TASKS).filter(t=>t.project_id===p.id && t.status!=="done").length;
       return `<button class="pchip ${p.id===CUR_PROJ?'on':''} ${p.archived?'arch':''}" data-id="${p.id}" style="--pc:${safeColor(p.color)}">
@@ -1799,8 +1844,8 @@ function durBadge(t){
 
 /* ---------- AD-HOC (privat: fiecare își vede doar intrările proprii) ---------- */
 const AD_KIND = {
-  support:{l:"Suport / telefon", c:"#3F5BA9"}, email:{l:"Emailuri", c:"#6B3FA0"}, meeting:{l:"Meeting", c:"#B7791F"},
-  quick:{l:"Rezolvare rapidă", c:"#0F7A3D"}, other:{l:"Altele", c:"#78716C"} };
+  support:{l:"Suport / telefon", c:"#0B4D2A"}, email:{l:"Emailuri", c:"#00843D"}, meeting:{l:"Meeting", c:"#4FA874"},
+  quick:{l:"Rezolvare rapidă", c:"#8CC8A2"}, other:{l:"Altele", c:"#A8A29E"} };
 const AD_PRESET = [5,10,15,30,45,60,90];
 let ADH=null, HAS_ADHOC=null, ADF={ kind:"quick", editId:null }, ADOPEN=new Set(["w0"]), AD_TICK=null;
 const AD_TKEY="kh_adhoc_timer";
@@ -1980,7 +2025,7 @@ function renderProjDash(){
     const c = safeColor(p.color);
     return `<div class="pcard" data-id="${p.id}" style="--pc:${c}">
       <div class="nm">${esc(p.name)}</div>
-      <div class="pbar"><i style="width:${pc}%;background:${c}"></i></div>
+      <div class="pbar"><i style="width:${pc}%"></i></div>
       <div class="meta"><b class="ppct">${pc}%</b> · ${d}/${pt.length} gata
         ${lt?`<span class="chip pr-high">${lt} întârziate</span>`:''}
         ${nx?`<span>· următorul: ${fmtDay(nx.due_date)}</span>`:''}</div></div>`;
@@ -2023,7 +2068,7 @@ function renderProjDash(){
       data:{labels:names,datasets:[
         {label:"De făcut",data:names.map(n=>cnt(n,"todo")),backgroundColor:"#A8A29E",borderRadius:3},
         {label:"În lucru",data:names.map(n=>cnt(n,"doing")),backgroundColor:C_BLUE,borderRadius:3},
-        {label:"De verificat",data:names.map(n=>cnt(n,"review")),backgroundColor:"#8B6BC4",borderRadius:3},
+        {label:"De verificat",data:names.map(n=>cnt(n,"review")),backgroundColor:"#4FA874",borderRadius:3},
         {label:"Gata",data:names.map(n=>cnt(n,"done")),backgroundColor:C_GREEN,borderRadius:3}]},
       options:{indexAxis:"y",maintainAspectRatio:false,responsive:true,
         plugins:{legend:{position:"bottom",labels:{boxWidth:12}}},
@@ -2108,8 +2153,31 @@ async function updTask(t, patch, msg){
   if(msg!==false) toast(msg||"Salvat ✓");
   return true;
 }
+const LCOLS = [["who","Responsabil"],["rev","Verifică"],["sup","Suport"],["rep","Raportor"],["prio","Prioritate"],["st","Stare"],["due","Termen"],["est","Estimat"],["real","Real"],["notes","Observații"],["created","Creat"],["updated","Actualizat"]];
+let LHIDE = (()=>{ try{ const v=localStorage.getItem("kh_list_hide"); if(v) return new Set(JSON.parse(v)); }catch(e){}
+  const w=window.innerWidth; return new Set(w<1800 ? (w<1400 ? ["rep","sup","rev","created","updated"] : ["rep","created","updated"]) : []); })();
+function paintLCols(){
+  let st=$("#lcolCss"); if(!st){ st=document.createElement("style"); st.id="lcolCss"; document.head.appendChild(st); }
+  st.textContent=[...LHIDE].map(k=>`.ltable [data-c="${k}"]{display:none}`).join("\n");
+}
+function openColPop(btn){
+  const old=$("#lcolPop"); if(old){ old.remove(); return; }
+  const pop=document.createElement("div"); pop.id="lcolPop"; pop.className="lcolpop";
+  pop.innerHTML=`<div class="mh">Ce coloane vreți să vedeți</div>`+LCOLS.filter(([k])=>HAS_EST||(k!=="est"&&k!=="real")).map(([k,l])=>`<label><input type="checkbox" data-k="${k}" ${LHIDE.has(k)?'':'checked'}> ${l}</label>`).join("")
+    +`<div class="lcolf"><button type="button" class="btn ghost sm" data-all="1">Toate</button><button type="button" class="btn ghost sm" data-min="1">Doar esențiale</button></div>`;
+  document.body.appendChild(pop);
+  const r=btn.getBoundingClientRect(); pop.style.top=(r.bottom+6)+"px"; pop.style.left=Math.max(8, r.right-pop.offsetWidth)+"px";
+  const save=()=>{ try{ localStorage.setItem("kh_list_hide", JSON.stringify([...LHIDE])); }catch(e){} paintLCols(); const b=$("#lCols"); if(b) b.querySelector("span").textContent=colLbl();
+    const nb=$("#listBox"), sh=$("#lScrollHint"); if(nb && sh) sh.style.visibility = nb.scrollWidth > nb.clientWidth+2 ? "visible" : "hidden"; };
+  pop.querySelectorAll("input").forEach(i=>i.onchange=()=>{ i.checked?LHIDE.delete(i.dataset.k):LHIDE.add(i.dataset.k); save(); });
+  pop.querySelector("[data-all]").onclick=()=>{ LHIDE.clear(); pop.querySelectorAll("input").forEach(i=>i.checked=true); save(); };
+  pop.querySelector("[data-min]").onclick=()=>{ LHIDE=new Set(["rev","sup","rep","created","updated","real"]); pop.querySelectorAll("input").forEach(i=>i.checked=!LHIDE.has(i.dataset.k)); save(); };
+  setTimeout(()=>document.addEventListener("mousedown", function h(e){ if(!pop.contains(e.target) && e.target!==btn && !btn.contains(e.target)){ pop.remove(); document.removeEventListener("mousedown",h); } }),0);
+}
+const colLbl = ()=>{ const n=[...LHIDE].filter(k=>HAS_EST||(k!=="est"&&k!=="real")).length; return n ? "Coloane · "+n+" ascunse" : "Coloane"; };
 function renderList(keepScroll){
-  const box = $("#listBox"); const sx = keepScroll && box ? box.scrollLeft : 0, sy = window.scrollY;
+  paintLCols();
+  const box = $("#listBox"); const sx = keepScroll && box ? box.scrollLeft : 0, sty = keepScroll && box ? box.scrollTop : 0, sy = window.scrollY;
   let L = viewTasks();
   const dir = LSORT.dir, k = LSORT.k;
   const cmp = {
@@ -2144,21 +2212,21 @@ function renderList(keepScroll){
           ${nf?`<a href="#" class="lclip" data-open="${isSub?t.parent_id:t.id}" title="${nf} ${nf===1?'fișier atașat':'fișiere atașate'} — deschide taskul">${ic("clip",13)}${nf}</a>`:''}
         </div>
       </td>
-      <td><select class="lsel lwho" data-f="assignee_name">${peopleOpt(t.assignee_name)}</select></td>
-      <td><select class="lsel lrev" data-f="reviewer" title="Cine verifică">${`<option value="">—</option>`+TEAM.map(n=>`<option ${n===t.reviewer?'selected':''}>${esc(n)}</option>`).join("")}</select></td>
-      <td class="lsup"><button class="lsupbtn" data-sup="${t.id}" title="Cine ajută la task">${(t.supporters||[]).length?(t.supporters||[]).map(esc).join(", "):'<span class="lmuted">+ suport</span>'}</button></td>
-      <td class="lmuted">${esc(t.created_by_name)||'—'}</td>
-      <td>${isSub?'<span class="lmuted">—</span>':prSel(t)}</td>
-      <td>${stSel(t)}</td>
-      <td><input type="date" class="ldate ${late?'late':''}" data-f="due_date" value="${esc(t.due_date||'')}"></td>
-      ${HAS_EST?`<td><input type="text" class="lest" data-f="estimate_min" value="${esc(fmtEst(t.estimate_min))}" placeholder="—" title="Timp estimat — ex. 2h 30m, 1:30, 45m sau 2 (= 2 ore)"></td>
-      <td><input type="text" class="lest ${realCls(t)}" data-f="actual_min" value="${esc(fmtEst(t.actual_min))}" placeholder="—" title="${realTip(t)} — ex. 2h 30m, 1:30, 45m sau 2 (= 2 ore)"></td>`:''}
-      <td class="lnotes"><textarea class="lnote" data-f="notes" rows="1" placeholder="+ observație (@nume = anunț pe Slack)">${esc(t.notes||'')}</textarea></td>
-      <td class="lmuted lts">${fdts(t.created_at)}</td>
-      <td class="lmuted lts">${fdts(t.updated_at||t.created_at)}</td>
+      <td data-c="who"><select class="lsel lwho" data-f="assignee_name">${peopleOpt(t.assignee_name)}</select></td>
+      <td data-c="rev"><select class="lsel lrev" data-f="reviewer" title="Cine verifică">${`<option value="">—</option>`+TEAM.map(n=>`<option ${n===t.reviewer?'selected':''}>${esc(n)}</option>`).join("")}</select></td>
+      <td class="lsup" data-c="sup"><button class="lsupbtn" data-sup="${t.id}" title="Cine ajută la task">${(t.supporters||[]).length?(t.supporters||[]).map(esc).join(", "):'<span class="lmuted">+ suport</span>'}</button></td>
+      <td class="lmuted" data-c="rep">${esc(t.created_by_name)||'—'}</td>
+      <td data-c="prio">${isSub?'<span class="lmuted">—</span>':prSel(t)}</td>
+      <td data-c="st">${stSel(t)}</td>
+      <td data-c="due"><input type="date" class="ldate ${late?'late':''}" data-f="due_date" value="${esc(t.due_date||'')}"></td>
+      ${HAS_EST?`<td data-c="est"><input type="text" class="lest" data-f="estimate_min" value="${esc(fmtEst(t.estimate_min))}" placeholder="—" title="Timp estimat — ex. 2h 30m, 1:30, 45m sau 2 (= 2 ore)"></td>
+      <td data-c="real"><input type="text" class="lest ${realCls(t)}" data-f="actual_min" value="${esc(fmtEst(t.actual_min))}" placeholder="—" title="${realTip(t)} — ex. 2h 30m, 1:30, 45m sau 2 (= 2 ore)"></td>`:''}
+      <td class="lnotes" data-c="notes"><textarea class="lnote" data-f="notes" rows="1" placeholder="+ observație" title="@nume = anunț pe Slack">${esc(t.notes||'')}</textarea></td>
+      <td class="lmuted lts" data-c="created">${fdts(t.created_at)}</td>
+      <td class="lmuted lts" data-c="updated">${fdts(t.updated_at||t.created_at)}</td>
     </tr>` + (open && !isSub ? subs.sort((a,b)=>(a.position||0)-(b.position||0)).map(x=>row(x,true)).join("") : "");
   };
-  const th = (key,label,cls) => `<th class="${cls||''} ${LSORT.k===key?'sorted':''}" data-sort="${key}">${label}${LSORT.k===key?(LSORT.dir>0?' ↑':' ↓'):''}</th>`;
+  const th = (key,label,cls) => `<th class="${cls||''} ${LSORT.k===key?'sorted':''}" data-sort="${key}" data-c="${key}">${label}${LSORT.k===key?(LSORT.dir>0?' ↑':' ↓'):''}</th>`;
   // grupare pe categorii (acordeon); cu filtre active sau o singură categorie aleasă, grupurile se deschid singure
   const autoOpen = filtersOn() || CUR_PROJ!=="all";
   const groups = scopeProjects().map(p=>{
@@ -2182,14 +2250,17 @@ function renderList(keepScroll){
       <button class="lgadd" data-addcat="${g.p.id}">+ Task</button></div></td></tr>`;
   };
   $("#projWrap").innerHTML = projHeader() + (L.length ? `
-    <div class="tscroll" id="listBox"><table class="ltable">
-      <thead><tr>${th("no","Task","lwork")}${th("who","Responsabil")}<th>Verifică</th><th>Suport</th><th>Raportor</th>${th("prio","Prioritate")}${th("st","Stare")}${th("due","Termen")}${HAS_EST?th("est","Estimat")+th("real","Real"):''}<th class="lnotes">Observații</th>${th("created","Creat")}${th("updated","Actualizat")}</tr></thead>
+    <div class="ltools"><span class="day" id="lScrollHint">Tabelul se derulează și spre dreapta (Shift + rotița mouse-ului). Prima coloană rămâne fixă.</span><button class="btn ghost sm" id="lCols">${ic("columns",14)}<span>${colLbl()}</span></button></div>
+    <div class="tscroll lbox" id="listBox"><table class="ltable">
+      <thead><tr>${th("no","Task","lwork")}${th("who","Responsabil")}<th data-c="rev">Verifică</th><th data-c="sup">Suport</th><th data-c="rep">Raportor</th>${th("prio","Prioritate")}${th("st","Stare")}${th("due","Termen")}${HAS_EST?th("est","Estimat")+th("real","Real"):''}<th class="lnotes" data-c="notes">Observații</th>${th("created","Creat")}${th("updated","Actualizat")}</tr></thead>
       <tbody>${groups.map(g=>grpRow(g) + (g.open ? (g.items.length ? g.items.map(t=>row(t,false)).join("") : `<tr class="lempty"><td class="lwork" colspan="${HAS_EST?13:11}"><span class="lmuted">Niciun task în această categorie.</span></td></tr>`) : "")).join("")}</tbody>
     </table></div>
     <div class="lfoot"><button class="btn ghost sm" id="lAdd">+ Task</button><span class="day">${L.length} ${L.length===1?'task':'taskuri'} în ${groups.length} ${groups.length===1?'categorie':'categorii'} · click pe o categorie ca s-o deschizi, pe titlu pentru detalii</span></div>`
     : '<div class="empty">Niciun task pentru filtrul ales.</div>');
   wireHeader();
-  const nb = $("#listBox"); if(nb && sx) nb.scrollLeft = sx; if(keepScroll) window.scrollTo(0, sy);
+  const nb = $("#listBox"); if(nb && sx) nb.scrollLeft = sx; if(nb && sty) nb.scrollTop = sty; if(keepScroll) window.scrollTo(0, sy);
+  const lc=$("#lCols"); if(lc) lc.onclick=()=>openColPop(lc);
+  const sh=$("#lScrollHint"); if(sh && nb) sh.style.visibility = nb.scrollWidth > nb.clientWidth+2 ? "visible" : "hidden";
   const la = $("#lAdd"); if(la) la.onclick = ()=>openTask(null,{status:"todo"});
   const W = $("#projWrap");
   if(nb && !autoOpen){
@@ -2775,7 +2846,7 @@ function buildMarketingCharts(L){
   if(typeof Chart==="undefined") return;
   Object.values(MCH).forEach(c=>{try{c&&c.destroy();}catch(e){}}); MCH={};
   Chart.defaults.font.family=C_FONT; Chart.defaults.color=C_MUT;
-  const PAL=[C_GREEN,C_BLUE,C_AMBER,"#b3261e","#6b3fa0","#0f7c86","#c2410c","#9aa5a0"];
+  const PAL=[C_GREEN,"#0B4D2A","#4FA874","#8CC8A2","#2E6B4A","#C3E3CF","#6F6A65","#A8A29E"];
   const top = (arr,n)=>{ if(arr.length<=n) return arr; const rest=arr.slice(n-1).reduce((s,x)=>s+x[1],0); return [...arr.slice(0,n-1),["Altele",rest]]; };
 
   const src=top(countBy(L, r=>srcLabel(r.utm_source)),7);
