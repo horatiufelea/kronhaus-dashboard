@@ -467,6 +467,53 @@
   .pmeth.m-cash,.pmeth.m-cod,.pmeth.m-other{background:#FFF4E0;color:#9A5B00}
   .c-err{color:var(--err)}
 
+  /* ---- Ad-hoc ---- */
+  .adpriv{font-size:11px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;color:#6B3FA0;background:#F1EAFB;border-radius:4px;padding:1px 6px;margin-left:6px;vertical-align:1px}
+  .adform{margin-bottom:16px;border-left:4px solid var(--accent)}
+  .adline{display:grid;grid-template-columns:1fr 220px;gap:10px}
+  .adkinds,.adtime{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:10px}
+  .adkinds button{border:1px solid var(--line);background:#fff;border-radius:99px;padding:5px 12px;font-size:12.5px;cursor:pointer;color:var(--ink)}
+  .adkinds button.on{background:var(--kc);border-color:var(--kc);color:#fff;font-weight:600}
+  .adlbl{font-size:12.5px;color:var(--muted);margin-right:2px}
+  .adp{border:1px solid var(--line);background:#fff;border-radius:6px;padding:4px 9px;font-size:12.5px;cursor:pointer;color:var(--ink)}
+  .adp.on{background:var(--okbg);border-color:#CDE7D6;color:var(--ok);font-weight:700}
+  .adtime input[type=text]{width:170px}
+  .adtime input[type=date]{width:auto;margin-left:auto}
+  .adtimer{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:#fff;border-radius:6px;padding:4px 10px;font-size:12.5px;cursor:pointer;color:var(--ink)}
+  .adtimer.run{background:var(--errbg);border-color:#F5C9C4;color:var(--err);font-weight:700;font-variant-numeric:tabular-nums}
+  .adact{display:flex;align-items:center;gap:10px;margin-top:12px}
+  .adgrp{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);margin-bottom:10px;overflow:hidden}
+  .adgh{display:flex;align-items:center;gap:10px;width:100%;border:0;background:transparent;padding:12px 14px;cursor:pointer;text-align:left;font:inherit;color:var(--ink)}
+  .adgh:hover{background:var(--hover)}
+  .adtog{display:grid;place-items:center;color:var(--muted);transition:transform .15s}
+  .adtog.open{transform:rotate(90deg)}
+  .adgt{font-weight:700;margin-left:auto}
+  .adgh .adbar{width:120px}
+  .adbar{display:flex;height:6px;border-radius:99px;overflow:hidden;background:rgba(0,0,0,.06)}
+  .adbar i{display:block;height:100%}
+  .adbody{border-top:1px solid var(--line);padding:4px 10px 8px}
+  .adday{display:flex;justify-content:space-between;font-size:12px;font-weight:700;color:var(--muted);padding:10px 4px 4px}
+  .adday span{display:inline-block}
+  .adday span::first-letter{text-transform:uppercase}
+  .adrow{display:flex;align-items:center;gap:10px;padding:7px 4px;border-bottom:1px solid var(--line2);cursor:pointer;font-size:13px}
+  .adrow:hover{background:var(--hover)}
+  .adk{flex-shrink:0;width:118px;font-size:11.5px;font-weight:700;color:var(--kc);display:inline-flex;align-items:center;gap:6px}
+  .adk::before{content:"";width:8px;height:8px;border-radius:2px;background:var(--kc)}
+  .adt{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .adw{color:var(--muted)}
+  .adm{font-weight:600;white-space:nowrap}
+  .adrow .sx{border:0;background:transparent;color:var(--muted);font-size:16px;cursor:pointer;padding:0 4px}
+  .adrow .sx:hover{color:var(--err)}
+  .adcard{margin-bottom:14px}
+  .adch{display:flex;align-items:center;justify-content:space-between;gap:10px}
+  .adch h3{margin:0}
+  .adnums{display:flex;gap:28px;flex-wrap:wrap;margin:12px 0}
+  .adnums b{display:block;font-size:22px;font-weight:600}
+  .adnums span{font-size:12.5px;color:var(--muted)}
+  .adleg{display:flex;flex-wrap:wrap;gap:14px;margin-top:8px;font-size:12px;color:var(--muted)}
+  .adleg i{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:5px}
+  @media (max-width:700px){ .adline{grid-template-columns:1fr} .adk{width:auto} .adtime input[type=date]{margin-left:0} .adgh .adbar{display:none} }
+
   /* ---- Proiecte · timeline ---- */
   .tlbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
   .tl{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);overflow:auto;max-height:70vh}
@@ -664,6 +711,7 @@
       <button data-pv="board"><i data-ic="columns" data-s="15"></i>Tablă</button>
       <button data-pv="timeline"><i data-ic="gantt" data-s="15"></i>Timeline</button>
       <button data-pv="calendar"><i data-ic="calendar" data-s="15"></i>Calendar</button>
+      <button data-pv="adhoc" id="pvAdhoc" class="hidden" title="Suport instant, emailuri, meetinguri — doar tu vezi"><i data-ic="timer" data-s="15"></i>Ad-hoc <span class="adpriv">doar tu</span></button>
     </div>
     <div id="projWrap"><div class="empty">Se încarcă…</div></div>
   </div>
@@ -1577,6 +1625,11 @@ async function loadProjects(){
       HAS_START=!a.error; HAS_PARENT=!b.error; HAS_EST=!c.error;
     }
   }
+  if(HAS_ADHOC===null){
+    const r = await sb.from("adhoc_entries").select("id").limit(1);
+    HAS_ADHOC = !r.error; $("#pvAdhoc").classList.toggle("hidden", !HAS_ADHOC);
+  }
+  if(PVIEW==="adhoc" && !HAS_ADHOC) PVIEW="dash";
   if(CUR_PROJ!=="all" && !PROJ.find(x=>x.id===CUR_PROJ)) CUR_PROJ="all";
   renderProjects();
   loadFileCounts();
@@ -1637,6 +1690,8 @@ function renderProjects(){
   $("#newProj").onclick=()=>openProjModal(null);
   const ta=$("#togArch"); if(ta) ta.onclick=()=>{ SHOW_ARCH=!SHOW_ARCH; renderProjects(); };
   document.querySelectorAll("#projTabs button").forEach(b=>b.classList.toggle("on", b.dataset.pv===PVIEW));
+  $("#projBar").classList.toggle("hidden", PVIEW==="adhoc");
+  if(PVIEW==="adhoc"){ renderAdhoc(); return; }
 
   Object.values(PCH).forEach(c=>{try{c&&c.destroy();}catch(e){}}); PCH={};
   if(!PROJ.length){ $("#projWrap").innerHTML='<div class="empty">Nicio categorie încă. Apăsați „+ Categorie” ca să începeți (ex. „Lansare TM7”, „Evenimente”, „Administrativ”).</div>'; return; }
@@ -1699,6 +1754,162 @@ function durBadge(t){
   const n=dnum(t.due_date)-dnum(t.start_date)+1; return `<span title="durată">${ic("timer",13)}${n} ${n===1?'zi':'zile'}</span>`;
 }
 
+/* ---------- AD-HOC (privat: fiecare își vede doar intrările proprii) ---------- */
+const AD_KIND = {
+  support:{l:"Suport / telefon", c:"#3F5BA9"}, email:{l:"Emailuri", c:"#6B3FA0"}, meeting:{l:"Meeting", c:"#B7791F"},
+  quick:{l:"Rezolvare rapidă", c:"#0F7A3D"}, other:{l:"Altele", c:"#78716C"} };
+const AD_PRESET = [5,10,15,30,45,60,90];
+let ADH=null, HAS_ADHOC=null, ADF={ kind:"quick", editId:null }, ADOPEN=new Set(["w0"]), AD_TICK=null;
+const AD_TKEY="kh_adhoc_timer";
+const adTimerGet = ()=>{ try{ return +localStorage.getItem(AD_TKEY)||0; }catch(e){ return 0; } };
+const adTimerSet = v=>{ try{ v ? localStorage.setItem(AD_TKEY,String(v)) : localStorage.removeItem(AD_TKEY); }catch(e){} };
+const adSum = l => l.reduce((a,x)=>a+(+x.minutes||0),0);
+const adMin = v => { v=String(v||"").trim(); if(!v) return null; if(/^\d+$/.test(v)) return +v; return parseEst(v); };   // număr simplu = minute
+const adDayLbl = d => { const a=dnum(todayISO())-dnum(d); if(a===0) return "Azi"; if(a===1) return "Ieri";
+  return new Date(d+"T00:00:00").toLocaleDateString("ro-RO",{weekday:"long",day:"numeric",month:"long"}); };
+async function loadAdhoc(){
+  if(!HAS_ADHOC){ ADH=[]; return; }
+  const { data, error } = await sb.from("adhoc_entries").select("*").eq("user_id", ME.id)
+    .gte("day", dstr(dnum(todayISO())-400)).order("day",{ascending:false}).order("created_at",{ascending:false});
+  if(error){ ADH=[]; toast("Eroare ad-hoc: "+error.message); return; }
+  ADH = data||[];
+}
+function adStats(){
+  const t0=dnum(todayISO()), mon=todayISO().slice(0,7);
+  const w = ADH.filter(x=>t0-dnum(x.day)<=6);
+  const byKind = Object.keys(AD_KIND).map(k=>({ k, m:adSum(w.filter(x=>x.kind===k)) })).filter(x=>x.m).sort((a,b)=>b.m-a.m);
+  return { today:adSum(ADH.filter(x=>x.day===todayISO())), week:adSum(w), weekN:w.length,
+           month:adSum(ADH.filter(x=>x.day.slice(0,7)===mon)), byKind };
+}
+const adKindBar = (byKind, total) => total ? `<div class="adbar">${byKind.map(x=>`<i style="width:${(x.m*100/total).toFixed(1)}%;background:${AD_KIND[x.k].c}" title="${AD_KIND[x.k].l}: ${fmtEst(x.m)}"></i>`).join("")}</div>` : "";
+function adDashCard(){
+  if(!HAS_ADHOC) return "";
+  if(ADH===null) return `<div class="chart-card adcard"><h3>${ic("timer",16)} Timpul tău ad-hoc</h3><p class="cnote">Se încarcă…</p></div>`;
+  const st=adStats();
+  return `<div class="chart-card adcard">
+    <div class="adch"><h3>${ic("timer",16)} Timpul tău ad-hoc <span class="adpriv">doar tu vezi</span></h3><button class="btn ghost sm" id="adDashGo">Deschide Ad-hoc →</button></div>
+    <div class="adnums"><div><b>${fmtEst(st.today)||"0 min"}</b><span>azi</span></div><div><b>${fmtEst(st.week)||"0 min"}</b><span>ultimele 7 zile · ${st.weekN} ${st.weekN===1?'intrare':'intrări'}</span></div><div><b>${fmtEst(st.month)||"0 min"}</b><span>luna aceasta</span></div></div>
+    ${st.week ? adKindBar(st.byKind, st.week) + `<div class="adleg">${st.byKind.map(x=>`<span><i style="background:${AD_KIND[x.k].c}"></i>${AD_KIND[x.k].l} ${fmtEst(x.m)}</span>`).join("")}</div>`
+      : `<p class="cnote" style="margin:4px 0 0">Nimic notat în ultimele 7 zile. Suportul rapid, emailurile și meetingurile se trec în „Ad-hoc”.</p>`}
+  </div>`;
+}
+function renderAdhoc(){
+  if(ADH===null){ $("#projWrap").innerHTML='<div class="empty">Se încarcă…</div>'; loadAdhoc().then(()=>{ if(PVIEW==="adhoc") renderAdhoc(); }); return; }
+  if($("#adForm")){ adPaint(); return; }        // formularul rămâne cum l-ați lăsat
+  const recentWho = [...new Set([...TEAM, ...ADH.map(x=>x.for_whom).filter(Boolean)])].slice(0,40);
+  $("#projWrap").innerHTML = `
+    <div class="phead"><h2>${ic("timer",18)} Ad-hoc</h2><span class="adpriv">doar tu vezi aceste intrări</span></div>
+    <div class="kpis" id="adKpis"></div>
+    <div class="chart-card adform" id="adForm">
+      <h3 id="adFormTitle">Ce ai rezolvat?</h3>
+      <div class="adline">
+        <input type="text" id="adTitle" maxlength="300" placeholder="ex. Am ajutat-o pe Alina cu o factură · Răspuns emailuri clienți · Call cu Vorwerk">
+        <input type="text" id="adWho" maxlength="120" list="adWhoL" placeholder="pentru cine (opțional)">
+        <datalist id="adWhoL">${recentWho.map(n=>`<option value="${esc(n)}">`).join("")}</datalist>
+      </div>
+      <div class="adkinds" id="adKinds">${Object.entries(AD_KIND).map(([k,v])=>`<button type="button" data-k="${k}" style="--kc:${v.c}">${v.l}</button>`).join("")}</div>
+      <div class="adtime">
+        <span class="adlbl">Cât a durat:</span>
+        ${AD_PRESET.map(n=>`<button type="button" class="adp" data-m="${n}">${fmtEst(n)}</button>`).join("")}
+        <input type="text" id="adMin" placeholder="alt timp: 20 sau 1h 15m" title="Număr simplu = minute. Sau 1h 15m, 1:15">
+        <button type="button" class="adtimer" id="adTimer">${ic("clock",14)}<span>Cronometru</span></button>
+        <input type="date" id="adDay" value="${todayISO()}" title="Ziua">
+      </div>
+      <div class="adact">
+        <button class="btn go" id="adSave">Adaugă</button>
+        <button class="btn ghost hidden" id="adCancel">Renunță</button>
+        <span class="err" id="adErr"></span>
+      </div>
+    </div>
+    <div id="adList"></div>`;
+  const q=x=>$("#projWrap").querySelector(x);
+  const paintKinds=()=>q("#adKinds").querySelectorAll("button").forEach(b=>b.classList.toggle("on", b.dataset.k===ADF.kind));
+  const paintPre=()=>{ const v=adMin(q("#adMin").value); $("#projWrap").querySelectorAll(".adp").forEach(b=>b.classList.toggle("on", +b.dataset.m===v)); };
+  q("#adKinds").onclick=e=>{ const b=e.target.closest("button"); if(!b) return; ADF.kind=b.dataset.k; paintKinds(); };
+  $("#projWrap").querySelectorAll(".adp").forEach(b=>b.onclick=()=>{ q("#adMin").value=fmtEst(+b.dataset.m); paintPre(); });
+  q("#adMin").addEventListener("input", paintPre);
+  q("#adMin").addEventListener("blur", ()=>{ const v=adMin(q("#adMin").value); if(v>0) q("#adMin").value=fmtEst(v); paintPre(); });
+  [q("#adTitle"), q("#adWho"), q("#adMin")].forEach(i=>i.addEventListener("keydown", e=>{ if(e.key==="Enter"){ e.preventDefault(); q("#adSave").click(); } }));
+  // cronometru (rămâne pornit și dacă închideți pagina)
+  const tick=()=>{ const b=$("#adTimer"); if(!b){ clearInterval(AD_TICK); AD_TICK=null; return; }
+    const st=adTimerGet(); b.classList.toggle("run", !!st);
+    if(!st){ b.querySelector("span").textContent="Cronometru"; return; }
+    const sec=Math.floor((Date.now()-st)/1000), h=Math.floor(sec/3600), m=Math.floor(sec%3600/60), ss=sec%60;
+    b.querySelector("span").textContent = "Oprește · " + (h?h+":":"") + String(m).padStart(h?2:1,"0") + ":" + String(ss).padStart(2,"0"); };
+  q("#adTimer").onclick=()=>{
+    const st=adTimerGet();
+    if(!st){ adTimerSet(Date.now()); toast("Cronometru pornit — apăsați din nou când ați terminat"); }
+    else { const m=Math.max(1, Math.round((Date.now()-st)/60000)); adTimerSet(0); q("#adMin").value=fmtEst(m); paintPre();
+      toast("Durată: "+fmtEst(m)+" — completați ce ați rezolvat și apăsați Adaugă"); if(!q("#adTitle").value.trim()) q("#adTitle").focus(); }
+    tick(); };
+  clearInterval(AD_TICK); AD_TICK=setInterval(tick,1000); tick();
+  const resetForm=()=>{ ADF.editId=null; q("#adTitle").value=""; q("#adWho").value=""; q("#adMin").value=""; q("#adDay").value=todayISO();
+    q("#adSave").textContent="Adaugă"; q("#adCancel").classList.add("hidden"); q("#adFormTitle").textContent="Ce ai rezolvat?"; q("#adErr").textContent=""; paintPre(); };
+  q("#adCancel").onclick=resetForm;
+  q("#adSave").onclick=async()=>{
+    const title=q("#adTitle").value.trim(), m=adMin(q("#adMin").value), day=q("#adDay").value||todayISO();
+    if(!title){ q("#adErr").textContent="Scrieți pe scurt ce ați rezolvat."; q("#adTitle").focus(); return; }
+    if(!(m>0)){ q("#adErr").textContent="Alegeți cât a durat (butoanele de timp, cronometrul sau scrieți ex. 20 / 1h 15m)."; return; }
+    if(m>1440){ q("#adErr").textContent="Maxim 24 de ore pe o intrare."; return; }
+    const rec={ title, kind:ADF.kind, for_whom:q("#adWho").value.trim()||null, minutes:m, day };
+    const btn=q("#adSave"); btn.disabled=true;
+    const res = ADF.editId
+      ? await sb.from("adhoc_entries").update({ ...rec, updated_at:new Date().toISOString() }).eq("id",ADF.editId).select().single()
+      : await sb.from("adhoc_entries").insert({ ...rec, user_name:myFirst() }).select().single();
+    btn.disabled=false;
+    if(res.error){ q("#adErr").textContent="Eroare: "+res.error.message; return; }
+    if(ADF.editId) ADH = ADH.map(x=>x.id===ADF.editId?res.data:x); else ADH.unshift(res.data);
+    ADH.sort((a,b)=>a.day<b.day?1:a.day>b.day?-1:new Date(b.created_at)-new Date(a.created_at));
+    toast(ADF.editId?"Modificat ✓":"Notat: "+fmtEst(m)+" ✓");
+    const keepKind=ADF.kind; resetForm(); ADF.kind=keepKind; paintKinds(); adPaint(); q("#adTitle").focus();
+  };
+  ADF.editId=null; paintKinds(); paintPre();
+  ADF._edit = x=>{ ADF.editId=x.id; ADF.kind=x.kind; paintKinds();
+    q("#adTitle").value=x.title; q("#adWho").value=x.for_whom||""; q("#adMin").value=fmtEst(x.minutes); q("#adDay").value=x.day; paintPre();
+    q("#adSave").textContent="Salvează modificarea"; q("#adCancel").classList.remove("hidden"); q("#adFormTitle").textContent="Modifici intrarea";
+    q("#adForm").scrollIntoView({behavior:"smooth", block:"center"}); q("#adTitle").focus(); };
+  adPaint();
+  setTimeout(()=>q("#adTitle") && q("#adTitle").focus(), 50);
+}
+function adPaint(){
+  const st=adStats();
+  const top=st.byKind[0];
+  $("#adKpis").innerHTML = [
+    {n:fmtEst(st.today)||"0 min", l:"Azi"},
+    {n:fmtEst(st.week)||"0 min", l:"Ultimele 7 zile", e:st.weekN+" "+(st.weekN===1?"intrare":"intrări")},
+    {n:fmtEst(st.month)||"0 min", l:"Luna aceasta"},
+    {n:top?AD_KIND[top.k].l:"—", l:"Cel mai mult timp (7 zile)", e:top?fmtEst(top.m):""},
+  ].map(k=>`<div class="kpi"><div class="n">${k.n}</div><div class="l">${k.l}</div>${k.e?`<div class="e">${k.e}</div>`:''}</div>`).join("");
+  const t0=dnum(todayISO());
+  const B=[{k:"w0",l:"Ultimele 7 zile",a:-1e9,b:6},{k:"w1",l:"Acum 1–4 săptămâni",a:7,b:30},{k:"m1",l:"Acum 1–2 luni",a:31,b:60},
+           {k:"m2",l:"Acum 2–3 luni",a:61,b:91},{k:"old",l:"Mai vechi de 3 luni",a:92,b:1e9}];
+  B.forEach(g=>g.items=ADH.filter(x=>{ const d=t0-dnum(x.day); return d>=g.a && d<=g.b; }));
+  const row = x => `<div class="adrow" data-id="${x.id}" title="Click pentru a modifica">
+      <span class="adk" style="--kc:${(AD_KIND[x.kind]||AD_KIND.other).c}">${(AD_KIND[x.kind]||AD_KIND.other).l}</span>
+      <span class="adt">${esc(x.title)}${x.for_whom?` <span class="adw">· ${esc(x.for_whom)}</span>`:''}</span>
+      <span class="adm">${fmtEst(x.minutes)}</span>
+      <button class="sx" data-del="${x.id}" title="Șterge">×</button></div>`;
+  const body = g => { const days=[...new Set(g.items.map(x=>x.day))];
+    return days.map(d=>{ const it=g.items.filter(x=>x.day===d);
+      return `<div class="adday"><span>${adDayLbl(d)}</span><b>${fmtEst(adSum(it))}</b></div>` + it.map(row).join(""); }).join(""); };
+  const shown = B.filter(g=>g.k==="w0" || g.items.length);
+  $("#adList").innerHTML = shown.map(g=>{ const open=ADOPEN.has(g.k), tot=adSum(g.items);
+    const bk=Object.keys(AD_KIND).map(k=>({k, m:adSum(g.items.filter(x=>x.kind===k))})).filter(x=>x.m).sort((a,b)=>b.m-a.m);
+    return `<div class="adgrp ${open?'open':''}">
+      <button class="adgh" data-g="${g.k}"><span class="adtog ${open?'open':''}">${ic("chevron",15)}</span><b>${g.l}</b>
+        <span class="lgc">${g.items.length} ${g.items.length===1?'intrare':'intrări'}</span>
+        <span class="adgt">${fmtEst(tot)||'0 min'}</span>${adKindBar(bk, tot)}</button>
+      ${open ? (g.items.length ? `<div class="adbody">${body(g)}</div>` : `<div class="adbody"><p class="cnote" style="margin:10px 4px">Nimic notat încă în ultimele 7 zile.</p></div>`) : ''}
+    </div>`; }).join("");
+  $("#adList").querySelectorAll(".adgh").forEach(b=>b.onclick=()=>{ const k=b.dataset.g; ADOPEN.has(k)?ADOPEN.delete(k):ADOPEN.add(k); adPaint(); });
+  $("#adList").querySelectorAll(".adrow").forEach(r=>r.onclick=e=>{ if(e.target.closest("[data-del]")) return; const x=ADH.find(y=>y.id===r.dataset.id); if(x) ADF._edit(x); });
+  $("#adList").querySelectorAll("[data-del]").forEach(b=>b.onclick=async e=>{ e.stopPropagation();
+    const x=ADH.find(y=>y.id===b.dataset.del); if(!x || !confirm(`Ștergeți „${x.title}” (${fmtEst(x.minutes)})?`)) return;
+    const { error } = await sb.from("adhoc_entries").delete().eq("id",x.id);
+    if(error){ toast("Eroare: "+error.message); return; }
+    ADH=ADH.filter(y=>y.id!==x.id); toast("Șters"); adPaint(); });
+}
+
 /* ---------- REZUMAT (dashboard) ---------- */
 function renderProjDash(){
   const L = viewTasks();
@@ -1749,6 +1960,7 @@ function renderProjDash(){
 
   $("#projWrap").innerHTML = projHeader() + `
     <div class="kpis">${kp}</div>
+    ${adDashCard()}
     <div class="chart-grid">
       ${CUR_PROJ==="all"?`<div class="chart-card wide"><h3>Categorii</h3><div class="pgrid">${projCards||'<div class="empty">Nicio categorie activă.</div>'}</div></div>`:''}
       <div class="chart-card"><h3>Pe cine e munca</h3><p class="cnote">Taskuri pe colegă, după stare</p><div class="cbox"><canvas id="pWho"></canvas></div></div>
@@ -1757,6 +1969,8 @@ function renderProjDash(){
     </div>`;
   wireHeader();
   $("#projWrap").querySelectorAll(".pcard").forEach(c=>c.onclick=()=>{ CUR_PROJ=c.dataset.id; PVIEW="board"; renderProjects(); });
+  const ado=$("#adDashGo"); if(ado) ado.onclick=()=>{ PVIEW="adhoc"; renderProjects(); };
+  if(HAS_ADHOC && ADH===null) loadAdhoc().then(()=>{ if(PVIEW==="dash" && activeMod==="proiecte") renderProjects(); });
   $("#projWrap").querySelectorAll(".dlist .it").forEach(i=>i.onclick=()=>openTask(TASKS.find(t=>t.id===i.dataset.id)));
 
   if(typeof Chart!=="undefined" && cctx("pWho")){
