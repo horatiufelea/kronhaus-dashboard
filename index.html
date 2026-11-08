@@ -304,6 +304,7 @@
   .pfilters .srch .ico{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--faint)}
   .pfilters .srch input{padding-left:32px}
   .pfilters select{width:auto;padding:8px 10px;font-size:13px}
+  .pfilters select.fon{border-color:#00843D;background:#EDF6F0;color:#00653E;font-weight:600}
   label.chk{display:inline-flex;align-items:center;gap:7px;margin:0;font-size:13px;color:var(--ink);font-weight:500;cursor:pointer}
   label.chk input{accent-color:var(--green)}
 
@@ -1925,7 +1926,18 @@ function attachMention(ta){
 }
 const BUCKET = "task-files";
 let PROJ=[], TASKS=[], CUR_PROJ="all", SHOW_ARCH=false, PVIEW="dash", TL_ZOOM="auto", PCH={}, CAL_M=null;
-let F = { q:"", who:"", pr:"", late:false };
+let F = { q:"", who:"", pr:"", late:false, due:"" };
+// filtru termen: azi / în 3 zile / în 7 zile / fără termen (doar taskuri nefinalizate)
+const DUE_F = { today:"Expiră azi", d3:"Expiră în 3 zile", d7:"Expiră în 7 zile", none:"Fără termen" };
+function dueMatch(t, k){
+  if(!k) return true;
+  if(t.status==="done") return false;
+  const today=todayISO();
+  if(k==="none") return !t.due_date;
+  if(!t.due_date || t.due_date < today) return false;
+  const n = dnum(t.due_date) - dnum(today);
+  return k==="today" ? n===0 : k==="d3" ? n<=3 : n<=7;
+}
 let HAS_START=null, HAS_PARENT=null, HAS_EST=null;
 // timp estimat: în baza de date în minute; afișat „2 h 30 min”
 const fmtEst = m => { m=+m; if(!(m>0)) return ""; const h=Math.floor(m/60), r=m%60; return (h?h+" h":"") + (h&&r?" ":"") + (r?r+" min":""); };
@@ -2007,6 +2019,7 @@ function applyF(list){
     if(F.who && t.assignee_name!==F.who && !(t.supporters||[]).includes(F.who)) return false;
     if(F.pr && (t.priority||"med")!==F.pr) return false;
     if(F.late && !isLate(t)) return false;
+    if(F.due && !dueMatch(t, F.due)) return false;
     if(q){
       const hay=[t.title,t.description,t.assignee_name,...subsOf(t).map(s=>s.title)].join(" ").toLowerCase();
       if(!hay.includes(q)) return false;
@@ -2015,7 +2028,7 @@ function applyF(list){
   });
 }
 const viewTasks = () => applyF(topLevel(scopeTasks()));
-const filtersOn = () => !!(F.q||F.who||F.pr||F.late);
+const filtersOn = () => !!(F.q||F.who||F.pr||F.late||F.due);
 
 function renderProjects(){
   const visible = PROJ.filter(p=>SHOW_ARCH || !p.archived || p.id===CUR_PROJ);
@@ -2067,6 +2080,7 @@ function projHeader(){
       <div class="srch">${ic("search",15)}<input type="text" id="fQ" placeholder="Caută în taskuri și subtaskuri…" value="${esc(F.q)}"></div>
       <select id="fWho"><option value="">Toți colegii</option>${people.map(n=>`<option ${n===F.who?'selected':''}>${esc(n)}</option>`).join("")}</select>
       <select id="fPr"><option value="">Orice prioritate</option>${Object.entries(T_PRIO).map(([k,l])=>`<option value="${k}" ${F.pr===k?'selected':''}>${l}</option>`).join("")}</select>
+      <select id="fDue" class="${F.due?'fon':''}"><option value="">Orice termen</option>${Object.entries(DUE_F).map(([k,l])=>`<option value="${k}" ${F.due===k?'selected':''}>${l} (${all.filter(t=>dueMatch(t,k)).length})</option>`).join("")}</select>
       <label class="chk"><input type="checkbox" id="fLate" ${F.late?'checked':''}> Doar întârziate</label>
       ${filtersOn()?'<button class="btn ghost sm" id="fClear">'+ic("x",14)+'Șterge filtrele</button>':''}
     </div>`;
@@ -2078,7 +2092,8 @@ function wireHeader(){
   $("#fWho").onchange=e=>{ F.who=e.target.value; renderProjects(); };
   $("#fPr").onchange=e=>{ F.pr=e.target.value; renderProjects(); };
   $("#fLate").onchange=e=>{ F.late=e.target.checked; renderProjects(); };
-  const fc=$("#fClear"); if(fc) fc.onclick=()=>{ F={q:"",who:"",pr:"",late:false}; renderProjects(); };
+  $("#fDue").onchange=e=>{ F.due=e.target.value; renderProjects(); };
+  const fc=$("#fClear"); if(fc) fc.onclick=()=>{ F={q:"",who:"",pr:"",late:false,due:""}; renderProjects(); };
   $("#addTaskTop").onclick=()=>openTask(null,{status:"todo"});
   if(!p) return;
   $("#editProj").onclick=()=>openProjModal(p);
