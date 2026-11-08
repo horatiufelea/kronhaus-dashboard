@@ -637,6 +637,13 @@
   .invpop button .ico{color:#2E6B4A}
   .invpop .iext{margin-left:auto;font-size:11px;color:var(--muted)}
 
+  /* ---- consultant la comenzi ---- */
+  .cons{font-size:12px;color:#2E6B4A;margin-top:3px;display:flex;align-items:center;gap:5px}
+  .consel{width:auto;padding:8px 10px;font-size:13px}
+  .consel.fon{border-color:#00843D;background:#EDF6F0;color:#00653E;font-weight:600}
+  .constab tbody tr{cursor:pointer}
+  .constab tbody tr:hover td{background:#F1F8F3}
+
   /* ---- Echipă ---- */
   .tmtable td{white-space:nowrap}
   .tmact{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;max-width:290px;margin-left:auto}
@@ -815,6 +822,7 @@
           <button data-m="card">Card</button>
           <button data-m="transfer">Transfer</button>
         </div>
+        <select id="segCons" class="consel" title="Consultantul ales de client la comandă (Kapcsolattartó)"><option value="">Toți consultanții</option></select>
       </div>
       <div id="issueBanner"></div>
       <div id="tableWrap"></div>
@@ -835,6 +843,7 @@
         <div class="chart-card cc-blue"><h3><i data-ic="card" data-s="16"></i> Cum s-a plătit</h3><div class="cbox"><canvas id="chMethod"></canvas></div></div>
         <div class="chart-card cc-purple wide"><h3><i data-ic="euro" data-s="16"></i> Încasări pe zi</h3><div class="cbox"><canvas id="chDaily"></canvas></div></div>
         <div class="chart-card cc-amber wide"><h3><i data-ic="pin" data-s="16"></i> Comenzi pe oraș</h3><div class="cbox"><canvas id="chCity"></canvas></div></div>
+        <div class="chart-card cc-green wide"><h3><i data-ic="users" data-s="16"></i> Comenzi pe consultant</h3><p class="cnote">Consultantul ales de client la comandă („Kapcsolattartó” în UNAS)</p><div id="consTable"></div></div>
       </div>
     </div>
 
@@ -1039,7 +1048,7 @@ const ic = (n, s=16) => '<svg class="ico" width="'+s+'" height="'+s+'" viewBox="
 document.querySelectorAll("i[data-ic]").forEach(e=>{ e.outerHTML = ic(e.dataset.ic, +(e.dataset.s||16)); });
 let EUR = FALLBACK_RATE;
 let ROWS = [];
-let STATE = { status:"all", q:"", method:"all" };
+let STATE = { status:"all", q:"", method:"all", cons:"" };
 let ME = { id:null, name:"" };
 let activeMod = "comenzi";
 
@@ -1131,7 +1140,7 @@ async function boot(){
 async function loadOrders(){
   const [a,b,c] = await Promise.all([
     sb.from("v_orders_truth").select("*").order("order_day",{ascending:false,nullsFirst:false}),
-    sb.from("v_order_detail").select("key,invoice_status,payment_paid,customer_type,inv_tax_number,tx:details->transactions"),
+    sb.from("v_order_detail").select("key,invoice_status,payment_paid,customer_type,inv_tax_number,tx:details->transactions,cp:details->customer_params,referer:details->>referer"),
     sb.from("v_order_times").select("key,order_time")      // ora comenzii (dacă există în baza de date)
   ]);
   const tm = {}; if(!c.error) (c.data||[]).forEach(x=>{ const m=String(x.order_time||"").match(/(\d{1,2}):(\d{2})/); if(m) tm[x.key]=m[1].padStart(2,"0")+":"+m[2]; });
@@ -1140,13 +1149,26 @@ async function loadOrders(){
   ROWS = (a.data||[]).map(r=>({ ...r, unas_invoice_status: det[r.key]?det[r.key].invoice_status:null,
                                  unas_paid_amount: det[r.key]?det[r.key].payment_paid:null,
                                  _tx: (det[r.key] && Array.isArray(det[r.key].tx)) ? det[r.key].tx : [],
-                                 _time: tm[r.key]||"" }));
+                                 _time: tm[r.key]||"",
+                                 _cons: consOf(det[r.key]), _ref: (det[r.key] && det[r.key].referer) || "" }));
+  fillConsSelect();
   ROWS.sort((x,y)=>(y.order_day||"").localeCompare(x.order_day||"") || (y._time||"").localeCompare(x._time||""));
   computeChecks();
   render();
   if(activeMod==="comenzi" && activeTab==="stats") buildStats();
   if(activeMod==="comenzi" && activeTab==="history") loadHistory();
   if(activeMod==="marketing") loadMarketing(true);
+}
+
+/* consultantul ales de client la comandă (UNAS → date client → „Kapcsolattartó”) */
+const consOf = d => { const cp = d && Array.isArray(d.cp) ? d.cp : []; const x = cp.find(p=>/kapcsolattart|tan[aá]csad|consult/i.test(p.name||""));
+  return x && x.value ? String(x.value).replace(/\s+/g," ").trim() : ""; };
+function fillConsSelect(){
+  const sel=$("#segCons"); if(!sel) return;
+  const names=[...new Set(ROWS.filter(r=>r.is_real&&r._cons).map(r=>r._cons))].sort((a,b)=>a.localeCompare(b,"hu"));
+  sel.innerHTML = `<option value="">Toți consultanții</option>` + names.map(n=>`<option ${STATE.cons===n?'selected':''}>${esc(n)}</option>`).join("")
+    + (ROWS.some(r=>r.is_real&&!r._cons)?`<option value="—" ${STATE.cons==="—"?'selected':''}>(fără consultant)</option>`:"");
+  sel.classList.toggle("fon", !!STATE.cons);
 }
 
 /* ===================== RENDER LIST ===================== */
@@ -1158,8 +1180,9 @@ function filtered(){
     if(STATE.status==="pending" && r.is_confirmed_sale) return false;
     if(STATE.status==="issues" && !needsAction(r)) return false;
     if(STATE.method!=="all" && payKind(r)!==STATE.method) return false;
+    if(STATE.cons && (STATE.cons==="—" ? !!r._cons : r._cons!==STATE.cons)) return false;
     if(q){
-      const hay = [r.customer_name,r.inv_city,r.invoice_number,r.unas_status,HU_STATUS[r.unas_status],
+      const hay = [r.customer_name,r.inv_city,r.invoice_number,r._cons,r.unas_status,HU_STATUS[r.unas_status],
                    ...(r._checks||[]).map(c=>c.t)].join(" ").toLowerCase();
       if(!hay.includes(q)) return false;
     }
@@ -1348,7 +1371,7 @@ function render(){
   if(!list.length){ $("#tableWrap").innerHTML='<div class="empty">'+(STATE.status==="issues"?'Nicio comandă de verificat — totul se potrivește.':'Nicio comandă pentru filtrul selectat.')+'</div>'; return; }
   const rows = list.map(r=>`
     <tr data-key="${esc(r.key)}" class="${needsAction(r)?'rowwarn':''}">
-      <td><div class="nm">${esc(r.customer_name)||'—'}</div><div class="day">${esc(roDay(r.order_day))||'—'}${r._time?`, ora <span title="ora Budapestei">${esc(r._time)}</span>`:''}${r.inv_city?' · oraș: '+esc(r.inv_city):''}</div></td>
+      <td><div class="nm">${esc(r.customer_name)||'—'}</div><div class="day">${esc(roDay(r.order_day))||'—'}${r._time?`, ora <span title="ora Budapestei">${esc(r._time)}</span>`:''}${r.inv_city?' · oraș: '+esc(r.inv_city):''}</div>${r._cons?`<div class="cons" title="Consultant (Kapcsolattartó)">${ic("users",12)} ${esc(r._cons)}</div>`:''}</td>
       <td class="amt">${ft(r.sum_gross)}<span class="eu">${eur(r.sum_gross)}</span></td>
       <td class="col-p">${unasCell(r)}</td>
       <td class="col-p">${payCell(r)}</td>
@@ -1516,6 +1539,8 @@ async function openDetail(key){
 
       <div class="sect"><h4>Client</h4>
         <div class="kv">
+          <span class="k">Consultant</span><span><b>${esc(r._cons)||'—'}</b>${r._cons?' <span class="dsub">(ales de client la comandă)</span>':''}</span>
+          ${r._ref?`<span class="k">A venit de pe</span><span>${esc(r._ref)}</span>`:''}
           <span class="k">Email</span><span>${esc(d.customer_email)||'—'}</span>
           <span class="k">Telefon</span><span>${esc(d.customer_mobile)||esc(d.customer_phone)||'—'}</span>
           <span class="k">Tip</span><span>${esc(d.customer_type)||'—'}${d.inv_tax_number?' · cod fiscal '+esc(d.inv_tax_number):''}</span>
@@ -1895,6 +1920,7 @@ $("#refreshBtn").addEventListener("click", async ()=>{
 
 /* ===================== FILTER WIRING ===================== */
 $("#search").addEventListener("input", e=>{ STATE.q=e.target.value; render(); });
+$("#segCons").addEventListener("change", e=>{ STATE.cons=e.target.value; e.target.classList.toggle("fon", !!STATE.cons); render(); });
 $("#segMethod").addEventListener("click", e=>{ const b=e.target.closest("button"); if(!b)return;
   STATE.method=b.dataset.m; $("#segMethod").querySelectorAll("button").forEach(x=>x.classList.toggle("on",x===b)); render(); });
 $("#segStatus").addEventListener("click", e=>{ const b=e.target.closest("button"); if(!b)return;
@@ -1925,7 +1951,21 @@ function optVbar(){ return {maintainAspectRatio:false,responsive:true,
 function optDonut(){ return {maintainAspectRatio:false,responsive:true,cutout:"60%",
   plugins:{legend:{position:"bottom",labels:{boxWidth:12,padding:14}}}}; }
 
+function buildConsTable(){
+  const box=$("#consTable"); if(!box) return;
+  const real=ROWS.filter(r=>r.is_real), by={};
+  real.forEach(r=>{ const k=r._cons||"(fără consultant)"; const o=by[k]=by[k]||{n:0,c:0,ft:0}; o.n++; if(r.is_confirmed_sale){ o.c++; o.ft+=Number(r.sum_gross||0); } });
+  const rows=Object.entries(by).sort((a,b)=>b[1].ft-a[1].ft||b[1].n-a[1].n);
+  const max=Math.max(1,...rows.map(([,o])=>o.n));
+  box.innerHTML = rows.length ? `<table class="items constab"><thead><tr><th>Consultant</th><th class="r">Comenzi</th><th class="r">Încasate</th><th class="r">Bani încasați</th><th></th></tr></thead><tbody>
+    ${rows.map(([k,o])=>`<tr data-c="${esc(k)}"><td><b>${esc(k)}</b></td><td class="r">${o.n}</td><td class="r">${o.c}</td><td class="r">${ft(o.ft)}<div class="dsub">${eur(o.ft)}</div></td>
+      <td style="width:28%"><div class="pbar" style="margin:0"><i style="width:${Math.round(o.n*100/max)}%;background:#00843D"></i></div></td></tr>`).join("")}</tbody></table>
+    <p class="cnote" style="margin-top:8px">Click pe un consultant ca să vedeți comenzile lui.</p>` : '<div class="empty">Nicio comandă.</div>';
+  box.querySelectorAll("tr[data-c]").forEach(tr=>tr.onclick=()=>{ STATE.cons = tr.dataset.c==="(fără consultant)"?"—":tr.dataset.c; fillConsSelect();
+    const ob=document.querySelector('[data-tab="orders"]'); if(ob) ob.click(); render(); });
+}
 function buildStats(){
+  buildConsTable();
   if(typeof Chart==="undefined"){ return; }
   destroyCharts();
   Chart.defaults.font.family=C_FONT;
