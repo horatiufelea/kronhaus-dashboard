@@ -261,6 +261,17 @@
   .card .due.late{color:var(--err);font-weight:600}
   .pr-high{color:var(--err)} .pr-med{color:#2E6B4A} .pr-low{color:var(--grey)}
   .pr-low::before{background:var(--faint)}
+  .pr-recurring{color:#2E6B4A}
+  .lsel.pr-recurring{color:#2E6B4A;font-weight:600}
+  .colsel.pr-recurring{background:#EDF6F0!important;color:#2E6B4A;border-color:#CFE6D8}
+  .prwrap{display:flex;align-items:center;gap:2px}
+  .ltable select.lurg{font-weight:700;padding:2px 2px;width:auto}
+  .lurg.u0{color:var(--muted)} .lurg.u1,.lurg.u2{color:#C2410C} .lurg.u3{color:#B42318} .lurg.u4,.lurg.u5{color:#fff;background:#B42318!important;border-radius:5px}
+  .urgbtns{display:flex;align-items:center;gap:6px;margin-top:2px}
+  .urgbtns button{width:36px;height:32px;border:1px solid #F5C9C4;background:#fff;border-radius:6px;font-weight:700;color:var(--err);cursor:pointer}
+  .urgbtns button:hover{background:#FEF3F2}
+  .urgbtns button.on{background:var(--err);border-color:var(--err);color:#fff}
+  .urgbtns .day{margin-left:6px}
   .swatches{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px}
   .swatches button{width:28px;height:28px;border-radius:6px;border:2px solid #fff;box-shadow:0 0 0 1px var(--line)}
   .swatches button.on{box-shadow:0 0 0 2px var(--ink)}
@@ -1856,7 +1867,10 @@ window.addEventListener("hashchange", ()=>{ if(!$("#app").classList.contains("hi
 /* ===================== PROIECTE (categorii · taskuri · subtaskuri) ===================== */
 const P_COLORS = ["#00653e","#1256a0","#9a6b00","#b3261e","#6b3fa0","#0f7c86","#c2410c","#5d6b63"];
 const T_STATUS = [ {k:"todo",l:"De făcut"}, {k:"doing",l:"În lucru"}, {k:"review",l:"De verificat"}, {k:"done",l:"Gata"} ];
-const T_PRIO = { high:"Urgent", med:"Normal", low:"Scăzut" };
+const T_PRIO = { high:"Urgent", med:"Normal", low:"Scăzut", recurring:"Recurent" };
+// „Urgent” are în plus un nivel 1–5 (5 = cel mai urgent), în coloana tasks.urgency
+const URG_L = { 1:"puțin urgent", 2:"urgent", 3:"destul de urgent", 4:"foarte urgent", 5:"extrem de urgent" };
+const prLbl = t => (t.priority==="high" && t.urgency) ? "Urgent "+t.urgency+"/5" : (T_PRIO[t.priority]||"Normal");
 const TEAM = ["Horatiu","Floriana","Alina","Karola","Diana","Office"];   // conturile KronHaus
 
 /* @mențiuni: când scrii „@” într-o observație apare lista colegilor */
@@ -2323,7 +2337,7 @@ function renderBoard(){
       ${showProj?`<div class="pj"><span class="pd" style="background:${safeColor(pj.color)}"></span>${esc(pj.name)}</div>`:''}
       <div class="t">${esc(t.title)}${mv}</div>
       <div class="meta">
-        <span class="chip pr-${esc(t.priority||'med')}">${T_PRIO[t.priority]||'Normal'}</span>
+        <span class="chip pr-${esc(t.priority||'med')}" title="${t.priority==='high'&&t.urgency?esc(URG_L[t.urgency]):''}">${esc(prLbl(t))}</span>
         ${t.assignee_name?`<span class="who">${esc(t.assignee_name)}</span>`:''}
         ${(t.supporters||[]).length?`<span title="Suport">+ ${(t.supporters||[]).map(esc).join(", ")}</span>`:''}
         ${HAS_EST&&(t.estimate_min||t.actual_min)?`<span class="${realCls(t)}" title="Estimat${t.actual_min?' / real · '+realTip(t):''}">⏱ ${fmtEst(t.estimate_min)||'—'}${t.actual_min?' / '+fmtEst(t.actual_min):''}</span>`:''}
@@ -2371,7 +2385,7 @@ function renderBoard(){
 let LSORT = { k:"no", dir:1 }, LOPEN = new Set();
 let LEXP = new Set((()=>{ try{ return JSON.parse(localStorage.getItem("kh_list_open")||"[]"); }catch(e){ return []; } })());
 const saveLEXP = ()=>{ try{ localStorage.setItem("kh_list_open", JSON.stringify([...LEXP])); }catch(e){} };
-const PRIO_ORD = { high:0, med:1, low:2 };
+const PRIO_ORD = { high:0, med:1, recurring:2, low:3 };
 const ST_ORD = { todo:0, doing:1, review:2, done:3 };
 const tkey = t => t.task_no ? "KH-"+t.task_no : "KH-?";
 const myFirst = () => { const n=(ME.disp||ME.name||"").trim(); const f=n.split(" ")[0]; return TEAM.find(x=>x.toLowerCase()===f.toLowerCase()) || f || null; };
@@ -2417,7 +2431,7 @@ function renderList(keepScroll){
     title:(a,b)=>(a.title||"").localeCompare(b.title||"","ro"),
     cat:(a,b)=>projOf(a).name.localeCompare(projOf(b).name,"ro"),
     who:(a,b)=>(a.assignee_name||"~").localeCompare(b.assignee_name||"~","ro"),
-    prio:(a,b)=>(PRIO_ORD[a.priority||"med"]-PRIO_ORD[b.priority||"med"]),
+    prio:(a,b)=>((PRIO_ORD[a.priority||"med"]*10-(a.urgency||0))-(PRIO_ORD[b.priority||"med"]*10-(b.urgency||0))),
     st:(a,b)=>(ST_ORD[a.status||"todo"]-ST_ORD[b.status||"todo"]),
     due:(a,b)=>(a.due_date||"9999").localeCompare(b.due_date||"9999"),
     est:(a,b)=>(a.estimate_min??1e9)-(b.estimate_min??1e9),
@@ -2429,7 +2443,8 @@ function renderList(keepScroll){
   const today = todayISO();
   const peopleOpt = cur => `<option value="">— nimeni —</option>` + [...new Set([...TEAM, ...(cur&&!TEAM.includes(cur)?[cur]:[])])].map(n=>`<option ${n===cur?'selected':''}>${esc(n)}</option>`).join("");
   const stSel = t => `<select class="lsel st-${t.status||'todo'}" data-f="status">${T_STATUS.map(s=>`<option value="${s.k}" ${(t.status||'todo')===s.k?'selected':''}>${s.l}</option>`).join("")}</select>`;
-  const prSel = t => `<select class="lsel pr-${t.priority||'med'}" data-f="priority">${Object.entries(T_PRIO).map(([k2,l])=>`<option value="${k2}" ${(t.priority||'med')===k2?'selected':''}>${l}</option>`).join("")}</select>`;
+  const prSel = t => `<div class="prwrap"><select class="lsel pr-${t.priority||'med'}" data-f="priority">${Object.entries(T_PRIO).map(([k2,l])=>`<option value="${k2}" ${(t.priority||'med')===k2?'selected':''}>${l}</option>`).join("")}</select>`
+    + (t.priority==="high" ? `<select class="lsel lurg u${t.urgency||0}" data-f="urgency" title="Nivel de urgență: 5 = cel mai urgent">${`<option value="">?</option>`+[5,4,3,2,1].map(n=>`<option value="${n}" ${t.urgency==n?'selected':''}>${n}/5</option>`).join("")}</select>` : "") + `</div>`;
   const row = (t, isSub) => {
     const subs = subsOf(t), open = LOPEN.has(t.id) || (filtersOn() && subs.length);
     const late = isLate(t), nf = FILECNT[t.id]||0, pj = projOf(t);
@@ -2514,9 +2529,12 @@ function renderList(keepScroll){
   W.querySelectorAll("tbody tr").forEach(tr=>{
     const t = TASKS.find(x=>x.id===tr.dataset.id); if(!t) return;
     tr.querySelectorAll("select.lsel").forEach(sel=>sel.onchange=async()=>{
-      const f = sel.dataset.f, v = sel.value || null;
+      const f = sel.dataset.f; let v = sel.value || null;
       if(f==="status" && !t.parent_id){ await moveTask(t, v); return; }   // re-randează singur
-      if(await updTask(t, { [f]: v }, f==="status"&&v==="done"?"Gata ✓":undefined)) renderList(true);
+      const patch = { [f]: v };
+      if(f==="urgency") patch.urgency = v ? +v : null;
+      if(f==="priority") patch.urgency = v==="high" ? (t.urgency||3) : null;
+      if(await updTask(t, patch, f==="status"&&v==="done"?"Gata ✓":(f==="urgency"&&v?"Urgent "+v+"/5 ✓":undefined))) renderList(true);
     });
     const dt = tr.querySelector("input.ldate");
     if(dt) dt.onchange = async()=>{ if(await updTask(t, { due_date: dt.value || null })) renderList(true); };
@@ -2793,6 +2811,8 @@ function openTask(t, preset){
           <div><label>Stare</label><select id="tSt" class="colsel">${T_STATUS.map(s=>`<option value="${s.k}" ${st0===s.k?'selected':''}>${s.l}</option>`).join("")}</select></div>
           <div><label>Prioritate</label><select id="tPr" class="colsel">${Object.entries(T_PRIO).map(([k,l])=>`<option value="${k}" ${((t&&t.priority)||'med')===k?'selected':''}>${l}</option>`).join("")}</select></div>
         </div>
+        <div id="tUrgBox" class="hidden"><label>Cât de urgent? <span class="day" style="font-weight:400">(5 = cel mai urgent)</span></label>
+          <div class="urgbtns" id="tUrg">${[1,2,3,4,5].map(n=>`<button type="button" data-u="${n}" class="u${n} ${t&&t.urgency==n?'on':''}" title="${URG_L[n]}">${n}</button>`).join("")}<span class="day" id="tUrgL"></span></div></div>
       </section>
 
       <section class="tsec s-people"><h5>${ic("users",15)} Cine lucrează</h5>
@@ -2847,11 +2867,16 @@ function openTask(t, preset){
   const paintSel = ()=>{
     q("#tSt").className = "colsel st-"+q("#tSt").value;
     q("#tPr").className = "colsel pr-"+q("#tPr").value;
+    q("#tUrgBox").classList.toggle("hidden", q("#tPr").value!=="high");
+    if(q("#tPr").value==="high" && !q("#tUrg").querySelector(".on")) q('#tUrg [data-u="3"]').classList.add("on");
+    const uo=q("#tUrg").querySelector(".on"); q("#tUrgL").textContent = uo ? URG_L[uo.dataset.u] : "";
     const pc = safeColor(PROJ.find(p=>p.id===q("#tProj").value)?.color);
     q("#tProj").style.setProperty("--pc", pc); dr.querySelector(".tdh").style.setProperty("--pc", pc);
     q("#tdhCat").textContent = (PROJ.find(p=>p.id===q("#tProj").value)||{}).name||"";
   };
-  ["#tSt","#tPr","#tProj"].forEach(id=>q(id).addEventListener("change", paintSel)); paintSel();
+  ["#tSt","#tPr","#tProj"].forEach(id=>q(id).addEventListener("change", paintSel));
+  q("#tUrg").querySelectorAll("button").forEach(b=>b.onclick=()=>{ q("#tUrg").querySelectorAll("button").forEach(x=>x.classList.toggle("on",x===b)); paintSel(); });
+  paintSel();
   setTimeout(()=>q("#tTitle").focus(),50);
   attachMention(q("#tNotes"));
   if(HAS_EST){
@@ -2966,7 +2991,8 @@ function openTask(t, preset){
     const due=q("#tDue").value||null;
     if(newSt==="review" && !q("#tRev").value){ q("#tErr").textContent="Alegeți cine verifică (câmpul „Verifică”)."; q("#tRev").focus(); return; }
     const rec={ title, project_id:pid, description:q("#tDesc").value.trim()||null, notes:q("#tNotes").value.trim()||null, status:newSt,
-      priority:q("#tPr").value, assignee_name:q("#tWho").value||null,
+      priority:q("#tPr").value, urgency: q("#tPr").value==="high" ? +((q("#tUrg").querySelector(".on")||{dataset:{u:3}}).dataset.u) : null,
+      assignee_name:q("#tWho").value||null,
       supporters:[...q("#tSup").querySelectorAll("button.on")].map(b=>b.dataset.n).filter(n=>n!==q("#tWho").value),
       reviewer:q("#tRev").value||null, updated_by_name:myFirst(),
       due_date:due, updated_at:new Date().toISOString() };
