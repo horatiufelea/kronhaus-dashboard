@@ -642,6 +642,10 @@
   .consel{width:auto;padding:8px 10px;font-size:13px}
   .consel.fon{border-color:#00843D;background:#EDF6F0;color:#00653E;font-weight:600}
   .constab tbody tr{cursor:pointer}
+  .srctab tbody tr{cursor:pointer}
+  .srctab tbody tr:hover td{background:#F1F8F3}
+  .srctab td{white-space:nowrap}
+  .constab td.r{white-space:nowrap}
   .constab tbody tr:hover td{background:#F1F8F3}
 
   /* ---- Echipă ---- */
@@ -794,6 +798,7 @@
       <button data-tab="stats" class="on">Statistici</button>
       <button data-tab="orders">Comenzi</button>
       <button data-tab="history">Istoric</button>
+      <button data-tab="sources">Consultanți și surse</button>
     </div>
 
     <div class="kpis tiles" id="kpis"></div>
@@ -843,13 +848,21 @@
         <div class="chart-card cc-blue"><h3><i data-ic="card" data-s="16"></i> Cum s-a plătit</h3><div class="cbox"><canvas id="chMethod"></canvas></div></div>
         <div class="chart-card cc-purple wide"><h3><i data-ic="euro" data-s="16"></i> Încasări pe zi</h3><div class="cbox"><canvas id="chDaily"></canvas></div></div>
         <div class="chart-card cc-amber wide"><h3><i data-ic="pin" data-s="16"></i> Comenzi pe oraș</h3><div class="cbox"><canvas id="chCity"></canvas></div></div>
-        <div class="chart-card cc-green wide"><h3><i data-ic="users" data-s="16"></i> Comenzi pe consultant</h3><p class="cnote">Consultantul ales de client la comandă („Kapcsolattartó” în UNAS)</p><div id="consTable"></div></div>
       </div>
     </div>
 
     <!-- ===== ISTORIC ===== -->
     <div id="viewHistory" class="hidden">
       <div id="historyWrap"></div>
+    </div>
+
+    <!-- ===== CONSULTANȚI ȘI SURSE ===== -->
+    <div id="viewSources" class="hidden">
+      <div class="chart-grid">
+        <div class="chart-card cc-green"><h3><i data-ic="users" data-s="16"></i> Comenzi pe consultant</h3><p class="cnote">Consultantul ales de client la comandă („Kapcsolattartó” în UNAS)</p><div id="consTable"></div></div>
+        <div class="chart-card cc-green"><h3><i data-ic="megaphone" data-s="16"></i> De unde vin clienții</h3><p class="cnote">Pagina de pe care a ajuns clientul în shop, înainte de comandă (UNAS)</p><div id="srcTable"></div></div>
+        <div class="chart-card cc-green wide"><h3><i data-ic="list" data-s="16"></i> Pe fiecare comandă</h3><div id="srcOrders"></div></div>
+      </div>
     </div>
   </div>
 
@@ -1157,6 +1170,7 @@ async function loadOrders(){
   render();
   if(activeMod==="comenzi" && activeTab==="stats") buildStats();
   if(activeMod==="comenzi" && activeTab==="history") loadHistory();
+  if(activeMod==="comenzi" && activeTab==="sources") buildSources();
   if(activeMod==="marketing") loadMarketing(true);
 }
 
@@ -1933,7 +1947,9 @@ function showTab(t){
   $("#viewOrders").classList.toggle("hidden", t!=="orders");
   $("#viewStats").classList.toggle("hidden", t!=="stats");
   $("#viewHistory").classList.toggle("hidden", t!=="history");
-  document.querySelectorAll(".tabs button").forEach(b=>b.classList.toggle("on", b.dataset.tab===t));
+  $("#viewSources").classList.toggle("hidden", t!=="sources");
+  document.querySelectorAll("#modComenzi .tabs button").forEach(b=>b.classList.toggle("on", b.dataset.tab===t));
+  if(t==="sources") buildSources();
   if(t==="stats") buildStats();
   if(t==="orders") buildTrend();
   if(t==="history") loadHistory();
@@ -1951,6 +1967,37 @@ function optVbar(){ return {maintainAspectRatio:false,responsive:true,
 function optDonut(){ return {maintainAspectRatio:false,responsive:true,cutout:"60%",
   plugins:{legend:{position:"bottom",labels:{boxWidth:12,padding:14}}}}; }
 
+// sursa: pagina de unde a venit clientul (UNAS Referer), pe înțelesul tuturor
+function refLabel(ref){
+  const r=String(ref||"").toLowerCase().replace(/^https?:\/\//,"").replace(/^www\./,"").split("/")[0];
+  if(!r) return "Direct / necunoscut";
+  if(/facebook|fb\.com|fb\.me/.test(r)) return "Facebook";
+  if(/instagram/.test(r)) return "Instagram";
+  if(/google\./.test(r)) return "Google";
+  if(/tiktok/.test(r)) return "TikTok";
+  if(/youtube|youtu\.be/.test(r)) return "YouTube";
+  if(/bing\./.test(r)) return "Bing";
+  if(/mail|gmail|outlook|freemail|citromail/.test(r)) return "Email";
+  if(/thermomix|vorwerk|cookidoo/.test(r)) return "Site Thermomix / Cookidoo";
+  return r;
+}
+function buildSources(){
+  buildConsTable();
+  const real=ROWS.filter(r=>r.is_real);
+  const by={}; real.forEach(r=>{ const k=refLabel(r._ref); const o=by[k]=by[k]||{n:0,c:0,ft:0,raw:new Set()}; o.n++; if(r._ref) o.raw.add(r._ref); if(r.is_confirmed_sale){ o.c++; o.ft+=Number(r.sum_gross||0); } });
+  const rows=Object.entries(by).sort((a,b)=>b[1].n-a[1].n);
+  const max=Math.max(1,...rows.map(([,o])=>o.n));
+  $("#srcTable").innerHTML = rows.length ? `<table class="items constab"><thead><tr><th>Sursă</th><th class="r">Comenzi</th><th class="r">Încasate</th><th class="r">Bani încasați</th><th></th></tr></thead><tbody>
+    ${rows.map(([k,o])=>`<tr title="${esc([...o.raw].join(", "))}"><td><b>${esc(k)}</b></td><td class="r">${o.n}</td><td class="r">${o.c}</td><td class="r">${ft(o.ft)}<div class="dsub">${eur(o.ft)}</div></td>
+      <td style="width:26%"><div class="pbar" style="margin:0"><i style="width:${Math.round(o.n*100/max)}%;background:#4FA874"></i></div></td></tr>`).join("")}</tbody></table>
+    <p class="cnote" style="margin-top:8px">„Direct / necunoscut” = clientul a scris adresa shopului, a venit dintr-o aplicație sau browserul n-a transmis de unde vine.</p>` : '<div class="empty">Nicio comandă.</div>';
+  const L=[...real].sort((a,b)=>(b.order_day||"").localeCompare(a.order_day||"")||(b._time||"").localeCompare(a._time||""));
+  $("#srcOrders").innerHTML = `<div class="tscroll"><table class="items srctab"><thead><tr><th>Data</th><th>Client</th><th>Consultant</th><th>Sursă</th><th class="r">Sumă</th><th>Încasată</th></tr></thead><tbody>
+    ${L.map(r=>`<tr data-k="${esc(r.key)}"><td>${esc(roDay(r.order_day))}${r._time?', '+esc(r._time):''}</td><td><b>${esc(r.customer_name)||'—'}</b></td><td>${esc(r._cons)||'<span class="lmuted">—</span>'}</td>
+      <td title="${esc(r._ref||'')}">${esc(refLabel(r._ref))}</td><td class="r">${ft(r.sum_gross)}</td><td>${r.is_confirmed_sale?'<span class="chip c-ok">da</span>':'<span class="chip c-warn">nu încă</span>'}</td></tr>`).join("")}
+    </tbody></table></div>`;
+  $("#srcOrders").querySelectorAll("tr[data-k]").forEach(tr=>tr.onclick=()=>openDetail(tr.dataset.k));
+}
 function buildConsTable(){
   const box=$("#consTable"); if(!box) return;
   const real=ROWS.filter(r=>r.is_real), by={};
@@ -1965,7 +2012,6 @@ function buildConsTable(){
     const ob=document.querySelector('[data-tab="orders"]'); if(ob) ob.click(); render(); });
 }
 function buildStats(){
-  buildConsTable();
   if(typeof Chart==="undefined"){ return; }
   destroyCharts();
   Chart.defaults.font.family=C_FONT;
