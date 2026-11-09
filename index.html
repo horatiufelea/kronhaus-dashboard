@@ -2165,7 +2165,7 @@ function attachMention(ta){
 }
 const BUCKET = "task-files";
 let PROJ=[], TASKS=[], CUR_PROJ="all", SHOW_ARCH=false, PVIEW="dash", TL_ZOOM="auto", PCH={}, CAL_M=null;
-let F = { q:"", who:"", pr:"", late:false, due:"" };
+let F = { q:"", who:"", pr:"", st:"", late:false, due:"" };
 // spațiu: „team” = categoriile comune, „me” = categoriile mele private (le vede doar proprietarul — regulă în baza de date)
 let PSPACE = (()=>{ try{ return localStorage.getItem("kh_pspace")==="me" ? "me" : "team"; }catch(e){ return "team"; } })();
 let ALLPROJ = [], ALLTASKS = [];
@@ -2272,6 +2272,7 @@ function applyF(list){
   return list.filter(t=>{
     if(F.who && t.assignee_name!==F.who && !(t.supporters||[]).includes(F.who)) return false;
     if(F.pr && (t.priority||"med")!==F.pr) return false;
+    if(F.st && !stMatch(t, F.st)) return false;
     if(F.late && !isLate(t)) return false;
     if(F.due && !dueMatch(t, F.due)) return false;
     if(q){
@@ -2282,7 +2283,8 @@ function applyF(list){
   });
 }
 const viewTasks = () => applyF(topLevel(scopeTasks()));
-const filtersOn = () => !!(F.q||F.who||F.pr||F.late||F.due);
+const stMatch = (t, k) => k==="open" ? (t.status||"todo")!=="done" : (t.status||"todo")===k;
+const filtersOn = () => !!(F.q||F.who||F.pr||F.st||F.late||F.due);
 
 function renderProjects(){
   const visible = PROJ.filter(p=>SHOW_ARCH || !p.archived || p.id===CUR_PROJ);
@@ -2338,6 +2340,7 @@ function projHeader(){
       <div class="srch">${ic("search",15)}<input type="text" id="fQ" placeholder="Caută în taskuri și subtaskuri…" value="${esc(F.q)}"></div>
       <select id="fWho"><option value="">Toți colegii</option>${people.map(n=>`<option ${n===F.who?'selected':''}>${esc(n)}</option>`).join("")}</select>
       <select id="fPr"><option value="">Orice prioritate</option>${Object.entries(T_PRIO).map(([k,l])=>`<option value="${k}" ${F.pr===k?'selected':''}>${l}</option>`).join("")}</select>
+      <select id="fSt" class="${F.st?'fon':''}"><option value="">Orice stare</option>${[{k:"open",l:"Nefinalizate"},...T_STATUS].map(s=>`<option value="${s.k}" ${F.st===s.k?'selected':''}>${s.l} (${all.filter(t=>stMatch(t,s.k)).length})</option>`).join("")}</select>
       <select id="fDue" class="${F.due?'fon':''}"><option value="">Orice termen</option>${Object.entries(DUE_F).map(([k,l])=>`<option value="${k}" ${F.due===k?'selected':''}>${l} (${all.filter(t=>dueMatch(t,k)).length})</option>`).join("")}</select>
       <label class="chk"><input type="checkbox" id="fLate" ${F.late?'checked':''}> Doar întârziate</label>
       ${filtersOn()?'<button class="btn ghost sm" id="fClear">'+ic("x",14)+'Șterge filtrele</button>':''}
@@ -2349,9 +2352,10 @@ function wireHeader(){
     const i=$("#fQ"); if(i){ i.focus(); try{ i.setSelectionRange(pos,pos); }catch(_){} } };
   $("#fWho").onchange=e=>{ F.who=e.target.value; renderProjects(); };
   $("#fPr").onchange=e=>{ F.pr=e.target.value; renderProjects(); };
+  $("#fSt").onchange=e=>{ F.st=e.target.value; renderProjects(); };
   $("#fLate").onchange=e=>{ F.late=e.target.checked; renderProjects(); };
   $("#fDue").onchange=e=>{ F.due=e.target.value; renderProjects(); };
-  const fc=$("#fClear"); if(fc) fc.onclick=()=>{ F={q:"",who:"",pr:"",late:false,due:""}; renderProjects(); };
+  const fc=$("#fClear"); if(fc) fc.onclick=()=>{ F={q:"",who:"",pr:"",st:"",late:false,due:""}; renderProjects(); };
   $("#addTaskTop").onclick=()=>openTask(null,{status:"todo"});
   if(!p) return;
   $("#editProj").onclick=()=>openProjModal(p);
