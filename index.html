@@ -665,6 +665,7 @@
   /* ---- Consultanți ---- */
   .cssw{display:flex;gap:18px;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;margin-bottom:14px;border-left:4px solid #A8A29E}
   .cssw.on{border-left-color:#00843D;background:#EFF7F2}
+  .hint.cserr{border-color:#E8B4AE;background:#FDF3F2;color:#8C2A20}
   .csswt{flex:1;min-width:280px} .csswt h3{margin:0 0 6px}
   .csswr{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
   .csstate{font-size:12px;font-weight:700;letter-spacing:.06em;padding:5px 10px;border-radius:6px;background:#E7E5E4;color:#57534E}
@@ -803,7 +804,7 @@
       <button data-mod="proiecte"><i data-ic="kanban"></i><span>Proiecte</span><em class="cnt" id="navCntProj"></em></button>
       <button data-mod="marketing"><i data-ic="megaphone"></i><span>Marketing</span></button>
       <button data-mod="contracte"><i data-ic="sign"></i><span>Contracte</span><em class="cnt" id="navCntCtr"></em></button>
-      <button data-mod="consultanti"><i data-ic="users"></i><span>Consultanți</span><em class="cnt" id="navCntCons"></em></button>
+      <button data-mod="consultanti" id="navCons" class="hidden"><i data-ic="users"></i><span>Consultanți</span><em class="cnt" id="navCntCons"></em></button>
       <button data-mod="echipa" id="navTeam" class="hidden"><i data-ic="users"></i><span>Echipă</span><em class="cnt">admin</em></button>
     </nav>
     <div class="sfoot">
@@ -1859,8 +1860,11 @@ async function csCall(payload){
   const j = await r.json().catch(()=>({ ok:false, error:"răspuns necitibil ("+r.status+")" }));
   if(!j.ok) throw new Error(j.error||("eroare "+r.status)); return j;
 }
+let CS_CHECK=null;   // legătura cu căsuța office@ (verificată o dată pe sesiune)
 async function loadConsultants(){
+  if(!IS_ADMIN){ $("#csTop").innerHTML=""; $("#csTpl").innerHTML=""; $("#csLog").innerHTML=""; $("#csWrap").innerHTML='<div class="empty">Pagina e deocamdată doar pentru administrator.</div>'; return; }
   if(CONS===null) $("#csWrap").innerHTML='<div class="empty">Se încarcă…</div>';
+  if(CS_CHECK===null){ CS_CHECK={ pending:true }; csCall({ check:true }).then(j=>{ CS_CHECK=j; }).catch(e=>{ CS_CHECK={ ok:false, error:e.message }; }).finally(()=>{ if(activeMod==="consultanti" && CONS) renderConsultants(); }); }
   const [c,st,l] = await Promise.all([
     sb.from("consultants").select("*").order("name"),
     sb.from("app_settings").select("key,value,updated_at,updated_by").in("key",["consultant_emails","consultant_email_tpl"]),
@@ -1887,11 +1891,13 @@ function renderConsultants(){
   document.querySelectorAll("#modConsultanti .csadm").forEach(x=>x.classList.toggle("hidden", !IS_ADMIN));
   $("#csTop").innerHTML = `<div class="chart-card cssw ${on?'on':''}">
     <div class="csswt"><h3>${ic("mail",16)} Email automat către consultant când comanda pleacă în livrare</h3>
-      <p class="cnote">Când o comandă trece în UNAS în starea <b>„Kiszállítás”</b>, consultantul ales de client primește un email în maghiară (șablonul de mai jos). Pleacă de pe <b>taskuri@kronhaus.hu</b>; dacă răspunde, răspunsul ajunge la <b>office@kronhaus.hu</b>. Fiecare comandă — o singură dată.</p>
+      <p class="cnote">Când o comandă trece în UNAS în starea <b>„Kiszállítás”</b>, consultantul ales de client primește un email în maghiară (șablonul de mai jos). Pleacă de pe <b>office@kronhaus.hu</b>, iar dacă consultantul răspunde, răspunsul ajunge tot acolo. Fiecare comandă — o singură dată.</p>
       ${on && CS_SET.since?`<p class="cnote" style="margin-top:4px">Pornit din ${new Date(CS_SET.since).toLocaleString("ro-RO")}. Comenzile care erau deja în livrare înainte nu primesc email.</p>`:''}</div>
     <div class="csswr"><span class="csstate ${on?'on':''}">${on?'PORNIT':'OPRIT'}</span>
       ${IS_ADMIN?`<button class="btn sm ${on?'ghost':'go'}" id="csToggle">${on?'Oprește':'Pornește trimiterea'}</button>
       <button class="btn ghost sm" id="csTest">${ic("mail",14)}Trimite-mi un email de test</button>`:''}</div></div>
+    ${CS_CHECK && CS_CHECK.ok===false ? `<div class="hint cserr" style="margin-bottom:12px">${ic("alert",16)}<span><b>Emailurile nu pot pleca încă de pe office@kronhaus.hu.</b> ${esc(CS_CHECK.error||"")}</span></div>`
+      : CS_CHECK && CS_CHECK.ok ? `<p class="cnote" style="margin:-6px 0 12px">${ic("check",13)} Legătura cu căsuța <b>${esc(CS_CHECK.from||"office@kronhaus.hu")}</b> funcționează.</p>` : ''}
     ${IS_ADMIN&&missing?`<div class="hint" style="margin-bottom:12px">${ic("alert",16)}<span><b>${missing} ${missing===1?'consultant are':'consultanți au'} comenzi, dar nu ${missing===1?'are':'au'} email</b> — nu vor primi nimic până nu completați emailul (sau importați lista din Excel).</span></div>`:''}`;
   const q=csNorm(CSQ);
   const L=rows.filter(r=>!q || csNorm([r.name, r.c&&r.c.email, r.c&&r.c.phone].join(" ")).includes(q));
@@ -2392,6 +2398,7 @@ async function loadTeam(){
     IS_ADMIN = data.some(r=>r.email===ME.email && r.role==="admin" && r.active);
   }catch(e){ /* rămâne lista de rezervă */ }
   const nb=$("#navTeam"); if(nb) nb.classList.toggle("hidden", !IS_ADMIN);
+  const ncs=$("#navCons"); if(ncs) ncs.classList.toggle("hidden", !IS_ADMIN);     // Consultanți: deocamdată doar administratorul (cererea owner-ului)
 }
 
 /* @mențiuni: când scrii „@” într-o observație apare lista colegilor */
