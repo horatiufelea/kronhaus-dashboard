@@ -582,6 +582,10 @@
   .adcard h3 .ico{color:#2E6B4A}
   .adnums > div{background:#fff;border:1px solid #CFE6D8;border-radius:8px;padding:8px 14px;min-width:120px}
   .adnums b{color:#2E6B4A}
+  .adnums em{display:block;font-style:normal;font-size:12px;color:var(--muted);margin-top:2px}
+  .adnums > div.adtot{background:#00653E;border-color:#00653E}
+  .adnums > div.adtot b, .adnums > div.adtot span, .adnums > div.adtot em{color:#fff}
+  .adnums > div.adtot em{opacity:.85}
   @media (max-width:900px){ .kpis.tiles{grid-template-columns:1fr 1fr} }
 
   /* ---- paletă doar verde (suprascrie culorile de mai sus) ---- */
@@ -2404,15 +2408,25 @@ function adStats(){
            month:adSum(ADH.filter(x=>x.day.slice(0,7)===mon)), byKind };
 }
 const adKindBar = (byKind, total) => total ? `<div class="adbar">${byKind.map(x=>`<i style="width:${(x.m*100/total).toFixed(1)}%;background:${AD_KIND[x.k].c}" title="${AD_KIND[x.k].l}: ${fmtEst(x.m)}"></i>`).join("")}</div>` : "";
-function adDashCard(){
-  if(!HAS_ADHOC) return "";
-  if(ADH===null) return `<div class="chart-card adcard"><h3>${ic("timer",16)} Timpul tău ad-hoc</h3><p class="cnote">Se încarcă…</p></div>`;
-  const st=adStats();
+/* Rezumat: timpii adunați — pe taskuri (filtrul curent) + ad-hoc (doar al tău), fără detalii */
+function timeCard(L){
+  if(!HAS_EST && !HAS_ADHOC) return "";
+  const sum = (l,f) => l.reduce((a,t)=>a+(+t[f]||0),0);
+  const m = v => fmtEst(v) || "0 min";
+  const est = HAS_EST ? sum(L,"estimate_min") : 0, real = HAS_EST ? sum(L,"actual_min") : 0;
+  const left = HAS_EST ? sum(L.filter(t=>t.status!=="done"),"estimate_min") : 0;
+  const me = myFirst(), myReal = HAS_EST ? sum(L.filter(t=>t.assignee_name===me),"actual_min") : 0;
+  const adOk = HAS_ADHOC && ADH!==null, st = adOk ? adStats() : null, adAll = adOk ? adSum(ADH) : 0;
+  const scope = (CUR_PROJ==="all" ? (PSPACE==="me" ? "toate categoriile tale" : "toate categoriile") : "categoria aleasă")
+              + ((F.q||F.who||F.pr||F.due||F.late) ? ", cu filtrele de sus" : "");
+  const tiles = [];
+  if(HAS_EST) tiles.push(`<div><b>${m(real)}</b><span>timp real pe taskuri</span><em>estimat ${m(est)} · mai rămân ${m(left)}</em></div>`);
+  if(HAS_ADHOC) tiles.push(`<div><b>${adOk?m(adAll):"…"}</b><span>ad-hoc (doar tu vezi)</span><em>${adOk?`luna aceasta ${m(st.month)} · azi ${m(st.today)}`:"se încarcă…"}</em></div>`);
+  if(HAS_EST && HAS_ADHOC) tiles.push(`<div class="adtot"><b>${adOk?m(myReal+adAll):"…"}</b><span>timpul tău, adunat</span><em>taskurile tale ${m(myReal)} + ad-hoc ${adOk?m(adAll):"…"}</em></div>`);
   return `<div class="chart-card adcard">
-    <div class="adch"><h3>${ic("timer",16)} Timpul tău ad-hoc <span class="adpriv">doar tu vezi</span></h3><button class="btn ghost sm" id="adDashGo">Deschide Ad-hoc →</button></div>
-    <div class="adnums"><div><b>${fmtEst(st.today)||"0 min"}</b><span>azi</span></div><div><b>${fmtEst(st.week)||"0 min"}</b><span>ultimele 7 zile · ${st.weekN} ${st.weekN===1?'intrare':'intrări'}</span></div><div><b>${fmtEst(st.month)||"0 min"}</b><span>luna aceasta</span></div></div>
-    ${st.week ? adKindBar(st.byKind, st.week) + `<div class="adleg">${st.byKind.map(x=>`<span><i style="background:${AD_KIND[x.k].c}"></i>${AD_KIND[x.k].l} ${fmtEst(x.m)}</span>`).join("")}</div>`
-      : `<p class="cnote" style="margin:4px 0 0">Nimic notat în ultimele 7 zile. Suportul rapid, emailurile și meetingurile se trec în „Ad-hoc”.</p>`}
+    <div class="adch"><h3>${ic("timer",16)} Timp lucrat</h3>${HAS_ADHOC?`<button class="btn ghost sm" id="adDashGo">Deschide Ad-hoc →</button>`:''}</div>
+    <div class="adnums">${tiles.join("")}</div>
+    <p class="cnote" style="margin:0">Taskuri: ${scope}. Ad-hoc: tot ce ai notat tu.</p>
   </div>`;
 }
 function renderAdhoc(){
@@ -2582,7 +2596,7 @@ function renderProjDash(){
 
   $("#projWrap").innerHTML = projHeader() + `
     <div class="kpis tiles">${kp}</div>
-    ${adDashCard()}
+    ${timeCard(L)}
     <div class="chart-grid">
       ${CUR_PROJ==="all"?`<div class="chart-card wide cc-ink"><h3>${ic("columns",16)} Categorii</h3><div class="pgrid">${projCards||'<div class="empty">Nicio categorie activă.</div>'}</div></div>`:''}
       <div class="chart-card cc-blue"><h3>${ic("users",16)} Pe cine e munca</h3><p class="cnote">Taskuri pe colegă, după stare</p><div class="cbox"><canvas id="pWho"></canvas></div></div>
