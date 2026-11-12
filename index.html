@@ -2409,7 +2409,9 @@ function adStats(){
 }
 const adKindBar = (byKind, total) => total ? `<div class="adbar">${byKind.map(x=>`<i style="width:${(x.m*100/total).toFixed(1)}%;background:${AD_KIND[x.k].c}" title="${AD_KIND[x.k].l}: ${fmtEst(x.m)}"></i>`).join("")}</div>` : "";
 /* Rezumat: timpii adunați — pe taskuri (filtrul curent) + ad-hoc (doar al tău), fără detalii */
+const SHOW_TIMECARD = false;   // ascuns deocamdată, la cererea owner-ului (2026-11-12) — pune true ca să reapară
 function timeCard(L){
+  if(!SHOW_TIMECARD) return "";
   if(!HAS_EST && !HAS_ADHOC) return "";
   const sum = (l,f) => l.reduce((a,t)=>a+(+t[f]||0),0);
   const m = v => fmtEst(v) || "0 min";
