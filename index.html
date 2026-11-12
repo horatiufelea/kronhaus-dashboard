@@ -1642,7 +1642,7 @@ async function loadInvoices(){
   if(error){ $("#iWrap").innerHTML='<div class="empty">Eroare: '+esc(error.message)+'</div>'; return; }
   INV = (data||[]).map(x=>({ ...x, partner_name:unent(x.partner_name), details:deepUnent(x.details||{}) }));
   const last = INV.reduce((m,x)=>x.synced_at>m?x.synced_at:m,"");
-  $("#invSync").innerHTML = ic("refresh",13)+" Date din Számlázz.hu · se actualizează cu butonul „Actualizează” · ultima dată: "+(last?new Date(last).toLocaleString("ro-RO"):"—");
+  $("#invSync").innerHTML = ic("refresh",13)+" Date din Számlázz.hu · se actualizează automat din oră în oră (07–19) · ultima dată: "+(last?new Date(last).toLocaleString("ro-RO"):"—");
   const years=[...new Set(INV.map(x=>(x.kelt||"").slice(0,4)).filter(Boolean))].sort().reverse();
   if(!years.includes(INVF.year)) years.unshift(INVF.year);
   $("#iYear").innerHTML = years.map(y=>`<option ${y===INVF.year?'selected':''}>${y}</option>`).join("") + `<option value="all" ${INVF.year==="all"?'selected':''}>Toți anii</option>`;
