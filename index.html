@@ -663,6 +663,15 @@
   .constab tbody tr:hover td{background:#F1F8F3}
 
   /* ---- Consultanți ---- */
+  .csdot{font-size:11px;font-weight:700;margin-left:6px;padding:2px 7px;border-radius:10px;background:#E7E5E4;color:#57534E;vertical-align:1px}
+  .csdot.on{background:#00653E;color:#fff}
+  .csnews textarea{font-family:inherit;line-height:1.5}
+  .csnpick{border:1px solid var(--line);border-radius:8px;padding:8px 12px;margin-top:8px;max-height:280px;overflow:auto;background:#fff}
+  .csnpick label{display:flex;gap:8px;align-items:center;font-weight:400;margin:4px 0;font-size:13.5px}
+  .csnpick input{width:auto}
+  .csnpa{font-size:12.5px;margin-bottom:4px}
+  .csbcbody{background:#F7F7F6;border:1px solid var(--line);border-radius:8px;padding:10px 12px;font-size:13.5px;line-height:1.5}
+  #csNewsHist tbody tr{cursor:pointer}
   .cssw{display:flex;gap:18px;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;margin-bottom:14px;border-left:4px solid #A8A29E}
   .cssw.on{border-left-color:#00843D;background:#EFF7F2}
   .hint.cserr{border-color:#E8B4AE;background:#FDF3F2;color:#8C2A20}
@@ -973,7 +982,12 @@
 
   <!-- ################ MODUL CONSULTANȚI ################ -->
   <div id="modConsultanti" class="hidden">
-    <div id="csTop"></div>
+    <div class="tabs" id="csTabs">
+      <button data-cs="list" class="on">Lista consultanților</button>
+      <button data-cs="auto">Email la livrare</button>
+      <button data-cs="news">Informare generală</button>
+    </div>
+    <div id="csPList">
     <div class="toolbar">
       <input class="grow" type="text" id="csSearch" placeholder="Caută consultant, email sau telefon…">
       <span style="flex:1"></span>
@@ -982,8 +996,13 @@
       <button class="btn csadm hidden" id="csAdd">+ Consultant</button>
     </div>
     <div id="csWrap"><div class="empty">Se încarcă…</div></div>
-    <div id="csTpl"></div>
-    <div id="csLog"></div>
+    </div>
+    <div id="csPAuto" class="hidden">
+      <div id="csTop"></div>
+      <div id="csTpl"></div>
+      <div id="csLog"></div>
+    </div>
+    <div id="csPNews" class="hidden"><div id="csNews"></div><div id="csNewsHist"></div></div>
   </div>
 
   <!-- ################ MODUL ECHIPĂ (doar administrator) ################ -->
@@ -1845,7 +1864,16 @@ $("#iSearch").addEventListener("input", e=>{ INVF.q=e.target.value; renderInvoic
 $("#iYear").addEventListener("change", e=>{ INVF.year=e.target.value; renderInvoices(); });
 
 /* ===================== CONSULTANȚI (lista + email automat la „Kiszállítás”) ===================== */
-let CONS=null, CS_SET={enabled:false}, CS_TPL=null, CS_LOG=[], CSQ="";
+let CONS=null, CS_SET={enabled:false}, CS_TPL=null, CS_LOG=[], CSQ="", CS_BC=[], CS_TAB="list";
+const CS_DKEY="kh_cs_news_draft";
+const csDraft = ()=>{ try{ return JSON.parse(localStorage.getItem(CS_DKEY)||"{}"); }catch(e){ return {}; } };
+const csDraftSet = d=>{ try{ localStorage.setItem(CS_DKEY, JSON.stringify(d)); }catch(e){} };
+function csShowTab(t){
+  CS_TAB=t;
+  document.querySelectorAll("#csTabs button").forEach(b=>b.classList.toggle("on", b.dataset.cs===t));
+  $("#csPList").classList.toggle("hidden", t!=="list"); $("#csPAuto").classList.toggle("hidden", t!=="auto"); $("#csPNews").classList.toggle("hidden", t!=="news");
+}
+$("#csTabs").addEventListener("click", e=>{ const b=e.target.closest("button"); if(b) csShowTab(b.dataset.cs); });
 const CS_DEFAULT = { subject:"Kiszállítás alatt: {vasarlo} Thermomix rendelése (#{rendeles})",
   body:"Kedves {konzulens}!\n\nÖrömmel értesítjük, hogy {vasarlo} Thermomix rendelése kiszállítás alatt van. A vásárló Önt jelölte meg kapcsolattartóként.\n\n{adatok}\n\nKérjük, vegye fel a kapcsolatot a vásárlóval az átadás és a bemutató egyeztetése érdekében.\n\nÜdvözlettel,\nKronHaus Kft. – Thermomix Magyarország" };
 const CS_FIELDS = [["konzulens","numele consultantului"],["vasarlo","numele clientului"],["telefon","telefonul clientului"],["email","emailul clientului"],
@@ -1865,10 +1893,12 @@ async function loadConsultants(){
   if(!IS_ADMIN){ $("#csTop").innerHTML=""; $("#csTpl").innerHTML=""; $("#csLog").innerHTML=""; $("#csWrap").innerHTML='<div class="empty">Pagina e deocamdată doar pentru administrator.</div>'; return; }
   if(CONS===null) $("#csWrap").innerHTML='<div class="empty">Se încarcă…</div>';
   if(CS_CHECK===null){ CS_CHECK={ pending:true }; csCall({ check:true }).then(j=>{ CS_CHECK=j; }).catch(e=>{ CS_CHECK={ ok:false, error:e.message }; }).finally(()=>{ if(activeMod==="consultanti" && CONS) renderConsultants(); }); }
-  const [c,st,l] = await Promise.all([
+  const [c,st,l,bc] = await Promise.all([
     sb.from("consultants").select("*").order("name"),
     sb.from("app_settings").select("key,value,updated_at,updated_by").in("key",["consultant_emails","consultant_email_tpl"]),
-    sb.from("consultant_email_log").select("*").order("sent_at",{ascending:false}).limit(40) ]);
+    sb.from("consultant_email_log").select("*").order("sent_at",{ascending:false}).limit(40),
+    sb.from("consultant_broadcasts").select("*").order("created_at",{ascending:false}).limit(20) ]);
+  CS_BC = (bc && bc.data) || [];
   if(c.error){ $("#csWrap").innerHTML='<div class="empty">Eroare: '+esc(c.error.message)+'</div>'; return; }
   CONS=c.data||[]; const S=st.data||[];
   CS_SET=(S.find(x=>x.key==="consultant_emails")||{}).value||{enabled:false};
@@ -1901,6 +1931,7 @@ function renderConsultants(){
     ${IS_ADMIN&&missing?`<div class="hint" style="margin-bottom:12px">${ic("alert",16)}<span><b>${missing} ${missing===1?'consultant are':'consultanți au'} comenzi, dar nu ${missing===1?'are':'au'} email</b> — nu vor primi nimic până nu completați emailul (sau importați lista din Excel).</span></div>`:''}`;
   const q=csNorm(CSQ);
   const L=rows.filter(r=>!q || csNorm([r.name, r.c&&r.c.email, r.c&&r.c.phone].join(" ")).includes(q));
+  const withMail=(CONS||[]).filter(c=>csEmailOk(c.email)).length;
   $("#csWrap").innerHTML = L.length ? `<div class="tscroll"><table class="itable cstable">
     <thead><tr><th>Consultant <span class="lmuted" style="font-weight:400">(cum apare în UNAS)</span></th><th>Email</th><th>Telefon</th><th class="r">Comenzi</th><th class="r">Încasate</th><th class="r">Bani încasați</th><th>Ultimul email</th><th>Primește email</th>${IS_ADMIN?'<th></th>':''}</tr></thead>
     <tbody>${L.map(r=>{ const c=r.c, em=c&&c.email, ok=csEmailOk(em);
@@ -1913,12 +1944,14 @@ function renderConsultants(){
         <td>${r.last?ago(r.last):'<span class="lmuted">—</span>'}</td>
         <td>${!c||!ok?'<span class="chip c-grey">nu (fără email)</span>':c.notify?'<span class="chip c-ok">da</span>':'<span class="chip c-grey">oprit</span>'}</td>
         ${IS_ADMIN?`<td><div class="tmact"><button class="btn ghost sm" data-edit>${c?'Editează':'Adaugă email'}</button></div></td>`:''}</tr>`; }).join("")}</tbody></table></div>
-    <p class="cnote" style="margin-top:8px">Numele trebuie să fie scris exact ca în lista din UNAS (cum îl alege clientul la „Kapcsolattartó”). Cifrele vin din comenzile reale.</p>`
+    <p class="cnote" style="margin-top:8px">${(CONS||[]).length} în listă · ${withMail} cu email. Numele trebuie să fie scris exact ca în lista din UNAS (cum îl alege clientul la „Kapcsolattartó”). Cifrele vin din comenzile reale.</p>`
     : '<div class="empty">Niciun consultant găsit.</div>';
   $("#csWrap").querySelectorAll("tr[data-n]").forEach(tr=>{ const b=tr.querySelector("[data-edit]"); if(b) b.onclick=()=>{ const n=tr.dataset.n; csForm((CONS||[]).find(c=>c.name===n)||{ name:n }); }; });
   const tg=$("#csToggle"); if(tg) tg.onclick=csToggle;
   const ts=$("#csTest"); if(ts) ts.onclick=()=>csTest();
-  renderCsTpl(); renderCsLog();
+  renderCsTpl(); renderCsLog(); renderCsNews();
+  const tl=document.querySelector('#csTabs [data-cs="auto"]'); if(tl) tl.innerHTML = 'Email la livrare <span class="csdot '+(on?'on':'')+'">'+(on?'pornit':'oprit')+'</span>';
+  csShowTab(CS_TAB);
 }
 async function csToggle(){
   const on=!!CS_SET.enabled;
@@ -2035,6 +2068,65 @@ function csImport(aoa, fname){
     if(err){ b.disabled=false; b.textContent="Încearcă din nou"; dr.querySelector("#csImpErr").textContent="Eroare: "+err; return; }
     close(); toast("Import gata ✓ — "+todo.length+" "+(todo.length===1?"rând":"rânduri")); loadConsultants();
   };
+}
+/* ---- informare generală către consultanți ---- */
+function renderCsNews(){
+  const list=(CONS||[]).filter(c=>csEmailOk(c.email)).sort((a,b)=>a.name.localeCompare(b.name,"hu"));
+  const d=csDraft(); const pick=new Set(d.ids||[]); const mode=d.mode==="pick"?"pick":"all";
+  $("#csNews").innerHTML = `<div class="chart-card csnews"><h3>${ic("mail",16)} Informare generală către consultanți</h3>
+    <p class="cnote">Pleacă de pe <b>office@kronhaus.hu</b>. Fiecare consultant primește emailul <b>separat</b> — nu vede adresele celorlalți. Scrieți <b>{konzulens}</b> unde vreți să apară numele fiecăruia. Linkurile (https://…) devin clicabile. Textul se păstrează aici până îl trimiteți.</p>
+    <label>Subiect</label><input type="text" id="csNS" maxlength="300" value="${esc(d.subject||'')}" placeholder="ex. Új Thermomix akció novemberben">
+    <label>Text</label><textarea id="csNB" rows="12" maxlength="20000" placeholder="Kedves {konzulens}!&#10;&#10;…&#10;&#10;Üdvözlettel,&#10;KronHaus Kft. – Thermomix Magyarország">${esc(d.body||'')}</textarea>
+    <label>Cui trimitem?</label>
+    <div class="seg" id="csNTo"><button data-t="all" class="${mode==='all'?'on':''}">Toți consultanții cu email (${list.length})</button><button data-t="pick" class="${mode==='pick'?'on':''}">Aleg eu</button></div>
+    <div id="csNPick" class="csnpick ${mode==='pick'?'':'hidden'}">
+      <div class="csnpa"><a href="#" id="csNAll">toți</a> · <a href="#" id="csNNone">niciunul</a></div>
+      ${list.map(c=>`<label><input type="checkbox" value="${esc(c.id)}" ${pick.has(c.id)?'checked':''}> ${esc(c.name)} <span class="lmuted">${esc(c.email)}</span></label>`).join("")}
+    </div>
+    <div class="actions"><button class="btn ghost" id="csNTest">${ic("mail",14)}Trimite-mi un test</button><button class="btn go" id="csNSend"></button></div>
+    <div class="err" id="csNErr"></div></div>`;
+  const W=$("#csNews"), q=x=>W.querySelector(x);
+  const ids=()=> q("#csNTo .on").dataset.t==="pick" ? [...W.querySelectorAll("#csNPick input:checked")].map(i=>i.value) : [];
+  const count=()=> q("#csNTo .on").dataset.t==="pick" ? ids().length : list.length;
+  const save=()=>csDraftSet({ subject:q("#csNS").value, body:q("#csNB").value, mode:q("#csNTo .on").dataset.t, ids:[...W.querySelectorAll("#csNPick input:checked")].map(i=>i.value) });
+  const paint=()=>{ const n=count(); q("#csNSend").textContent = "Trimite la "+n+" "+(n===1?"consultant":"consultanți"); q("#csNSend").disabled = !n; save(); };
+  q("#csNS").addEventListener("input",save); q("#csNB").addEventListener("input",save);
+  q("#csNTo").querySelectorAll("button").forEach(b=>b.onclick=()=>{ q("#csNTo").querySelectorAll("button").forEach(x=>x.classList.toggle("on",x===b)); q("#csNPick").classList.toggle("hidden", b.dataset.t!=="pick"); paint(); });
+  W.querySelectorAll("#csNPick input").forEach(i=>i.onchange=paint);
+  q("#csNAll").onclick=e=>{ e.preventDefault(); W.querySelectorAll("#csNPick input").forEach(i=>i.checked=true); paint(); };
+  q("#csNNone").onclick=e=>{ e.preventDefault(); W.querySelectorAll("#csNPick input").forEach(i=>i.checked=false); paint(); };
+  const val=()=>{ const subject=q("#csNS").value.trim(), body=q("#csNB").value.trim(); q("#csNErr").textContent="";
+    if(!subject || !body){ q("#csNErr").textContent="Scrieți subiectul și textul."; return null; } return { subject, body }; };
+  q("#csNTest").onclick=async()=>{ const v=val(); if(!v) return; const b=q("#csNTest"); b.disabled=true;
+    try{ const j=await csCall({ broadcast:true, test:true, ...v, ids:ids() }); toast("Test trimis la "+j.to+" ✓ — ar pleca la "+j.would_send+" consultanți"); }
+    catch(e){ q("#csNErr").textContent="Eroare: "+e.message; } finally{ b.disabled=false; } };
+  q("#csNSend").onclick=async()=>{ const v=val(); if(!v) return; const n=count(); if(!n) return;
+    if(!confirm(`Trimiteți informarea „${v.subject}” la ${n} ${n===1?'consultant':'consultanți'}?\n\nFiecare primește emailul separat, de pe office@kronhaus.hu. Odată trimisă, nu se mai poate opri.`)) return;
+    const b=q("#csNSend"); b.disabled=true; b.innerHTML='<span class="spin"></span>Se trimite… (cca. '+Math.max(5,Math.round(n*1.8))+' secunde)';
+    try{ const j=await csCall({ broadcast:true, ...v, ids:ids() });
+      toast("Informare trimisă ✓ — "+j.sent+" din "+j.total+(j.failed?" ("+j.failed+" nu au mers)":""));
+      csDraftSet({}); await loadConsultants(); csShowTab("news");
+    }catch(e){ q("#csNErr").textContent="Eroare: "+e.message; b.disabled=false; paint(); } };
+  paint();
+  // istoric
+  $("#csNewsHist").innerHTML = CS_BC.length ? `<div class="chart-card" style="margin-top:14px"><h3>${ic("clock",16)} Informări trimise</h3><div class="tscroll"><table class="itable">
+    <thead><tr><th>Când</th><th>Subiect</th><th>Trimisă de</th><th class="r">Primită de</th><th>Probleme</th></tr></thead><tbody>
+    ${CS_BC.map(x=>`<tr data-id="${esc(x.id)}"><td>${fdts(x.created_at)}</td><td><b>${esc(x.subject)}</b></td><td>${esc(x.sent_by||'—')}</td><td class="r">${x.sent} / ${x.total}</td>
+      <td>${x.failed?`<span class="chip c-err">${x.failed} nu au mers</span>`:'<span class="chip c-ok">niciuna</span>'}</td></tr>`).join("")}</tbody></table></div></div>` : "";
+  $("#csNewsHist").querySelectorAll("tr[data-id]").forEach(tr=>tr.onclick=()=>csBcDetail(CS_BC.find(x=>x.id===tr.dataset.id)));
+}
+function csBcDetail(x){
+  if(!x) return;
+  const scrim=document.createElement("div"); scrim.className="scrim";
+  const dr=document.createElement("div"); dr.className="drawer";
+  const R=Array.isArray(x.results)?x.results:[];
+  dr.innerHTML=`<header><div><p class="dtitle">${esc(x.subject)}</p><p class="dsub">${fdts(x.created_at)} · trimisă de ${esc(x.sent_by||'—')} · ${x.sent} din ${x.total} primite</p></div><button class="x" id="closeDr">×</button></header>
+    <div class="body"><div class="sect"><h4>Text</h4><div class="csbcbody">${esc(x.body).replace(/\n/g,"<br>")}</div></div>
+    <div class="sect"><h4>Destinatari</h4><table class="items"><tbody>${R.map(r=>`<tr><td>${esc(r.name)}<div class="sub2">${esc(r.email)}</div></td><td>${r.ok?'<span class="chip c-ok">trimis</span>':`<span class="chip c-err">eroare</span><div class="sub2 c-err">${esc(r.error||'')}</div>`}</td></tr>`).join("")}</tbody></table></div>
+    <div class="actions"><button class="btn ghost" id="csBcCopy">Folosește textul pentru o informare nouă</button></div></div>`;
+  document.body.append(scrim,dr);
+  const close=()=>{ scrim.remove(); dr.remove(); }; scrim.onclick=close; dr.querySelector("#closeDr").onclick=close;
+  dr.querySelector("#csBcCopy").onclick=()=>{ csDraftSet({ subject:x.subject, body:x.body, mode:"all", ids:[] }); close(); renderCsNews(); toast("Textul e pus în formular — modificați-l și trimiteți"); };
 }
 /* ---- șablonul emailului ---- */
 function renderCsTpl(){
