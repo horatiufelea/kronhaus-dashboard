@@ -662,6 +662,24 @@
   .constab td.r{white-space:nowrap}
   .constab tbody tr:hover td{background:#F1F8F3}
 
+  /* ---- Consultanți ---- */
+  .cssw{display:flex;gap:18px;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;margin-bottom:14px;border-left:4px solid #A8A29E}
+  .cssw.on{border-left-color:#00843D;background:#EFF7F2}
+  .csswt{flex:1;min-width:280px} .csswt h3{margin:0 0 6px}
+  .csswr{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .csstate{font-size:12px;font-weight:700;letter-spacing:.06em;padding:5px 10px;border-radius:6px;background:#E7E5E4;color:#57534E}
+  .csstate.on{background:#00653E;color:#fff}
+  .cstable td{white-space:nowrap} .cstable tbody tr{cursor:default}
+  .cstpl{margin-top:14px} .cstpl textarea{font-family:inherit;line-height:1.5}
+  .csflds{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 4px}
+  .csfld{border:1px solid #CFE3D6;background:#F4FAF6;border-radius:6px;padding:4px 8px;font-size:12px;cursor:pointer;color:#00653E;font-family:ui-monospace,Consolas,monospace}
+  .csfld span{font-family:var(--font,inherit);color:var(--muted);margin-left:5px}
+  .csfld:hover:not([disabled]){background:#E3F1E8} .csfld[disabled]{cursor:default}
+  #csLog .chart-card{margin-top:14px} #csLog tbody tr{cursor:pointer}
+  .cschk{display:flex;gap:8px;align-items:center;font-weight:500;margin-top:14px}
+  .cschk input{width:auto}
+  .drawer.wide{width:min(820px,100vw)}
+
   /* ---- Echipă ---- */
   .tmtable td{white-space:nowrap}
   .tmact{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;max-width:290px;margin-left:auto}
@@ -785,6 +803,7 @@
       <button data-mod="proiecte"><i data-ic="kanban"></i><span>Proiecte</span><em class="cnt" id="navCntProj"></em></button>
       <button data-mod="marketing"><i data-ic="megaphone"></i><span>Marketing</span></button>
       <button data-mod="contracte"><i data-ic="sign"></i><span>Contracte</span><em class="cnt" id="navCntCtr"></em></button>
+      <button data-mod="consultanti"><i data-ic="users"></i><span>Consultanți</span><em class="cnt" id="navCntCons"></em></button>
       <button data-mod="echipa" id="navTeam" class="hidden"><i data-ic="users"></i><span>Echipă</span><em class="cnt">admin</em></button>
     </nav>
     <div class="sfoot">
@@ -949,6 +968,21 @@
       <input class="grow" type="text" id="iSearch" placeholder="Caută număr de factură sau client…">
     </div>
     <div id="iWrap"><div class="empty">Se încarcă…</div></div>
+  </div>
+
+  <!-- ################ MODUL CONSULTANȚI ################ -->
+  <div id="modConsultanti" class="hidden">
+    <div id="csTop"></div>
+    <div class="toolbar">
+      <input class="grow" type="text" id="csSearch" placeholder="Caută consultant, email sau telefon…">
+      <span style="flex:1"></span>
+      <button class="btn ghost" id="csExport"><i data-ic="download"></i>Descarcă lista (Excel)</button>
+      <label class="btn ghost csadm hidden" id="csImpLbl"><i data-ic="file"></i>Import Excel<input type="file" id="csFile" accept=".xlsx,.xls,.csv" hidden></label>
+      <button class="btn csadm hidden" id="csAdd">+ Consultant</button>
+    </div>
+    <div id="csWrap"><div class="empty">Se încarcă…</div></div>
+    <div id="csTpl"></div>
+    <div id="csLog"></div>
   </div>
 
   <!-- ################ MODUL ECHIPĂ (doar administrator) ################ -->
@@ -1179,6 +1213,7 @@ async function loadOrders(){
                                  _time: tm[r.key]||"",
                                  _cons: consOf(det[r.key]), _ref: (det[r.key] && det[r.key].referer) || "" }));
   fillConsSelect();
+  if(activeMod==="consultanti" && CONS) renderConsultants();
   ROWS.sort((x,y)=>(y.order_day||"").localeCompare(x.order_day||"") || (y._time||"").localeCompare(x._time||""));
   computeChecks();
   render();
@@ -1808,6 +1843,225 @@ $("#iSeg").addEventListener("click", e=>{ const b=e.target.closest("button"); if
 $("#iSearch").addEventListener("input", e=>{ INVF.q=e.target.value; renderInvoices(); });
 $("#iYear").addEventListener("change", e=>{ INVF.year=e.target.value; renderInvoices(); });
 
+/* ===================== CONSULTANȚI (lista + email automat la „Kiszállítás”) ===================== */
+let CONS=null, CS_SET={enabled:false}, CS_TPL=null, CS_LOG=[], CSQ="";
+const CS_DEFAULT = { subject:"Kiszállítás alatt: {vasarlo} Thermomix rendelése (#{rendeles})",
+  body:"Kedves {konzulens}!\n\nÖrömmel értesítjük, hogy {vasarlo} Thermomix rendelése kiszállítás alatt van. A vásárló Önt jelölte meg kapcsolattartóként.\n\n{adatok}\n\nKérjük, vegye fel a kapcsolatot a vásárlóval az átadás és a bemutató egyeztetése érdekében.\n\nÜdvözlettel,\nKronHaus Kft. – Thermomix Magyarország" };
+const CS_FIELDS = [["konzulens","numele consultantului"],["vasarlo","numele clientului"],["telefon","telefonul clientului"],["email","emailul clientului"],
+  ["telepules","orașul"],["termekek","produsele"],["osszeg","suma"],["fizetes","metoda de plată"],["rendeles","nr. comenzii"],["datum","data comenzii"],["adatok","tabel cu toate datele"]];
+const CS_ST = { sent:["trimis","c-ok"], error:["eroare","c-err"], no_email:["consultant fără email","c-warn"], no_consultant:["fără consultant ales","c-grey"],
+  off:["oprit pentru consultant","c-grey"], queued:["în coadă","c-blue"], sending:["se trimite","c-blue"] };
+const csNorm = s => String(s||"").normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase().replace(/\s+/g," ").trim();
+const csEmailOk = e => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(e||"").trim());
+async function csCall(payload){
+  const { data:{ session } } = await sb.auth.getSession();
+  const r = await fetch(FN+"/consultant-notify",{ method:"POST", headers:{ Authorization:"Bearer "+session.access_token, apikey:SUPABASE_KEY, "Content-Type":"application/json" }, body:JSON.stringify(payload) });
+  const j = await r.json().catch(()=>({ ok:false, error:"răspuns necitibil ("+r.status+")" }));
+  if(!j.ok) throw new Error(j.error||("eroare "+r.status)); return j;
+}
+async function loadConsultants(){
+  if(CONS===null) $("#csWrap").innerHTML='<div class="empty">Se încarcă…</div>';
+  const [c,st,l] = await Promise.all([
+    sb.from("consultants").select("*").order("name"),
+    sb.from("app_settings").select("key,value,updated_at,updated_by").in("key",["consultant_emails","consultant_email_tpl"]),
+    sb.from("consultant_email_log").select("*").order("sent_at",{ascending:false}).limit(40) ]);
+  if(c.error){ $("#csWrap").innerHTML='<div class="empty">Eroare: '+esc(c.error.message)+'</div>'; return; }
+  CONS=c.data||[]; const S=st.data||[];
+  CS_SET=(S.find(x=>x.key==="consultant_emails")||{}).value||{enabled:false};
+  CS_TPL=(S.find(x=>x.key==="consultant_email_tpl")||{}).value||null;
+  CS_LOG=l.data||[];
+  renderConsultants();
+}
+function csRows(){
+  const real=ROWS.filter(r=>r.is_real), by={};
+  real.forEach(r=>{ if(!r._cons) return; const k=csNorm(r._cons); const o=by[k]=by[k]||{ name:r._cons, n:0, c:0, ft:0 }; o.n++; if(r.is_confirmed_sale){ o.c++; o.ft+=Number(r.sum_gross||0); } });
+  const sentBy={}; CS_LOG.filter(x=>x.status==="sent").forEach(x=>{ const k=csNorm(x.consultant_name); if(!sentBy[k]) sentBy[k]=x.sent_at; });
+  const rows=(CONS||[]).map(c=>{ const k=csNorm(c.name), o=by[k]; delete by[k]; return { c, name:c.name, n:o?o.n:0, paid:o?o.c:0, ft:o?o.ft:0, last:sentBy[k]||null }; });
+  Object.values(by).forEach(o=>rows.push({ c:null, name:o.name, n:o.n, paid:o.c, ft:o.ft, last:sentBy[csNorm(o.name)]||null }));
+  return rows.sort((a,b)=>b.n-a.n || a.name.localeCompare(b.name,"hu"));
+}
+function renderConsultants(){
+  const on=!!CS_SET.enabled, rows=csRows();
+  const missing=rows.filter(r=>!r.c || !csEmailOk(r.c.email)).filter(r=>r.n>0 && !/head office/i.test(r.name)).length;
+  const nc=$("#navCntCons"); if(nc){ nc.textContent=IS_ADMIN&&missing?missing:""; nc.classList.toggle("warn", IS_ADMIN&&missing>0); nc.title=missing?missing+" consultanți fără email":""; }
+  document.querySelectorAll("#modConsultanti .csadm").forEach(x=>x.classList.toggle("hidden", !IS_ADMIN));
+  $("#csTop").innerHTML = `<div class="chart-card cssw ${on?'on':''}">
+    <div class="csswt"><h3>${ic("mail",16)} Email automat către consultant când comanda pleacă în livrare</h3>
+      <p class="cnote">Când o comandă trece în UNAS în starea <b>„Kiszállítás”</b>, consultantul ales de client primește un email în maghiară (șablonul de mai jos). Pleacă de pe <b>taskuri@kronhaus.hu</b>; dacă răspunde, răspunsul ajunge la <b>office@kronhaus.hu</b>. Fiecare comandă — o singură dată.</p>
+      ${on && CS_SET.since?`<p class="cnote" style="margin-top:4px">Pornit din ${new Date(CS_SET.since).toLocaleString("ro-RO")}. Comenzile care erau deja în livrare înainte nu primesc email.</p>`:''}</div>
+    <div class="csswr"><span class="csstate ${on?'on':''}">${on?'PORNIT':'OPRIT'}</span>
+      ${IS_ADMIN?`<button class="btn sm ${on?'ghost':'go'}" id="csToggle">${on?'Oprește':'Pornește trimiterea'}</button>
+      <button class="btn ghost sm" id="csTest">${ic("mail",14)}Trimite-mi un email de test</button>`:''}</div></div>
+    ${IS_ADMIN&&missing?`<div class="hint" style="margin-bottom:12px">${ic("alert",16)}<span><b>${missing} ${missing===1?'consultant are':'consultanți au'} comenzi, dar nu ${missing===1?'are':'au'} email</b> — nu vor primi nimic până nu completați emailul (sau importați lista din Excel).</span></div>`:''}`;
+  const q=csNorm(CSQ);
+  const L=rows.filter(r=>!q || csNorm([r.name, r.c&&r.c.email, r.c&&r.c.phone].join(" ")).includes(q));
+  $("#csWrap").innerHTML = L.length ? `<div class="tscroll"><table class="itable cstable">
+    <thead><tr><th>Consultant <span class="lmuted" style="font-weight:400">(cum apare în UNAS)</span></th><th>Email</th><th>Telefon</th><th class="r">Comenzi</th><th class="r">Încasate</th><th class="r">Bani încasați</th><th>Ultimul email</th><th>Primește email</th>${IS_ADMIN?'<th></th>':''}</tr></thead>
+    <tbody>${L.map(r=>{ const c=r.c, em=c&&c.email, ok=csEmailOk(em);
+      return `<tr data-n="${esc(r.name)}">
+        <td><div class="nm">${esc(r.name)}</div>${!c?'<div class="sub2 c-warn">nu e încă în listă</div>':''}${c&&c.notes?`<div class="sub2">${esc(c.notes)}</div>`:''}</td>
+        <td>${em?(ok?esc(em):`<span class="c-err" title="Adresa nu pare corectă">${esc(em)}</span>`):'<span class="c-warn">— lipsește</span>'}</td>
+        <td>${c&&c.phone?esc(c.phone):'<span class="lmuted">—</span>'}</td>
+        <td class="r">${r.n||'<span class="lmuted">0</span>'}</td><td class="r">${r.paid||'<span class="lmuted">0</span>'}</td>
+        <td class="r">${r.ft?ft(r.ft)+`<div class="sub2">${eur(r.ft)}</div>`:'<span class="lmuted">—</span>'}</td>
+        <td>${r.last?ago(r.last):'<span class="lmuted">—</span>'}</td>
+        <td>${!c||!ok?'<span class="chip c-grey">nu (fără email)</span>':c.notify?'<span class="chip c-ok">da</span>':'<span class="chip c-grey">oprit</span>'}</td>
+        ${IS_ADMIN?`<td><div class="tmact"><button class="btn ghost sm" data-edit>${c?'Editează':'Adaugă email'}</button></div></td>`:''}</tr>`; }).join("")}</tbody></table></div>
+    <p class="cnote" style="margin-top:8px">Numele trebuie să fie scris exact ca în lista din UNAS (cum îl alege clientul la „Kapcsolattartó”). Cifrele vin din comenzile reale.</p>`
+    : '<div class="empty">Niciun consultant găsit.</div>';
+  $("#csWrap").querySelectorAll("tr[data-n]").forEach(tr=>{ const b=tr.querySelector("[data-edit]"); if(b) b.onclick=()=>{ const n=tr.dataset.n; csForm((CONS||[]).find(c=>c.name===n)||{ name:n }); }; });
+  const tg=$("#csToggle"); if(tg) tg.onclick=csToggle;
+  const ts=$("#csTest"); if(ts) ts.onclick=()=>csTest();
+  renderCsTpl(); renderCsLog();
+}
+async function csToggle(){
+  const on=!!CS_SET.enabled;
+  if(!on){
+    const withMail=(CONS||[]).filter(c=>csEmailOk(c.email) && c.notify).length;
+    if(!withMail){ toast("Completați întâi emailul măcar la un consultant"); return; }
+    if(!confirm(`Porniți emailurile automate?\n\nDe acum, când o comandă trece în „Kiszállítás”, consultantul ei (${withMail} ${withMail===1?'are':'au'} email) primește emailul din șablon.\nComenzile deja în livrare nu primesc nimic.`)) return;
+  }
+  const { error } = await sb.rpc("set_consultant_emails",{ p_enabled:!on });
+  if(error){ toast("Eroare: "+error.message); return; }
+  toast(on?"Trimiterea e oprită":"Trimiterea e pornită ✓"); loadConsultants();
+}
+async function csTest(tpl){
+  const b=$("#csTest"); if(b){ b.disabled=true; }
+  try{ const j=await csCall({ test:true, ...(tpl||{}) }); toast("Email de test trimis la "+j.to+" ✓ (exemplu: comanda #"+j.sample+")"); }
+  catch(e){ toast("Eroare: "+e.message); }
+  finally{ if(b) b.disabled=false; }
+}
+function csForm(c){
+  const isNew=!c.id;
+  const scrim=document.createElement("div"); scrim.className="scrim";
+  const dr=document.createElement("div"); dr.className="drawer";
+  const inOrders=ROWS.some(r=>r._cons && csNorm(r._cons)===csNorm(c.name));
+  dr.innerHTML=`<header><div><p class="dtitle">${isNew?'Consultant nou':'Editează consultantul'}</p><p class="dsub">${isNew&&c.name?'Găsit în comenzi — completați emailul':'Datele se folosesc doar pentru emailul de livrare'}</p></div><button class="x" id="closeDr">×</button></header>
+    <div class="body">
+      <label>Nume <span class="day" style="font-weight:400">(exact ca în UNAS, la „Kapcsolattartó”)</span></label>
+      <input type="text" id="csN" maxlength="120" value="${esc(c.name||'')}">
+      <p class="cnote" id="csNHint" style="margin:4px 0 0"></p>
+      <label>Email</label><input type="email" id="csE" maxlength="160" value="${esc(c.email||'')}" placeholder="nume@exemplu.hu">
+      <label>Telefon <span class="day" style="font-weight:400">(opțional)</span></label><input type="text" id="csP" maxlength="40" value="${esc(c.phone||'')}">
+      <label>Observații <span class="day" style="font-weight:400">(opțional, doar pentru noi)</span></label><input type="text" id="csO" maxlength="300" value="${esc(c.notes||'')}">
+      <label class="cschk"><input type="checkbox" id="csNotify" ${c.notify===false?'':'checked'}> Primește email când comanda clientului pleacă în livrare</label>
+      <div class="actions"><button class="btn go" id="csSave">${isNew?'Adaugă':'Salvează'}</button>${isNew?'':'<button class="btn ghost" id="csDel" style="color:var(--err)">Șterge din listă</button>'}</div>
+      <div class="err" id="csErr"></div>
+    </div>`;
+  document.body.append(scrim,dr);
+  const close=()=>{ scrim.remove(); dr.remove(); }; scrim.onclick=close; dr.querySelector("#closeDr").onclick=close;
+  const q=x=>dr.querySelector(x);
+  const hint=()=>{ const n=q("#csN").value.trim(); const f=n && ROWS.some(r=>r._cons && csNorm(r._cons)===csNorm(n));
+    q("#csNHint").innerHTML = !n ? "" : f ? '<span class="c-ok">✓ apare în comenzi</span>' : '<span class="c-warn">Numele nu apare încă în nicio comandă — verificați să fie scris exact ca în UNAS.</span>'; };
+  q("#csN").addEventListener("input",hint); hint();
+  q("#csSave").onclick=async()=>{
+    const name=q("#csN").value.replace(/\s+/g," ").trim(), email=q("#csE").value.trim().toLowerCase();
+    if(!name){ q("#csErr").textContent="Scrieți numele."; return; }
+    if(email && !csEmailOk(email)){ q("#csErr").textContent="Adresa de email nu pare corectă."; return; }
+    const dup=(CONS||[]).find(x=>csNorm(x.name)===csNorm(name) && x.id!==c.id);
+    if(dup){ q("#csErr").textContent="Există deja un consultant cu acest nume."; return; }
+    const rec={ name, email:email||null, phone:q("#csP").value.trim()||null, notes:q("#csO").value.trim()||null, notify:q("#csNotify").checked, updated_at:new Date().toISOString(), updated_by:myFirst() };
+    const r = isNew ? await sb.from("consultants").insert(rec) : await sb.from("consultants").update(rec).eq("id",c.id);
+    if(r.error){ q("#csErr").textContent="Eroare: "+r.error.message; return; }
+    close(); toast(isNew?"Consultant adăugat ✓":"Salvat ✓"); loadConsultants();
+  };
+  const del=q("#csDel"); if(del) del.onclick=async()=>{ if(!confirm(`Ștergeți „${c.name}” din listă? (comenzile lui rămân)`)) return;
+    const { error } = await sb.from("consultants").delete().eq("id",c.id); if(error){ toast("Eroare: "+error.message); return; }
+    close(); toast("Șters din listă"); loadConsultants(); };
+  void inOrders;
+}
+/* ---- Excel: import / export (SheetJS, încărcat doar când e nevoie) ---- */
+async function csXLSX(){ if(window.XLSX) return; await new Promise((res,rej)=>{ const sc=document.createElement("script"); sc.src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"; sc.onload=res; sc.onerror=()=>rej(new Error("nu s-a putut încărca cititorul de Excel")); document.head.append(sc); }); }
+$("#csExport").addEventListener("click", async ()=>{
+  try{ await csXLSX(); }catch(e){ toast(e.message); return; }
+  const rows=csRows().map(r=>({ "Nume (ca în UNAS)":r.name, "Email":r.c&&r.c.email||"", "Telefon":r.c&&r.c.phone||"", "Primește email (da/nu)":r.c&&r.c.notify===false?"nu":"da", "Observații":r.c&&r.c.notes||"", "Comenzi":r.n, "Încasate":r.paid }));
+  const ws=XLSX.utils.json_to_sheet(rows); ws["!cols"]=[{wch:34},{wch:32},{wch:16},{wch:20},{wch:30},{wch:9},{wch:9}];
+  const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Consultanti");
+  XLSX.writeFile(wb, "Consultanti-KronHaus.xlsx");
+});
+$("#csFile").addEventListener("change", async e=>{
+  const f=e.target.files[0]; e.target.value=""; if(!f) return;
+  try{ await csXLSX(); const wb=XLSX.read(await f.arrayBuffer(),{ type:"array" });
+    const aoa=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{ header:1, defval:"", raw:false });
+    csImport(aoa, f.name);
+  }catch(err){ toast("Nu am putut citi fișierul: "+err.message); }
+});
+function csImport(aoa, fname){
+  const H={ name:/^(nume|n[eé]v|name|consultant|konzulens|tan[aá]csad|kapcsolattart)/i, email:/e-?mail/i, phone:/(telefon|phone|^tel|mobil)/i, notify:/(prime[sș]te|k[uü]ld|notify|trimite)/i, notes:/(observ|megjegyz|note)/i };
+  let hi=aoa.slice(0,6).findIndex(r=>r.some(x=>H.name.test(String(x).trim())) || r.some(x=>H.email.test(String(x).trim()) && !String(x).includes("@")));
+  let col={ name:-1, email:-1, phone:-1, notify:-1, notes:-1 }, data;
+  if(hi>=0){ const h=aoa[hi].map(x=>String(x).trim()); Object.keys(H).forEach(k=>{ col[k]=h.findIndex(x=>x && H[k].test(x) && !Object.keys(col).some(o=>o!==k && col[o]===h.indexOf(x))); }); data=aoa.slice(hi+1); }
+  else { data=aoa; const sample=aoa.slice(0,20); const w=sample[0]?sample[0].length:0;
+    for(let i=0;i<w;i++){ const v=sample.map(r=>String(r[i]||"")); if(col.email<0 && v.some(x=>x.includes("@"))) col.email=i; else if(col.phone<0 && v.some(x=>/^\+?[\d\s\/()-]{7,}$/.test(x.trim()))) col.phone=i; else if(col.name<0 && v.some(x=>/[a-zA-ZáéíóöőúüűÁÉÍÓÖŐÚÜŰ]{2,}\s+[a-zA-ZáéíóöőúüűÁÉÍÓÖŐÚÜŰ]{2,}/.test(x))) col.name=i; } }
+  if(col.name<0){ toast("Nu am găsit coloana cu numele (ex. „Nume”, „Név”)."); return; }
+  const cell=(r,k)=>col[k]>=0?String(r[col[k]]??"").replace(/\s+/g," ").trim():"";
+  const seen=new Set(), items=[];
+  data.forEach(r=>{ const name=cell(r,"name"); if(!name) return; const k=csNorm(name); if(seen.has(k)) return; seen.add(k);
+    const email=cell(r,"email").toLowerCase(), phone=cell(r,"phone"), nt=cell(r,"notify"), notes=cell(r,"notes");
+    const ex=(CONS||[]).find(c=>csNorm(c.name)===k), inO=ROWS.some(x=>x._cons && csNorm(x._cons)===k);
+    const bad=email && !csEmailOk(email);
+    const rec={ name: ex?ex.name:name, email: email && !bad ? email : (ex?ex.email:null), phone: phone || (ex?ex.phone:null), notes: notes || (ex?ex.notes:null),
+                notify: nt ? !/^(nu|no|nem|0|false)$/i.test(nt) : (ex?ex.notify:true) };
+    const changed = !ex || ["email","phone","notes","notify"].some(f=>(rec[f]??null)!==(ex[f]??null));
+    items.push({ ex, rec, bad, inO, st: bad?"bad":!ex?"new":changed?"upd":"same" }); });
+  const cnt=k=>items.filter(i=>i.st===k).length, todo=items.filter(i=>i.st!=="same");
+  const scrim=document.createElement("div"); scrim.className="scrim";
+  const dr=document.createElement("div"); dr.className="drawer wide";
+  const STL={ new:'<span class="chip c-ok">nou</span>', upd:'<span class="chip c-blue">actualizat</span>', same:'<span class="chip c-grey">neschimbat</span>', bad:'<span class="chip c-err">email greșit</span>' };
+  dr.innerHTML=`<header><div><p class="dtitle">Import consultanți</p><p class="dsub">${esc(fname)} · ${items.length} rânduri citite</p></div><button class="x" id="closeDr">×</button></header>
+    <div class="body">
+      <p class="cnote" style="margin:0 0 10px"><b>${cnt("new")}</b> noi · <b>${cnt("upd")}</b> de actualizat · ${cnt("same")} neschimbați${cnt("bad")?` · <span class="c-err">${cnt("bad")} cu email greșit (se importă fără email — îl corectați după)</span>`:''}. Consultanții existenți care nu sunt în fișier rămân cum sunt.</p>
+      <div class="tscroll" style="max-height:55vh"><table class="itable"><thead><tr><th>Nume</th><th>Email</th><th>Telefon</th><th>În comenzi</th><th></th></tr></thead><tbody>
+      ${items.map(i=>`<tr><td><b>${esc(i.rec.name)}</b></td><td>${esc(i.rec.email||'')}${i.bad?'<div class="sub2 c-err">greșit în fișier</div>':''}</td><td>${esc(i.rec.phone||'')}</td>
+        <td>${i.inO?'<span class="c-ok">✓</span>':'<span class="lmuted" title="Numele nu apare încă în comenzi — verificați scrierea">nu încă</span>'}</td><td>${STL[i.st]}</td></tr>`).join("")}
+      </tbody></table></div>
+      <div class="actions"><button class="btn go" id="csImpGo" ${todo.length?'':'disabled'}>Importă ${todo.length} ${todo.length===1?'rând':'rânduri'}</button><button class="btn ghost" id="csImpNo">Renunță</button></div>
+      <div class="err" id="csImpErr"></div></div>`;
+  document.body.append(scrim,dr);
+  const close=()=>{ scrim.remove(); dr.remove(); }; scrim.onclick=close; dr.querySelector("#closeDr").onclick=close; dr.querySelector("#csImpNo").onclick=close;
+  dr.querySelector("#csImpGo").onclick=async()=>{
+    const b=dr.querySelector("#csImpGo"); b.disabled=true; b.innerHTML='<span class="spin"></span>Import…';
+    const now=new Date().toISOString(), by=myFirst();
+    const news=todo.filter(i=>!i.ex).map(i=>({ ...i.rec, updated_at:now, updated_by:by }));
+    let err=null;
+    if(news.length){ const r=await sb.from("consultants").insert(news); if(r.error) err=r.error.message; }
+    for(const i of todo.filter(i=>i.ex)){ if(err) break; const r=await sb.from("consultants").update({ email:i.rec.email, phone:i.rec.phone, notes:i.rec.notes, notify:i.rec.notify, updated_at:now, updated_by:by }).eq("id",i.ex.id); if(r.error) err=r.error.message; }
+    if(err){ b.disabled=false; b.textContent="Încearcă din nou"; dr.querySelector("#csImpErr").textContent="Eroare: "+err; return; }
+    close(); toast("Import gata ✓ — "+todo.length+" "+(todo.length===1?"rând":"rânduri")); loadConsultants();
+  };
+}
+/* ---- șablonul emailului ---- */
+function renderCsTpl(){
+  const t={ subject:(CS_TPL&&CS_TPL.subject)||CS_DEFAULT.subject, body:(CS_TPL&&CS_TPL.body)||CS_DEFAULT.body };
+  const ro=!IS_ADMIN;
+  $("#csTpl").innerHTML=`<div class="chart-card cstpl"><h3>${ic("text",16)} Șablonul emailului <span class="lmuted" style="font-weight:400">(în maghiară — consultanții sunt din Ungaria)</span></h3>
+    <p class="cnote">Câmpurile între acolade se completează singure la fiecare comandă. ${ro?'':'Click pe un câmp ca să-l puneți în text, unde e cursorul.'}</p>
+    <div class="csflds">${CS_FIELDS.map(([k,l])=>`<button type="button" class="csfld" data-k="${k}" title="${esc(l)}" ${ro?'disabled':''}>{${k}}<span>${esc(l)}</span></button>`).join("")}</div>
+    <label>Subiect</label><input type="text" id="csTS" maxlength="300" value="${esc(t.subject)}" ${ro?'readonly':''}>
+    <label>Text</label><textarea id="csTB" rows="12" maxlength="8000" ${ro?'readonly':''}>${esc(t.body)}</textarea>
+    ${ro?'':`<div class="actions"><button class="btn go" id="csTSave">Salvează șablonul</button><button class="btn ghost" id="csTTest">${ic("mail",14)}Trimite-mi un test cu acest text</button><button class="btn ghost" id="csTReset">Revino la textul inițial</button></div>`}
+    ${CS_TPL?'':'<p class="cnote" style="margin-top:6px">Acum e folosit textul inițial.</p>'}</div>`;
+  if(ro) return;
+  let last=$("#csTB");
+  ["#csTS","#csTB"].forEach(id=>$(id).addEventListener("focus",e=>last=e.target));
+  $("#csTpl").querySelectorAll(".csfld").forEach(b=>b.onclick=()=>{ const el=last, v="{"+b.dataset.k+"}", a=el.selectionStart??el.value.length, z=el.selectionEnd??a;
+    el.value=el.value.slice(0,a)+v+el.value.slice(z); el.focus(); el.selectionStart=el.selectionEnd=a+v.length; });
+  $("#csTSave").onclick=async()=>{ const { error }=await sb.rpc("set_consultant_template",{ p_subject:$("#csTS").value.trim(), p_body:$("#csTB").value.trim() });
+    if(error){ toast("Eroare: "+error.message); return; } toast("Șablon salvat ✓"); loadConsultants(); };
+  $("#csTTest").onclick=()=>csTest({ subject:$("#csTS").value.trim(), body:$("#csTB").value.trim() });
+  $("#csTReset").onclick=()=>{ $("#csTS").value=CS_DEFAULT.subject; $("#csTB").value=CS_DEFAULT.body; toast("Textul inițial e pus — apăsați „Salvează șablonul”"); };
+}
+function renderCsLog(){
+  const L=CS_LOG.filter(x=>x.status!=="baseline");
+  $("#csLog").innerHTML = L.length ? `<div class="chart-card"><h3>${ic("clock",16)} Ultimele emailuri către consultanți</h3><div class="tscroll"><table class="itable">
+    <thead><tr><th>Când</th><th>Comanda</th><th>Consultant</th><th>Email</th><th>Stare</th></tr></thead><tbody>
+    ${L.map(x=>{ const st=CS_ST[x.status]||[x.status,"c-grey"]; return `<tr data-k="${esc(x.order_key)}"><td>${fdts(x.sent_at)}</td><td>#${esc(x.order_key)}</td><td>${esc(x.consultant_name||'—')}</td><td>${esc(x.email||'—')}</td>
+      <td><span class="chip ${st[1]}">${st[0]}</span>${x.error?`<div class="sub2 c-err">${esc(x.error)}</div>`:''}</td></tr>`; }).join("")}</tbody></table></div></div>` : "";
+  $("#csLog").querySelectorAll("tr[data-k]").forEach(tr=>tr.onclick=()=>{ if(ROWS.some(r=>r.key===tr.dataset.k)) openDetail(tr.dataset.k); });
+}
+$("#csSearch").addEventListener("input", e=>{ CSQ=e.target.value; if(CONS) renderConsultants(); });
+$("#csAdd").addEventListener("click", ()=>csForm({}));
+
 /* ===================== ECHIPĂ (doar administrator; verificarea reală e pe server, în team-admin) ===================== */
 async function teamCall(action, payload){
   const { data:{ session } } = await sb.auth.getSession();
@@ -2081,7 +2335,7 @@ async function loadHistory(){
 }
 
 /* ===================== MODULE (Comenzi / Proiecte / Marketing) ===================== */
-const MODS = { comenzi:"#modComenzi", facturi:"#modFacturi", proiecte:"#modProiecte", marketing:"#modMarketing", contracte:"#modContracte", echipa:"#modEchipa" };
+const MODS = { comenzi:"#modComenzi", facturi:"#modFacturi", proiecte:"#modProiecte", marketing:"#modMarketing", contracte:"#modContracte", consultanti:"#modConsultanti", echipa:"#modEchipa" };
 function modFromHash(){ const h=(location.hash||"").replace("#",""); return MODS[h]?h:"comenzi"; }
 function showModule(m, fromBoot){
   activeMod = MODS[m]?m:"comenzi";
@@ -2093,11 +2347,12 @@ function showModule(m, fromBoot){
               marketing:["Marketing","De unde vin clienții și ce campanii aduc vânzări."],
               contracte:["Contracte","Contractele trimise prin Zoho Sign și stadiul semnării."],
               facturi:["Facturi","Facturile emise în Számlázz.hu, traduse în română."],
+              consultanti:["Consultanți","Consultanții aleși de clienți la comandă și emailul trimis când comanda pleacă în livrare."],
               echipa:["Echipă","Conturile colegilor: creare, parole, blocare."] };
   $("#pageTitle").textContent = PT[activeMod][0]; $("#pageSub").textContent = PT[activeMod][1];
   document.title = PT[activeMod][0]+" · KronHaus Hub";
   $("#exportBtn").classList.toggle("hidden", activeMod!=="comenzi");
-  $("#refreshBtn").classList.toggle("hidden", activeMod==="proiecte" || activeMod==="echipa");
+  $("#refreshBtn").classList.toggle("hidden", activeMod==="proiecte" || activeMod==="echipa" || activeMod==="consultanti");
   if(activeMod==="comenzi" && activeTab==="orders") buildTrend();
   if(activeMod==="comenzi" && activeTab==="stats") buildStats();
   if(activeMod==="proiecte") loadProjects();
@@ -2105,6 +2360,7 @@ function showModule(m, fromBoot){
   if(activeMod==="contracte") loadContracts();
   if(activeMod==="facturi") loadInvoices();
   if(activeMod==="echipa") loadTeamAdmin();
+  if(activeMod==="consultanti") loadConsultants();
 }
 $("#modnav").addEventListener("click", e=>{ const b=e.target.closest("button"); if(b) showModule(b.dataset.mod); });
 window.addEventListener("hashchange", ()=>{ if(!$("#app").classList.contains("hidden")) showModule(modFromHash()); });
