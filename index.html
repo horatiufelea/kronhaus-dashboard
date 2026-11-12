@@ -1874,8 +1874,8 @@ function csShowTab(t){
   $("#csPList").classList.toggle("hidden", t!=="list"); $("#csPAuto").classList.toggle("hidden", t!=="auto"); $("#csPNews").classList.toggle("hidden", t!=="news");
 }
 $("#csTabs").addEventListener("click", e=>{ const b=e.target.closest("button"); if(b) csShowTab(b.dataset.cs); });
-const CS_DEFAULT = { subject:"Kiszállítás alatt: {vasarlo} Thermomix rendelése (#{rendeles})",
-  body:"Kedves {konzulens}!\n\nÖrömmel értesítjük, hogy {vasarlo} Thermomix rendelése kiszállítás alatt van. A vásárló Önt jelölte meg kapcsolattartóként.\n\n{adatok}\n\nKérjük, vegye fel a kapcsolatot a vásárlóval az átadás és a bemutató egyeztetése érdekében.\n\nÜdvözlettel,\nKronHaus Kft. – Thermomix Magyarország" };
+const CS_DEFAULT = { subject:"Kiszállítás alatt: {vasarlo} Thermomix® rendelése (#{rendeles})",
+  body:"Kedves {konzulens}!\n\nÖrömmel értesítjük, hogy {vasarlo} Thermomix® rendelése kiszállítás alatt van. A vásárló Önt jelölte meg kapcsolattartóként.\n\n{adatok}\n\nKérjük, vegye fel a kapcsolatot a vásárlóval az átadás és a bemutató egyeztetése érdekében.\n\nÜdvözlettel,\nKronHaus Kft. – Thermomix® Official Distributor" };
 const CS_FIELDS = [["konzulens","numele consultantului"],["vasarlo","numele clientului"],["telefon","telefonul clientului"],["email","emailul clientului"],
   ["telepules","orașul"],["termekek","produsele"],["osszeg","suma"],["fizetes","metoda de plată"],["rendeles","nr. comenzii"],["datum","data comenzii"],["adatok","tabel cu toate datele"]];
 const CS_ST = { sent:["trimis","c-ok"], error:["eroare","c-err"], no_email:["consultant fără email","c-warn"], no_consultant:["fără consultant ales","c-grey"],
@@ -2074,9 +2074,9 @@ function renderCsNews(){
   const list=(CONS||[]).filter(c=>csEmailOk(c.email)).sort((a,b)=>a.name.localeCompare(b.name,"hu"));
   const d=csDraft(); const pick=new Set(d.ids||[]); const mode=d.mode==="pick"?"pick":"all";
   $("#csNews").innerHTML = `<div class="chart-card csnews"><h3>${ic("mail",16)} Informare generală către consultanți</h3>
-    <p class="cnote">Pleacă de pe <b>office@kronhaus.hu</b>. Fiecare consultant primește emailul <b>separat</b> — nu vede adresele celorlalți. Scrieți <b>{konzulens}</b> unde vreți să apară numele fiecăruia. Linkurile (https://…) devin clicabile. Textul se păstrează aici până îl trimiteți.</p>
+    <p class="cnote">Pleacă de pe <b>office@kronhaus.hu</b>. Fiecare consultant primește emailul <b>separat</b> — nu vede adresele celorlalți. Scrieți <b>{konzulens}</b> unde vreți să apară numele fiecăruia. Linkurile (https://…) devin clicabile. „Thermomix”, „Cookidoo”, „Varoma” primesc automat ® (regula Vorwerk); sus apare automat logoul Official Distributor | KronHaus, jos datele firmei. Textul se păstrează aici până îl trimiteți.</p>
     <label>Subiect</label><input type="text" id="csNS" maxlength="300" value="${esc(d.subject||'')}" placeholder="ex. Új Thermomix akció novemberben">
-    <label>Text</label><textarea id="csNB" rows="12" maxlength="20000" placeholder="Kedves {konzulens}!&#10;&#10;…&#10;&#10;Üdvözlettel,&#10;KronHaus Kft. – Thermomix Magyarország">${esc(d.body||'')}</textarea>
+    <label>Text</label><textarea id="csNB" rows="12" maxlength="20000" placeholder="Kedves {konzulens}!&#10;&#10;…&#10;&#10;Üdvözlettel,&#10;KronHaus Kft. – Thermomix® Official Distributor">${esc(d.body||'')}</textarea>
     <label>Cui trimitem?</label>
     <div class="seg" id="csNTo"><button data-t="all" class="${mode==='all'?'on':''}">Toți consultanții cu email (${list.length})</button><button data-t="pick" class="${mode==='pick'?'on':''}">Aleg eu</button></div>
     <div id="csNPick" class="csnpick ${mode==='pick'?'':'hidden'}">
