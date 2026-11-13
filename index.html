@@ -3070,7 +3070,7 @@ function renderBoard(){
 
 
 /* ---------- LISTĂ (stil Jira: totul editabil direct din tabel) ---------- */
-let LSORT = { k:"no", dir:1 }, LOPEN = new Set();
+let LSORT = { k:"no", dir:1 }, LOPEN = new Set(), LSHUT = new Set();
 let LEXP = new Set((()=>{ try{ return JSON.parse(localStorage.getItem("kh_list_open")||"[]"); }catch(e){ return []; } })());
 const saveLEXP = ()=>{ try{ localStorage.setItem("kh_list_open", JSON.stringify([...LEXP])); }catch(e){} };
 const PRIO_ORD = { high:0, med:1, recurring:2, low:3 };
@@ -3135,7 +3135,8 @@ function renderList(keepScroll){
     + (t.priority==="recurring" ? `<select class="lsel lrec" data-f="recur_rule" title="Cât de des se repetă — când îl marcați Gata apare automat următorul">${`<option value="">nu se repetă</option>`+Object.entries(RECUR_L).map(([k,l])=>`<option value="${k}" ${t.recur_rule===k?'selected':''}>${l}</option>`).join("")}</select>` : "")
     + (t.priority==="high" ? `<select class="lsel lurg u${t.urgency||0}" data-f="urgency" title="Nivel de urgență: 5 = cel mai urgent">${`<option value="">?</option>`+[5,4,3,2,1].map(n=>`<option value="${n}" ${t.urgency==n?'selected':''}>${n}/5</option>`).join("")}</select>` : "") + `</div>`;
   const row = (t, isSub) => {
-    const subs = subsOf(t), open = LOPEN.has(t.id) || (filtersOn() && subs.length);
+    // subtaskurile stau strânse; se deschid singure doar la căutare după text (poate s-a găsit un subtask), dar se pot închide oricând
+    const subs = subsOf(t), open = !!subs.length && (LOPEN.has(t.id) || (!!F.q && !LSHUT.has(t.id)));
     const late = isLate(t), nf = FILECNT[t.id]||0, pj = projOf(t);
     const doneSubs = subs.filter(x=>x.status==="done").length;
     return `<tr data-id="${t.id}" class="${isSub?'lsub':''} ${t.status==='done'?'ldone':''}">
@@ -3212,7 +3213,8 @@ function renderList(keepScroll){
   });
   W.querySelectorAll("[data-addcat]").forEach(b=>b.onclick=e=>{ e.stopPropagation(); openTask(null,{status:"todo", project_id:b.dataset.addcat}); });
   W.querySelectorAll("th[data-sort]").forEach(h=>h.onclick=()=>{ const k2=h.dataset.sort; LSORT = { k:k2, dir: LSORT.k===k2 ? -LSORT.dir : 1 }; renderList(true); });
-  W.querySelectorAll("[data-tog]").forEach(b=>b.onclick=e=>{ e.preventDefault(); const id=b.dataset.tog; LOPEN.has(id)?LOPEN.delete(id):LOPEN.add(id); renderList(true); });
+  W.querySelectorAll("[data-tog]").forEach(b=>b.onclick=e=>{ e.preventDefault(); const id=b.dataset.tog;
+    if(b.classList.contains("open")){ LOPEN.delete(id); LSHUT.add(id); } else { LOPEN.add(id); LSHUT.delete(id); } renderList(true); });
   W.querySelectorAll("[data-open]").forEach(a=>a.onclick=e=>{ e.preventDefault(); openTask(TASKS.find(x=>x.id===a.dataset.open)); });
   W.querySelectorAll("[data-sup]").forEach(b=>b.onclick=e=>{ e.stopPropagation(); openSupPop(b, TASKS.find(x=>x.id===b.dataset.sup)); });
   W.querySelectorAll("tbody tr").forEach(tr=>{
