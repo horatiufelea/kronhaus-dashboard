@@ -254,8 +254,10 @@
   .card .meta > span{display:inline-flex;align-items:center;gap:4px}
   .tprog{font-weight:600;color:#00653E;gap:6px!important}
   .tbeg{color:#2E6B4A;font-weight:500}
-  .tbegrow{display:flex;gap:8px;align-items:flex-start;margin:10px 0 0;font-size:13px;color:var(--ink)}
-  .tbegrow .ico{margin-top:2px;color:#2E6B4A;flex:none}
+  .tbegbox{margin-top:12px}
+  .tbegline{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  .tbegline input{width:auto;min-width:170px}
+  #tBegInfo{font-size:12.5px;color:var(--ink)}
   .tbegl{display:inline-block;margin-left:6px;font-size:12px;padding:1px 7px;border-radius:10px;background:#EDF6F0;color:#2E6B4A}
   .tbegl.late{background:#FDF3E2;color:#8A5A00}
   .tpbar{display:inline-block;width:54px;height:6px;border-radius:3px;background:#DCEBE1;overflow:hidden}
@@ -377,7 +379,7 @@
   .lcolpop label{display:flex;align-items:center;gap:8px;padding:5px 2px;font-size:13px;cursor:pointer;margin:0}
   .lcolpop input{width:auto;margin:0;accent-color:var(--accent)}
   .lcolf{display:flex;gap:6px;border-top:1px solid var(--line);margin-top:6px;padding-top:8px}
-  .ltable td[data-c="due"] input.ldate{width:112px}
+  .ltable td[data-c="due"] input.ldate, .ltable td[data-c="began"] input.ldate{width:112px}
   .ltable .lnotes{min-width:140px}
   .ltable td input.lest{width:72px;min-width:0}
   .ltable .lw{max-width:280px}
@@ -2586,7 +2588,11 @@ const todayISO = () => { const d=new Date(); d.setMinutes(d.getMinutes()-d.getTi
 const fmtDay = d => d ? new Date(d+"T00:00:00").toLocaleDateString("ro-RO",{day:"numeric",month:"short"}) : "";
 /* început efectiv = prima trecere în „În lucru” (se notează singur în baza de date) */
 const begDay = ts => ts ? new Date(ts).toLocaleDateString("ro-RO",{day:"numeric",month:"short"}) : "";
-const begTip = t => t.started_at ? "Început efectiv: "+new Date(t.started_at).toLocaleString("ro-RO",{day:"numeric",month:"long",hour:"2-digit",minute:"2-digit"})+(t.started_by_name?" · de "+t.started_by_name:"") : "";
+const begVal = t => t && t.started_at ? new Date(t.started_at).toLocaleDateString("sv-SE") : "";          // YYYY-MM-DD (ora locală)
+const begTs = v => v ? new Date(v+"T00:00:00").toISOString() : null;                                     // dată aleasă de mână → miezul nopții local
+const begFull = ts => { const d=new Date(ts); const manual = d.getHours()===0 && d.getMinutes()===0;
+  return d.toLocaleString("ro-RO", manual ? {day:"numeric",month:"long",year:"numeric"} : {day:"numeric",month:"long",year:"numeric",hour:"2-digit",minute:"2-digit"}); };
+const begTip = t => t.started_at ? "Data start: "+begFull(t.started_at)+(t.started_by_name?" · de "+t.started_by_name:"") : "";
 const dnum = s => Math.floor(Date.UTC(+s.slice(0,4), +s.slice(5,7)-1, +s.slice(8,10))/864e5);   // "YYYY-MM-DD" → nr. zi
 const dstr = n => new Date(n*864e5).toISOString().slice(0,10);
 const projOf = t => PROJ.find(p=>p.id===t.project_id) || { name:"(fără categorie)", color:"#9aa5a0" };
@@ -3097,7 +3103,7 @@ async function updTask(t, patch, msg){
   if(msg!==false) toast(msg||"Salvat ✓");
   return true;
 }
-const LCOLS = [["who","Responsabil"],["rev","Verifică"],["sup","Suport"],["rep","Raportor"],["prio","Prioritate"],["st","Stare"],["due","Termen"],["began","Început efectiv"],["est","Estimat"],["real","Real"],["notes","Observații"],["created","Creat"],["updated","Actualizat"]];
+const LCOLS = [["who","Responsabil"],["rev","Verifică"],["sup","Suport"],["rep","Raportor"],["prio","Prioritate"],["st","Stare"],["due","Termen"],["began","Data start"],["est","Estimat"],["real","Real"],["notes","Observații"],["created","Creat"],["updated","Actualizat"]];
 let LHIDE = (()=>{ try{ const v=localStorage.getItem("kh_list_hide"); if(v) return new Set(JSON.parse(v)); }catch(e){}
   const w=window.innerWidth; return new Set(w<1800 ? (w<1400 ? ["rep","sup","rev","created","updated"] : ["rep","created","updated"]) : []); })();
 function paintLCols(){
@@ -3167,7 +3173,7 @@ function renderList(keepScroll){
       <td data-c="prio">${isSub?'<span class="lmuted">—</span>':prSel(t)}</td>
       <td data-c="st">${stSel(t)}${HAS_PROG&&t.status==='doing'&&progOf(t)!=null?`<span class="lprog" title="Gata ${progOf(t)}%${progLeft(t)!=null?' · mai rămân ≈ '+(fmtEst(progLeft(t))||'0 min'):''}">${progOf(t)}%</span>`:''}</td>
       <td data-c="due"><input type="date" class="ldate ${late?'late':''}" data-f="due_date" value="${esc(t.due_date||'')}"></td>
-      ${HAS_BEGAN?`<td class="lmuted lts" data-c="began" title="${esc(begTip(t)||'Încă nu a fost pornit (se notează singur când trece în „În lucru”)')}">${t.started_at?fdts(t.started_at):'—'}</td>`:''}
+      ${HAS_BEGAN?`<td data-c="began"><input type="date" class="ldate lbeg" value="${esc(begVal(t))}" title="${esc(begTip(t)||'Data la care s-a început efectiv — se pune singură când taskul trece în „În lucru”; o puteți alege și de mână')}"></td>`:''}
       ${HAS_EST?`<td data-c="est"><input type="text" class="lest" data-f="estimate_min" value="${esc(fmtEst(t.estimate_min))}" placeholder="—" title="Timp estimat — ex. 2h 30m, 1:30, 45m sau 2 (= 2 ore)"></td>
       <td data-c="real"><input type="text" class="lest ${realCls(t)}" data-f="actual_min" value="${esc(fmtEst(t.actual_min))}" placeholder="—" title="${realTip(t)} — ex. 2h 30m, 1:30, 45m sau 2 (= 2 ore)"></td>`:''}
       <td class="lnotes" data-c="notes"><textarea class="lnote" data-f="notes" rows="1" placeholder="+ observație" title="@nume = anunț pe Slack">${esc(t.notes||'')}</textarea></td>
@@ -3201,7 +3207,7 @@ function renderList(keepScroll){
   $("#projWrap").innerHTML = projHeader() + (L.length ? `
     <div class="ltools"><span class="day" id="lScrollHint">Tabelul se derulează și spre dreapta (Shift + rotița mouse-ului). Prima coloană rămâne fixă.</span><button class="btn ghost sm" id="lCols">${ic("columns",14)}<span>${colLbl()}</span></button></div>
     <div class="tscroll lbox" id="listBox"><table class="ltable">
-      <thead><tr>${th("no","Task","lwork")}${th("who","Responsabil")}<th data-c="rev">Verifică</th><th data-c="sup">Suport</th><th data-c="rep">Raportor</th>${th("prio","Prioritate")}${th("st","Stare")}${th("due","Termen")}${HAS_BEGAN?th("began","Început efectiv"):''}${HAS_EST?th("est","Estimat")+th("real","Real"):''}<th class="lnotes" data-c="notes">Observații</th>${th("created","Creat")}${th("updated","Actualizat")}</tr></thead>
+      <thead><tr>${th("no","Task","lwork")}${th("who","Responsabil")}<th data-c="rev">Verifică</th><th data-c="sup">Suport</th><th data-c="rep">Raportor</th>${th("prio","Prioritate")}${th("st","Stare")}${th("due","Termen")}${HAS_BEGAN?th("began","Data start"):''}${HAS_EST?th("est","Estimat")+th("real","Real"):''}<th class="lnotes" data-c="notes">Observații</th>${th("created","Creat")}${th("updated","Actualizat")}</tr></thead>
       <tbody>${groups.map(g=>grpRow(g) + (g.open ? (g.items.length ? g.items.map(t=>row(t,false)).join("") : `<tr class="lempty"><td class="lwork" colspan="${11+(HAS_EST?2:0)+(HAS_BEGAN?1:0)}"><span class="lmuted">Niciun task în această categorie.</span></td></tr>`) : "")).join("")}</tbody>
     </table></div>
     <div class="lfoot"><button class="btn ghost sm" id="lAdd">+ Task</button><span class="day">${L.length} ${L.length===1?'task':'taskuri'} în ${groups.length} ${groups.length===1?'categorie':'categorii'} · click pe o categorie ca s-o deschizi, pe titlu pentru detalii</span></div>`
@@ -3239,8 +3245,11 @@ function renderList(keepScroll){
       if(f==="priority"){ patch.urgency = v==="high" ? (t.urgency||3) : null; patch.recur_rule = v==="recurring" ? (t.recur_rule||"weekly") : null; }
       if(await updTask(t, patch, f==="status"&&v==="done"?"Gata ✓":(f==="urgency"&&v?"Urgent "+v+"/5 ✓":(f==="recur_rule"?(v?"Se repetă "+RECUR_L[v]+" ✓":"Nu se mai repetă"):undefined)))) renderList(true);
     });
-    const dt = tr.querySelector("input.ldate");
+    const dt = tr.querySelector("input.ldate:not(.lbeg)");
     if(dt) dt.onchange = async()=>{ if(await updTask(t, { due_date: dt.value || null })) renderList(true); };
+    const bg = tr.querySelector("input.lbeg");
+    if(bg) bg.onchange = async()=>{ const v=bg.value||null;
+      if(await updTask(t, { started_at: begTs(v), started_by_name: v ? myFirst() : null }, v ? "Data start: "+begFull(begTs(v))+" ✓" : "Data start ștearsă")) renderList(true); };
     tr.querySelectorAll("input.lest").forEach(es=>{ const f = es.dataset.f, lbl = f==="actual_min" ? "Real" : "Estimat";
       es.addEventListener("keydown", e=>{ if(e.key==="Enter"){ e.preventDefault(); es.blur(); } if(e.key==="Escape"){ es.value=fmtEst(t[f]); es.blur(); } });
       es.addEventListener("blur", async()=>{
@@ -3544,7 +3553,7 @@ function openTask(t, preset){
 
       <section class="tsec s-time"><h5>${ic("calendar",15)} Termene</h5>
       ${HAS_START?`<div class="row3">
-        <div><label>Început</label><input type="date" id="tStart" value="${esc(start0)}"></div>
+        <div><label>Început planificat</label><input type="date" id="tStart" value="${esc(start0)}"></div>
         <div><label>Durată (zile)</label><input type="number" id="tDur" min="1" max="999" value="${dur0}" placeholder="ex. 5"></div>
         <div><label>Termen</label><input type="date" id="tDue" value="${esc(due0)}"></div>
       </div><p class="cnote" style="margin:8px 0 0">Scrieți numărul de zile și termenul se calculează singur (sau invers).</p>`
@@ -3557,12 +3566,8 @@ function openTask(t, preset){
         <div class="estrow"><input type="number" id="tActH" min="0" max="999" value="${t&&t.actual_min?Math.floor(t.actual_min/60):''}" placeholder="0"><span>ore</span>
           <input type="number" id="tActM" min="0" max="59" step="5" value="${t&&t.actual_min?t.actual_min%60:''}" placeholder="0"><span>min</span></div></div>
       </div><p class="cnote" id="tEstCmp" style="margin:8px 0 0"></p>`:''}
-      ${HAS_BEGAN && t ? (()=>{
-        if(!t.started_at) return `<p class="tbegrow">${ic("clock",14)}<span>Început efectiv: <span class="lmuted">încă nu — se notează singur când taskul trece în „În lucru”.</span></span></p>`;
-        let late = "";
-        if(t.start_date){ const d = dnum(new Date(t.started_at).toLocaleDateString("sv-SE")) - dnum(t.start_date);
-          late = d>0 ? ` <span class="tbegl late">${d} ${d===1?'zi':'zile'} după planificat</span>` : d<0 ? ` <span class="tbegl">${-d} ${d===-1?'zi':'zile'} înainte de planificat</span>` : ` <span class="tbegl">exact când era planificat</span>`; }
-        return `<p class="tbegrow">${ic("clock",14)}<span>Început efectiv: <b>${new Date(t.started_at).toLocaleString("ro-RO",{day:"numeric",month:"long",year:"numeric",hour:"2-digit",minute:"2-digit"})}</b>${t.started_by_name?' · de <b>'+esc(t.started_by_name)+'</b>':''}${late}</span></p>`; })() : ''}
+      ${HAS_BEGAN && t ? `<div class="tbegbox"><label>Data start <span class="day" style="font-weight:400">(când s-a început efectiv — se pune singură la „În lucru”; o puteți alege sau corecta)</span></label>
+        <div class="tbegline"><input type="date" id="tBeg" value="${esc(begVal(t))}"><span id="tBegInfo"></span></div></div>` : ''}
       </section>
 
       ${HAS_PARENT?`<section class="tsec s-subs"><h5>${ic("check",15)} Subtaskuri <span id="subCnt"></span></h5>
@@ -3605,6 +3610,14 @@ function openTask(t, preset){
   paintSel();
   setTimeout(()=>q("#tTitle").focus(),50);
   attachMention(q("#tNotes"));
+  if(HAS_BEGAN && q("#tBeg")){
+    const paintBeg=()=>{ const v=q("#tBeg").value, sp=q("#tStart")?q("#tStart").value:(t&&t.start_date)||""; const box=q("#tBegInfo");
+      if(!v){ box.innerHTML='<span class="lmuted">încă nu a început</span>'; return; }
+      let h = v===begVal(t) && t.started_at ? `${esc(begFull(t.started_at))}${t.started_by_name?' · de <b>'+esc(t.started_by_name)+'</b>':''}` : '<span class="lmuted">se salvează cu „Salvează”</span>';
+      if(sp){ const d=dnum(v)-dnum(sp); h += d>0 ? ` <span class="tbegl late">${d} ${d===1?'zi':'zile'} după planificat</span>` : d<0 ? ` <span class="tbegl">${-d} ${d===-1?'zi':'zile'} înainte de planificat</span>` : ` <span class="tbegl">exact când era planificat</span>`; }
+      box.innerHTML=h; };
+    q("#tBeg").addEventListener("change",paintBeg); if(q("#tStart")) q("#tStart").addEventListener("change",paintBeg); paintBeg();
+  }
   let progTouched=false;
   if(HAS_PROG){
     const sl=q("#tProg");
@@ -3747,6 +3760,7 @@ function openTask(t, preset){
       const av = rd("#tActH","#tActM","Timp real"); if(av===undefined) return;
       rec.estimate_min = ev; rec.actual_min = av;
     }
+    if(HAS_BEGAN && t && q("#tBeg") && q("#tBeg").value !== begVal(t)){ const v=q("#tBeg").value||null; rec.started_at = begTs(v); rec.started_by_name = v ? myFirst() : null; }
     if(HAS_PROG){
       if(newSt==="doing" && (progTouched || (t && t.progress!=null))) rec.progress = +q("#tProg").value;
       else if(newSt==="done") rec.progress = 100;
