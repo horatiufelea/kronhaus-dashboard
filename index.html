@@ -255,6 +255,8 @@
   .tprog{font-weight:600;color:#00653E;gap:6px!important}
   .tbeg{color:#2E6B4A;font-weight:500}
   .tbegbox{margin-top:12px}
+  .tdh-key.copyl{cursor:pointer;display:inline-flex;align-items:center;gap:4px}
+  .tdh-key.copyl:hover{filter:brightness(1.15)}
   .tbegline{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
   .tbegline input{width:auto;min-width:170px}
   #tBegInfo{font-size:12.5px;color:var(--ink)}
@@ -2441,12 +2443,15 @@ async function loadHistory(){
 
 /* ===================== MODULE (Comenzi / Proiecte / Marketing) ===================== */
 const MODS = { comenzi:"#modComenzi", facturi:"#modFacturi", proiecte:"#modProiecte", marketing:"#modMarketing", contracte:"#modContracte", consultanti:"#modConsultanti", echipa:"#modEchipa" };
-function modFromHash(){ const h=(location.hash||"").replace("#",""); return MODS[h]?h:"comenzi"; }
+const taskNoFromHash = () => { const m=(location.hash||"").match(/^#(?:task|proiecte)\/(?:KH-?)?(\d+)\/?$/i); return m ? +m[1] : null; };
+let OPEN_TASK_NO = null;   // taskul de deschis după ce se încarcă Proiecte
+function modFromHash(){ if(taskNoFromHash()) return "proiecte"; const h=(location.hash||"").replace("#",""); return MODS[h]?h:"comenzi"; }
 function showModule(m, fromBoot){
+  const tno = taskNoFromHash(); if(tno) OPEN_TASK_NO = tno;
   activeMod = MODS[m]?m:"comenzi";
   Object.entries(MODS).forEach(([k,sel])=>$(sel).classList.toggle("hidden", k!==activeMod));
   document.querySelectorAll("#modnav button").forEach(b=>b.classList.toggle("on", b.dataset.mod===activeMod));
-  if(location.hash!=="#"+activeMod) history.replaceState(null,"","#"+activeMod);
+  if(!tno && location.hash!=="#"+activeMod) history.replaceState(null,"","#"+activeMod);
   const PT = { comenzi:["Comenzi","Comenzile Thermomix din shop, verificate cu plata și factura."],
               proiecte:["Proiecte","Categorii, taskuri și termene pentru toată echipa."],
               marketing:["Marketing","De unde vin clienții și ce campanii aduc vânzări."],
@@ -2628,6 +2633,17 @@ async function loadProjects(){
   if(CUR_PROJ!=="all" && !PROJ.find(x=>x.id===CUR_PROJ)) CUR_PROJ="all";
   renderProjects();
   loadFileCounts();
+  if(OPEN_TASK_NO){ const n=OPEN_TASK_NO; OPEN_TASK_NO=null; openTaskByNo(n); }
+}
+/* deschide taskul KH-n (din link); subtask → părintele; categorie privată → spațiul „Doar eu” */
+function openTaskByNo(n){
+  let t = ALLTASKS.find(x=>+x.task_no===+n);
+  if(!t){ toast("Taskul KH-"+n+" nu există sau nu ai acces la el."); history.replaceState(null,"","#proiecte"); return; }
+  if(t.parent_id){ const par=ALLTASKS.find(x=>x.id===t.parent_id); if(par) t=par; }
+  const pj = ALLPROJ.find(x=>x.id===t.project_id);
+  const sp = pj && pj.is_private ? "me" : "team";
+  if(sp!==PSPACE) setSpace(sp);
+  openTask(TASKS.find(x=>x.id===t.id) || t);
 }
 let FILECNT = {};
 async function loadFileCounts(){
@@ -3511,7 +3527,7 @@ function openTask(t, preset){
   dr.innerHTML=`
     <header class="tdh" style="--pc:${pc0}">
       <div class="tdh-in">
-        <div class="tdh-top">${isNew?'<span class="tdh-key new">TASK NOU</span>':`<span class="tdh-key">${tkey(t)}</span>`}
+        <div class="tdh-top">${isNew?'<span class="tdh-key new">TASK NOU</span>':`<span class="tdh-key copyl" title="Click = copiază linkul direct către acest task">${tkey(t)} ${ic("clip",11)}</span>`}
           <span class="tdh-cat"><span class="pd"></span><span id="tdhCat">${esc((PROJ.find(p=>p.id===pid0)||{}).name||'')}</span></span></div>
         <p class="dtitle">${isNew?'Task nou':esc(t.title)}</p>
       </div>
@@ -3587,9 +3603,12 @@ function openTask(t, preset){
       <div class="err" id="tErr"></div>
     </div>`;
   document.body.append(scrim,dr);
-  const close=()=>{ scrim.remove(); dr.remove(); };
+  if(t && t.task_no) history.replaceState(null,"","#task/KH-"+t.task_no);
+  const close=()=>{ scrim.remove(); dr.remove(); if(/^#task\//i.test(location.hash)) history.replaceState(null,"","#proiecte"); };
   const q=s=>dr.querySelector(s);
   scrim.onclick=close; q("#closeDr").onclick=close;
+  const kk=q(".tdh-key.copyl"); if(kk) kk.onclick=async()=>{ const url=location.origin+location.pathname+"#task/KH-"+t.task_no;
+    try{ await navigator.clipboard.writeText(url); toast("Link copiat: "+url); }catch(e){ prompt("Linkul taskului:", url); } };
   q("#tSup").querySelectorAll("button").forEach(b=>b.onclick=()=>b.classList.toggle("on"));
   const paintSel = ()=>{
     q("#tSt").className = "colsel st-"+q("#tSt").value;
