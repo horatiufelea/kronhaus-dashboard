@@ -1180,13 +1180,29 @@ function trPay(s){ return s ? (PAY_STATUS[s]||esc(s)) : "—"; }
 
 function toast(msg){ const t=$("#toast"); t.textContent=msg; t.classList.add("show"); clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove("show"),2600); }
 
+/* Cursul EUR/HUF: oficial MNB (Banca Națională a Ungariei), din tabelul fx_rates (funcția fx-mnb, zilnic în zilele lucrătoare).
+   Dacă lipsește: cursul BCE (frankfurter), apoi FALLBACK_RATE. */
+let RATE_SRC = "";
 async function loadRate(){
+  let lbl = "";
   try{
-    const r = await fetch("https://api.frankfurter.app/latest?from=EUR&to=HUF");
-    const j = await r.json();
-    if(j && j.rates && j.rates.HUF){ EUR = j.rates.HUF; }
-  }catch(e){ EUR = FALLBACK_RATE; }
-  $("#rateTag").textContent = "1 € = "+Math.round(EUR).toLocaleString("hu-HU")+" Ft";
+    const { data, error } = await sb.from("fx_rates").select("day,huf").eq("curr","EUR").order("day",{ascending:false}).limit(1);
+    if(!error && data && data[0] && +data[0].huf>0){
+      EUR = +data[0].huf; RATE_SRC = "MNB";
+      lbl = "Curs oficial MNB (Magyar Nemzeti Bank) din "+new Date(data[0].day+"T12:00:00").toLocaleDateString("ro-RO",{day:"numeric",month:"long",year:"numeric"})+". Se actualizează singur în zilele lucrătoare, după ce îl publică banca (în jur de ora 12).";
+    }
+  }catch(e){}
+  if(!RATE_SRC){
+    try{
+      const r = await fetch("https://api.frankfurter.app/latest?from=EUR&to=HUF");
+      const j = await r.json();
+      if(j && j.rates && j.rates.HUF){ EUR = j.rates.HUF; RATE_SRC = "BCE"; lbl = "Curs Banca Centrală Europeană (cursul MNB nu s-a putut încărca)"; }
+    }catch(e){ EUR = FALLBACK_RATE; }
+  }
+  if(!RATE_SRC) lbl = "Curs aproximativ (nu s-a putut încărca cursul zilei)";
+  const tag = $("#rateTag");
+  tag.textContent = "1 € = "+EUR.toLocaleString("hu-HU",{minimumFractionDigits:2,maximumFractionDigits:2})+" Ft"+(RATE_SRC?" · "+RATE_SRC:"");
+  tag.parentElement.title = lbl;
 }
 
 /* ===================== AUTH ===================== */
