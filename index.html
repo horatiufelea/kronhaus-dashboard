@@ -82,6 +82,8 @@
   #modnav .cnt.warn{color:var(--warn);font-weight:700}
   .side .sfoot{margin-top:auto;border-top:1px solid var(--side-line);padding-top:12px;display:flex;flex-direction:column;gap:10px}
   .side .rate{font-size:12px;color:var(--side-muted);padding:0 10px;display:flex;align-items:center;gap:6px}
+  .side .rate .rateday{display:block;font-size:11px;opacity:.8;margin-top:1px}
+  .side .rate .rateday.old{color:#B45309;opacity:1}
   .side .me{display:flex;align-items:center;gap:9px;padding:0 6px;min-width:0}
   .side .av{width:28px;height:28px;border-radius:50%;background:var(--side-active);display:grid;place-items:center;font-size:11px;font-weight:700;flex-shrink:0}
   .side .me b{display:block;font-size:13px;font-weight:600}
@@ -832,7 +834,7 @@
       <button data-mod="echipa" id="navTeam" class="hidden"><i data-ic="users"></i><span>Echipă</span><em class="cnt">admin</em></button>
     </nav>
     <div class="sfoot">
-      <div class="rate"><i data-ic="euro" data-s="14"></i><span id="rateTag">1 € = … Ft</span></div>
+      <div class="rate"><i data-ic="euro" data-s="14"></i><span><span id="rateTag">1 € = … Ft</span><span id="rateDay" class="rateday"></span></span></div>
       <div class="me"><span class="av" id="avTag">KH</span><div style="min-width:0"><b id="meName"></b><small id="whoTag"></small></div></div>
       <div class="sbtns">
         <button class="sbtn" id="pwBtn" title="Schimbă parola"><i data-ic="key" data-s="14"></i><span>Parola</span></button>
@@ -1151,7 +1153,18 @@ let activeMod = "comenzi";
 /* ===================== HELPERS ===================== */
 const $ = s => document.querySelector(s);
 const ft = n => (n==null?"—":Number(n).toLocaleString("hu-HU")+" Ft");
-const eur = n => (n==null?"":"≈ "+Math.round(Number(n)/EUR).toLocaleString("ro-RO")+" €");
+/* Cursul MNB al zilei: RATES = [{d:"2026-11-24", r:369.57}, …] crescător. Pentru o zi fără curs (weekend, sărbătoare, azi înainte de ora 12)
+   se ia ultimul curs publicat înainte; fără dată sau fără istoric → cursul curent EUR. */
+let RATES = [];
+function rateOn(day){
+  const d = day ? String(day).slice(0,10) : ""; if(!d || !RATES.length) return EUR;
+  if(d < RATES[0].d) return RATES[0].r;
+  let lo=0, hi=RATES.length-1; while(lo<hi){ const m=(lo+hi+1)>>1; if(RATES[m].d<=d) lo=m; else hi=m-1; }
+  return RATES[lo].r;
+}
+const toEur = (n, day) => Number(n||0) / rateOn(day);
+const eurFmt = v => "≈ "+Math.round(v).toLocaleString("ro-RO")+" €";
+const eur = (n, day) => (n==null?"":eurFmt(toEur(n, day)));          // cu zi = cursul MNB din ziua aceea
 const esc = s => (s==null?"":String(s)).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 // „2026-11-06” -> „6 noiembrie 2026”
 const roDay = d => { if(!d) return ""; const m=String(d).match(/^(\d{4})-(\d{2})-(\d{2})/); if(!m) return String(d);
@@ -1180,29 +1193,37 @@ function trPay(s){ return s ? (PAY_STATUS[s]||esc(s)) : "—"; }
 
 function toast(msg){ const t=$("#toast"); t.textContent=msg; t.classList.add("show"); clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove("show"),2600); }
 
-/* Cursul EUR/HUF: oficial MNB (Banca Națională a Ungariei), din tabelul fx_rates (funcția fx-mnb, zilnic în zilele lucrătoare).
-   Dacă lipsește: cursul BCE (frankfurter), apoi FALLBACK_RATE. */
+/* Cursul EUR/HUF: DOAR oficial MNB (Banca Națională a Ungariei), din tabelul fx_rates (funcția fx-mnb, zilnic în zilele lucrătoare).
+   Dacă MNB nu răspunde, funcția nu șterge nimic → rămâne ULTIMUL curs MNB găsit (decizia owner-ului, 25.11: fără alt curs de rezervă).
+   Dacă nici tabelul nu se poate citi: ultimul curs MNB ținut minte în browser; abia la prima folosire, fără nimic, FALLBACK_RATE. */
 let RATE_SRC = "";
 async function loadRate(){
-  let lbl = "";
+  const fmtD = d => new Date(d+"T12:00:00").toLocaleDateString("ro-RO",{day:"numeric",month:"long",year:"numeric"});
+  let lbl = "", lastDay = "";
   try{
-    const { data, error } = await sb.from("fx_rates").select("day,huf").eq("curr","EUR").order("day",{ascending:false}).limit(1);
+    const { data, error } = await sb.from("fx_rates").select("day,huf").eq("curr","EUR").order("day",{ascending:false}).limit(3000);
     if(!error && data && data[0] && +data[0].huf>0){
-      EUR = +data[0].huf; RATE_SRC = "MNB";
-      lbl = "Curs oficial MNB (Magyar Nemzeti Bank) din "+new Date(data[0].day+"T12:00:00").toLocaleDateString("ro-RO",{day:"numeric",month:"long",year:"numeric"})+". Se actualizează singur în zilele lucrătoare, după ce îl publică banca (în jur de ora 12).";
+      RATES = data.filter(x=>+x.huf>0).map(x=>({d:x.day, r:+x.huf})).reverse();
+      EUR = +data[0].huf; RATE_SRC = "MNB"; lastDay = data[0].day;
+      try{ localStorage.setItem("kh_mnb_rate", JSON.stringify({ r:EUR, d:lastDay, h:RATES.slice(-400) })); }catch(e){}
     }
   }catch(e){}
-  if(!RATE_SRC){
-    try{
-      const r = await fetch("https://api.frankfurter.app/latest?from=EUR&to=HUF");
-      const j = await r.json();
-      if(j && j.rates && j.rates.HUF){ EUR = j.rates.HUF; RATE_SRC = "BCE"; lbl = "Curs Banca Centrală Europeană (cursul MNB nu s-a putut încărca)"; }
-    }catch(e){ EUR = FALLBACK_RATE; }
+  if(!RATE_SRC){   // tabelul nu s-a putut citi → ultimul curs MNB ținut minte
+    try{ const m = JSON.parse(localStorage.getItem("kh_mnb_rate")||"null");
+      if(m && +m.r>0){ EUR = +m.r; RATE_SRC = "MNB"; lastDay = m.d; if(Array.isArray(m.h)) RATES = m.h; } }catch(e){}
   }
-  if(!RATE_SRC) lbl = "Curs aproximativ (nu s-a putut încărca cursul zilei)";
+  if(RATE_SRC){
+    const old = Math.floor((Date.now() - new Date(lastDay+"T12:00:00")) / 864e5);
+    lbl = "Curs oficial MNB (Magyar Nemzeti Bank) din "+fmtD(lastDay)+"."
+      + (old>4 ? " Este ultimul curs găsit — banca nu a mai publicat de atunci sau nu a răspuns." : " Se actualizează singur în zilele lucrătoare, după ce îl publică banca (în jur de ora 12).")
+      + " Sumele în € ale comenzilor și facturilor se calculează cu cursul MNB din ziua lor.";
+  } else { EUR = FALLBACK_RATE; lbl = "Curs aproximativ (cursul MNB nu s-a putut încărca încă)"; }
   const tag = $("#rateTag");
-  tag.textContent = "1 € = "+EUR.toLocaleString("hu-HU",{minimumFractionDigits:2,maximumFractionDigits:2})+" Ft"+(RATE_SRC?" · "+RATE_SRC:"");
-  tag.parentElement.title = lbl;
+  tag.textContent = "1 € = "+EUR.toLocaleString("hu-HU",{minimumFractionDigits:2,maximumFractionDigits:2})+" Ft"+(RATE_SRC?" · MNB":" · aprox.");
+  const rd = $("#rateDay");
+  if(rd){ rd.textContent = RATE_SRC ? "curs MNB din "+new Date(lastDay+"T12:00:00").toLocaleDateString("ro-RO",{day:"2-digit",month:"2-digit",year:"numeric"}) : "curs aproximativ";
+    rd.classList.toggle("old", !RATE_SRC || Math.floor((Date.now()-new Date(lastDay+"T12:00:00"))/864e5) > 4); }
+  tag.closest(".rate").title = lbl;
 }
 
 /* ===================== AUTH ===================== */
@@ -1319,11 +1340,12 @@ function kpis(list){
   const real = ROWS.filter(r=>r.is_real);
   const conf = real.filter(r=>r.is_confirmed_sale);
   const rev = conf.reduce((s,r)=>s+Number(r.sum_gross||0),0);
+  const revE = conf.reduce((s,r)=>s+toEur(r.sum_gross, r.order_day),0);
   const pend = real.length-conf.length;
   const html = [
     {c:"k-blue", i:"receipt", n:real.length, l:"Comenzi Thermomix", e:(()=>{ const c=k=>real.filter(r=>payKind(r)===k).length; const parts=[]; if(c("transfer")) parts.push(c("transfer")+" transfer"); if(c("card")) parts.push(c("card")+" card"); const o=real.length-c("transfer")-c("card"); if(o) parts.push(o+" altele"); return parts.join(" · "); })()},
     {n:conf.length, l:"Vândute și încasate", e:real.length?Math.round(conf.length*100/real.length)+"% din comenzi":"", c:"k-green", i:"check", bar:real.length?Math.round(conf.length*100/real.length):0},
-    {n:ft(rev), l:"Bani încasați", e:eur(rev), c:"k-purple", i:"euro"},
+    {n:ft(rev), l:"Bani încasați", e:eurFmt(revE), c:"k-purple", i:"euro"},
     {n:pend, l:"Încă neîncasate", e:pend?"de urmărit plata":"toate sunt încasate ✓", c:pend?"k-amber":"k-green", i:"clock"},
   ].map(k=>`<div class="kpi ${k.c}"><div class="n">${k.n}</div><div class="l">${ic(k.i,14)}${k.l}</div>${k.e?`<div class="e">${k.e}</div>`:''}${k.bar!==undefined?`<div class="kbar"><i style="width:${k.bar}%"></i></div>`:''}</div>`).join("");
   $("#kpis").innerHTML=html;
@@ -1486,7 +1508,7 @@ function render(){
   const rows = list.map(r=>`
     <tr data-key="${esc(r.key)}" class="${needsAction(r)?'rowwarn':''}">
       <td><div class="nm">${esc(r.customer_name)||'—'}</div><div class="day">${esc(roDay(r.order_day))||'—'}${r._time?`, ora <span title="ora Budapestei">${esc(r._time)}</span>`:''}${r.inv_city?' · oraș: '+esc(r.inv_city):''}</div>${r._cons?`<div class="cons" title="Consultant (Kapcsolattartó)">${ic("users",12)} ${esc(r._cons)}</div>`:''}</td>
-      <td class="amt">${ft(r.sum_gross)}<span class="eu">${eur(r.sum_gross)}</span></td>
+      <td class="amt">${ft(r.sum_gross)}<span class="eu" title="curs MNB ${rateOn(r.order_day).toLocaleString('hu-HU')} Ft (ziua comenzii)">${eur(r.sum_gross, r.order_day)}</span></td>
       <td class="col-p">${unasCell(r)}</td>
       <td class="col-p">${payCell(r)}</td>
       <td class="col-p">${invCell(r)}</td>
@@ -1521,9 +1543,9 @@ function buildTrend(){
   const first = real.map(r=>r.order_day).sort()[0], last = todayISO();
   const keys=[]; let n=dnum(first);
   while(n<=dnum(last)){ const k=trKey(dstr(n)); if(keys[keys.length-1]!==k) keys.push(k); n++; }
-  const agg={}; keys.forEach(k=>agg[k]={n:0,c:0,v:0,cv:0});
+  const agg={}; keys.forEach(k=>agg[k]={n:0,c:0,v:0,cv:0,cvE:0,vE:0});
   real.forEach(r=>{ const k=trKey(r.order_day); if(!agg[k]) return; const v=Number(r.sum_gross||0);
-    agg[k].n++; agg[k].v+=v; if(r.is_confirmed_sale){ agg[k].c++; agg[k].cv+=v; } });
+    const ve=toEur(v, r.order_day); agg[k].n++; agg[k].v+=v; agg[k].vE+=ve; if(r.is_confirmed_sale){ agg[k].c++; agg[k].cv+=v; agg[k].cvE+=ve; } });
   const money = TR.m==="money";
   const ds = money
     ? [ {label:"Valoare comenzi", data:keys.map(k=>agg[k].v), borderColor:"#A8A29E", backgroundColor:"#A8A29E", borderDash:[4,4]},
@@ -1534,7 +1556,7 @@ function buildTrend(){
   CHT = new Chart(cctx("chTrend"),{type:"line", data:{labels:keys.map(trLabel), datasets:ds},
     options:{maintainAspectRatio:false,responsive:true,interaction:{mode:"index",intersect:false},
       plugins:{legend:{position:"top",align:"end",labels:{boxWidth:10,boxHeight:10,usePointStyle:true}},
-        tooltip:{callbacks:{label:c=> money ? " "+c.dataset.label+": "+ft(c.raw)+" "+eur(c.raw) : " "+c.dataset.label+": "+c.raw}}},
+        tooltip:{callbacks:{label:c=> money ? " "+c.dataset.label+": "+ft(c.raw)+" "+eurFmt(((agg[keys[c.dataIndex]]||{})[c.datasetIndex===0?"vE":"cvE"])||0) : " "+c.dataset.label+": "+c.raw}}},
       scales:{y:{beginAtZero:true,grid:{color:C_GRID},ticks:{precision:0, callback:v=> money ? (v>=1e6?(v/1e6).toLocaleString("hu-HU")+" M":Math.round(v/1000)+" k") : v}},
               x:{grid:{display:false},ticks:{maxRotation:0,autoSkip:true,maxTicksLimit:12}}}}});
 }
@@ -1547,8 +1569,8 @@ $("#trPeriod").addEventListener("click",e=>{ const b=e.target.closest("button");
 $("#exportBtn").addEventListener("click",()=>{
   const list = filtered();
   const q = v => '"'+String(v==null?"":v).replace(/"/g,'""')+'"';
-  const head = ["Comandă","Data","Client","Oraș","Sumă (Ft)","Sumă (€)","Status UNAS","Metodă plată","Încasată","Factură","Factură plătită","Observații"];
-  const rows = list.map(r=>[r.key,r.order_day,r.customer_name,r.inv_city,Number(r.sum_gross||0),Math.round(Number(r.sum_gross||0)/EUR),
+  const head = ["Comandă","Data","Client","Oraș","Sumă (Ft)","Sumă (€, curs MNB din ziua comenzii)","Status UNAS","Metodă plată","Încasată","Factură","Factură plătită","Observații"];
+  const rows = list.map(r=>[r.key,r.order_day,r.customer_name,r.inv_city,Number(r.sum_gross||0),Math.round(toEur(r.sum_gross, r.order_day)),
     (HU_STATUS[r.unas_status]||r.unas_status||""),r.payment_name,r.is_confirmed_sale?"da":"nu",(r.szamlaszam||r.invoice_number||""),
     r.invoice_paid?"da":(r.szamlaszam||r.invoice_number?"nu":""),(r._checks||[]).filter(c=>c.l!=="ok").map(c=>c.t).join(" | ")].map(q).join(";"));
   const blob = new Blob(["﻿"+[head.map(q).join(";"),...rows].join("\r\n")],{type:"text/csv;charset=utf-8"});
@@ -1623,7 +1645,8 @@ async function openDetail(key){
     <div class="body">
       <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
         ${statusChip(r)}
-        <div class="amt" style="font-size:20px">${ft(r.sum_gross)} <span style="color:var(--green);font-size:14px">${eur(r.sum_gross)}</span></div>
+        <div class="amt" style="font-size:20px">${ft(r.sum_gross)} <span style="color:var(--green);font-size:14px">${eur(r.sum_gross, r.order_day)}</span></div>
+        <span class="dsub" style="margin:0">curs MNB din ziua comenzii: 1 € = ${rateOn(r.order_day).toLocaleString("hu-HU")} Ft</span>
       </div>
       ${badges(r)}
 
@@ -1764,13 +1787,13 @@ function renderInvoices(){
   $("#navCntInv").textContent = INV.filter(x=>invState(x).k==="open").length || "";
   $("#iKpis").innerHTML = [
     {n:real.length, l:"Facturi emise", e:inYear.length-real.length?(inYear.length-real.length)+" storno / stornate":"", i:"file"},
-    {n:ft(sumB), l:"Total facturat (brut)", e:eur(sumB), i:"receipt"},
-    {n:ft(paid), l:"Încasat", e:eur(paid), i:"check", bar: sumB>0?Math.round(paid*100/sumB):0},
+    {n:ft(sumB), l:"Total facturat (brut)", e:eurFmt(inYear.reduce((s,x)=>s+toEur(x.brutto, x.kelt),0)), i:"receipt"},
+    {n:ft(paid), l:"Încasat", e:eurFmt(real.reduce((s,x)=>s+toEur(Math.min(Number(x.paid_amount||0),Number(x.brutto||0)), x.kelt),0)), i:"check", bar: sumB>0?Math.round(paid*100/sumB):0},
     {n:ft(left), l:"De încasat", e: open.length ? open.length+(open.length===1?" factură":" facturi")+(late?" · "+late+" restante":"") : "nimic de încasat ✓", i:"clock", red: late>0},
   ].map(k=>`<div class="kpi ${k.red?'k-red':''}"><div class="n">${k.n}</div><div class="l">${ic(k.i,14)}${k.l}</div>${k.e?`<div class="e">${k.e}</div>`:''}${k.bar!==undefined?`<div class="kbar"><i style="width:${k.bar}%"></i></div>`:''}</div>`).join("");
 
   if(!L.length){ $("#iWrap").innerHTML='<div class="empty">Nicio factură pentru filtrul ales.</div>'; return; }
-  const money = (n,cur) => { const v=Number(n||0); return `<div class="amt">${v.toLocaleString("hu-HU")} ${cur&&cur!=="HUF"?esc(cur):"Ft"}</div><div class="eu">${eur(v)}</div>`; };
+  const money = (n,cur,day) => { const v=Number(n||0); return `<div class="amt">${v.toLocaleString("hu-HU")} ${cur&&cur!=="HUF"?esc(cur):"Ft"}</div><div class="eu">${eur(v, day)}</div>`; };
   const tN=L.reduce((s,x)=>s+Number(x.netto||0),0), tB=L.reduce((s,x)=>s+Number(x.brutto||0),0), tL=L.reduce((s,x)=>s+(invState(x).left||0),0);
   $("#iWrap").innerHTML = `<div class="tscroll"><table class="itable">
     <thead><tr><th class="ic"></th><th>Număr factură</th><th>Data emiterii</th><th>Termen de plată</th><th>Client</th><th class="r">Net</th><th class="r">Brut</th><th class="r">De încasat</th><th class="ic"></th></tr></thead>
@@ -1781,8 +1804,8 @@ function renderInvoices(){
         <td>${fmtD(x.kelt)}</td>
         <td class="${st.late?'ilate':''}">${fmtD(x.fizh)}</td>
         <td><div class="nm">${esc(x.partner_name)||'—'}</div>${x.order_key?`<div class="sub2">comanda #${esc(x.order_key)}</div>`:''}</td>
-        <td class="r">${money(x.netto,x.devizanem)}</td>
-        <td class="r">${money(x.brutto,x.devizanem)}</td>
+        <td class="r">${money(x.netto,x.devizanem,x.kelt)}</td>
+        <td class="r">${money(x.brutto,x.devizanem,x.kelt)}</td>
         <td class="r">${st.k==='open'?`<div class="amt ${st.late?'ilate':''}">${st.left.toLocaleString("hu-HU")} Ft</div><div class="chip ${st.c}">${st.l}</div>`:`<span class="chip ${st.c}">${esc(st.l)}</span>`}</td>
         <td class="ic"><button class="imenu" data-menu="${esc(x.szamlaszam)}" title="Acțiuni">⋮</button></td></tr>`; }).join("")}</tbody>
     <tfoot><tr><td></td><td colspan="4">Număr de facturi: <b>${L.length}</b></td><td class="r"><b>${tN.toLocaleString("hu-HU")} Ft</b></td><td class="r"><b>${tB.toLocaleString("hu-HU")} Ft</b></td><td class="r"><b>${tL.toLocaleString("hu-HU")} Ft</b></td><td></td></tr></tfoot>
@@ -1853,7 +1876,7 @@ function openInvDetail(x, focus){
     <div class="body">
       <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
         <span class="chip ${st.c}">${esc(st.l)}</span>
-        <div class="amt" style="font-size:20px">${n(x.brutto)} Ft <span style="color:var(--green);font-size:14px">${eur(x.brutto)}</span></div>
+        <div class="amt" style="font-size:20px">${n(x.brutto)} Ft <span style="color:var(--green);font-size:14px" title="curs MNB din ziua emiterii">${eur(x.brutto, x.kelt)}</span></div>
       </div>
       <div class="actions">
         <button class="btn sm" data-act="view">${ic("file",14)} Vezi factura</button>
@@ -1875,7 +1898,7 @@ function openInvDetail(x, focus){
       <div class="sect" id="invPays"><h4>Încasări</h4>
         ${pays.length?`<table class="items"><thead><tr><th>Data</th><th>Cum</th><th class="r">Sumă</th></tr></thead><tbody>${pays.map(p=>`<tr><td>${roDay(p.datum)}</td><td>${esc(payWay(p.jogcim))}</td><td class="r">${n(p.osszeg)} Ft</td></tr>`).join("")}</tbody></table>`
           :`<p class="dsub">${x.tipus==="SS"||st.k==="stornoed"?"Nu e cazul (factură storno / stornată).":"Nicio plată înregistrată în Számlázz."}</p>`}
-        ${st.k==="open"?`<p class="dsub" style="margin-top:8px">Rămas de încasat: <b>${n(st.left)} Ft</b> (${eur(st.left)}). Plata se înregistrează în Számlázz.</p>`:''}
+        ${st.k==="open"?`<p class="dsub" style="margin-top:8px">Rămas de încasat: <b>${n(st.left)} Ft</b> (${eur(st.left, x.kelt)}). Plata se înregistrează în Számlázz.</p>`:''}
       </div>
       <div class="sect"><h4>Client</h4><div class="kv">
         <span class="k">Nume</span><span>${esc(v.nev)||'—'}</span>
@@ -1939,10 +1962,10 @@ async function loadConsultants(){
 }
 function csRows(){
   const real=ROWS.filter(r=>r.is_real), by={};
-  real.forEach(r=>{ if(!r._cons) return; const k=csNorm(r._cons); const o=by[k]=by[k]||{ name:r._cons, n:0, c:0, ft:0 }; o.n++; if(r.is_confirmed_sale){ o.c++; o.ft+=Number(r.sum_gross||0); } });
+  real.forEach(r=>{ if(!r._cons) return; const k=csNorm(r._cons); const o=by[k]=by[k]||{ name:r._cons, n:0, c:0, ft:0, eu:0 }; o.n++; if(r.is_confirmed_sale){ o.c++; o.ft+=Number(r.sum_gross||0); o.eu+=toEur(r.sum_gross, r.order_day); } });
   const sentBy={}; CS_LOG.filter(x=>x.status==="sent").forEach(x=>{ const k=csNorm(x.consultant_name); if(!sentBy[k]) sentBy[k]=x.sent_at; });
-  const rows=(CONS||[]).map(c=>{ const k=csNorm(c.name), o=by[k]; delete by[k]; return { c, name:c.name, n:o?o.n:0, paid:o?o.c:0, ft:o?o.ft:0, last:sentBy[k]||null }; });
-  Object.values(by).forEach(o=>rows.push({ c:null, name:o.name, n:o.n, paid:o.c, ft:o.ft, last:sentBy[csNorm(o.name)]||null }));
+  const rows=(CONS||[]).map(c=>{ const k=csNorm(c.name), o=by[k]; delete by[k]; return { c, name:c.name, n:o?o.n:0, paid:o?o.c:0, ft:o?o.ft:0, eu:o?o.eu:0, last:sentBy[k]||null }; });
+  Object.values(by).forEach(o=>rows.push({ c:null, name:o.name, n:o.n, paid:o.c, ft:o.ft, eu:o.eu, last:sentBy[csNorm(o.name)]||null }));
   return rows.sort((a,b)=>b.n-a.n || a.name.localeCompare(b.name,"hu"));
 }
 function renderConsultants(){
@@ -1971,7 +1994,7 @@ function renderConsultants(){
         <td>${em?(ok?esc(em):`<span class="c-err" title="Adresa nu pare corectă">${esc(em)}</span>`):'<span class="c-warn">— lipsește</span>'}</td>
         <td>${c&&c.phone?esc(c.phone):'<span class="lmuted">—</span>'}</td>
         <td class="r">${r.n||'<span class="lmuted">0</span>'}</td><td class="r">${r.paid||'<span class="lmuted">0</span>'}</td>
-        <td class="r">${r.ft?ft(r.ft)+`<div class="sub2">${eur(r.ft)}</div>`:'<span class="lmuted">—</span>'}</td>
+        <td class="r">${r.ft?ft(r.ft)+`<div class="sub2">${eurFmt(r.eu)}</div>`:'<span class="lmuted">—</span>'}</td>
         <td>${r.last?ago(r.last):'<span class="lmuted">—</span>'}</td>
         <td>${!c||!ok?'<span class="chip c-grey">nu (fără email)</span>':c.notify?'<span class="chip c-ok">da</span>':'<span class="chip c-grey">oprit</span>'}</td>
         ${IS_ADMIN?`<td><div class="tmact"><button class="btn ghost sm" data-edit>${c?'Editează':'Adaugă email'}</button></div></td>`:''}</tr>`; }).join("")}</tbody></table></div>
@@ -2381,11 +2404,11 @@ function refLabel(ref){
 function buildSources(){
   buildConsTable();
   const real=ROWS.filter(r=>r.is_real);
-  const by={}; real.forEach(r=>{ const k=refLabel(r._ref); const o=by[k]=by[k]||{n:0,c:0,ft:0,raw:new Set()}; o.n++; if(r._ref) o.raw.add(r._ref); if(r.is_confirmed_sale){ o.c++; o.ft+=Number(r.sum_gross||0); } });
+  const by={}; real.forEach(r=>{ const k=refLabel(r._ref); const o=by[k]=by[k]||{n:0,c:0,ft:0,eu:0,raw:new Set()}; o.n++; if(r._ref) o.raw.add(r._ref); if(r.is_confirmed_sale){ o.c++; o.ft+=Number(r.sum_gross||0); o.eu+=toEur(r.sum_gross, r.order_day); } });
   const rows=Object.entries(by).sort((a,b)=>b[1].n-a[1].n);
   const max=Math.max(1,...rows.map(([,o])=>o.n));
   $("#srcTable").innerHTML = rows.length ? `<table class="items constab"><thead><tr><th>Sursă</th><th class="r">Comenzi</th><th class="r">Încasate</th><th class="r">Bani încasați</th><th></th></tr></thead><tbody>
-    ${rows.map(([k,o])=>`<tr title="${esc([...o.raw].join(", "))}"><td><b>${esc(k)}</b></td><td class="r">${o.n}</td><td class="r">${o.c}</td><td class="r">${ft(o.ft)}<div class="dsub">${eur(o.ft)}</div></td>
+    ${rows.map(([k,o])=>`<tr title="${esc([...o.raw].join(", "))}"><td><b>${esc(k)}</b></td><td class="r">${o.n}</td><td class="r">${o.c}</td><td class="r">${ft(o.ft)}<div class="dsub">${eurFmt(o.eu)}</div></td>
       <td style="width:26%"><div class="pbar" style="margin:0"><i style="width:${Math.round(o.n*100/max)}%;background:#4FA874"></i></div></td></tr>`).join("")}</tbody></table>
     <p class="cnote" style="margin-top:8px">„Direct / necunoscut” = clientul a scris adresa shopului, a venit dintr-o aplicație sau browserul n-a transmis de unde vine.</p>` : '<div class="empty">Nicio comandă.</div>';
   const L=[...real].sort((a,b)=>(b.order_day||"").localeCompare(a.order_day||"")||(b._time||"").localeCompare(a._time||""));
@@ -2398,11 +2421,11 @@ function buildSources(){
 function buildConsTable(){
   const box=$("#consTable"); if(!box) return;
   const real=ROWS.filter(r=>r.is_real), by={};
-  real.forEach(r=>{ const k=r._cons||"(fără consultant)"; const o=by[k]=by[k]||{n:0,c:0,ft:0}; o.n++; if(r.is_confirmed_sale){ o.c++; o.ft+=Number(r.sum_gross||0); } });
+  real.forEach(r=>{ const k=r._cons||"(fără consultant)"; const o=by[k]=by[k]||{n:0,c:0,ft:0,eu:0}; o.n++; if(r.is_confirmed_sale){ o.c++; o.ft+=Number(r.sum_gross||0); o.eu+=toEur(r.sum_gross, r.order_day); } });
   const rows=Object.entries(by).sort((a,b)=>b[1].ft-a[1].ft||b[1].n-a[1].n);
   const max=Math.max(1,...rows.map(([,o])=>o.n));
   box.innerHTML = rows.length ? `<table class="items constab"><thead><tr><th>Consultant</th><th class="r">Comenzi</th><th class="r">Încasate</th><th class="r">Bani încasați</th><th></th></tr></thead><tbody>
-    ${rows.map(([k,o])=>`<tr data-c="${esc(k)}"><td><b>${esc(k)}</b></td><td class="r">${o.n}</td><td class="r">${o.c}</td><td class="r">${ft(o.ft)}<div class="dsub">${eur(o.ft)}</div></td>
+    ${rows.map(([k,o])=>`<tr data-c="${esc(k)}"><td><b>${esc(k)}</b></td><td class="r">${o.n}</td><td class="r">${o.c}</td><td class="r">${ft(o.ft)}<div class="dsub">${eurFmt(o.eu)}</div></td>
       <td style="width:28%"><div class="pbar" style="margin:0"><i style="width:${Math.round(o.n*100/max)}%;background:#00843D"></i></div></td></tr>`).join("")}</tbody></table>
     <p class="cnote" style="margin-top:8px">Click pe un consultant ca să vedeți comenzile lui.</p>` : '<div class="empty">Nicio comandă.</div>';
   box.querySelectorAll("tr[data-c]").forEach(tr=>tr.onclick=()=>{ STATE.cons = tr.dataset.c==="(fără consultant)"?"—":tr.dataset.c; fillConsSelect();
@@ -3898,12 +3921,13 @@ function renderMarketing(){
   const conf = L.filter(r=>r.is_confirmed_sale);
   const rev = conf.reduce((s,r)=>s+Number(r.sum_gross||0),0);
   const avg = L.length ? L.reduce((s,r)=>s+Number(r.sum_gross||0),0)/L.length : 0;
+  const avgE = L.length ? L.reduce((s,r)=>s+toEur(r.sum_gross, r.order_day),0)/L.length : 0;
   const tracked = L.filter(r=>r.utm_source||r.utm_campaign||r.coupon).length;
   const conv = L.length ? Math.round(conf.length*100/L.length) : 0;
   $("#mKpis").innerHTML = [
     {n:L.length, l:"Comenzi Thermomix", e:"", c:"k-blue", i:"receipt"},
     {n:conv+"%", l:"Comenzi încasate", e:conf.length+" din "+L.length, c:"k-green", i:"check", bar:conv},
-    {n:ft(Math.round(avg)), l:"Valoare medie comandă", e:eur(avg), c:"k-purple", i:"euro"},
+    {n:ft(Math.round(avg)), l:"Valoare medie comandă", e:eurFmt(avgE), c:"k-purple", i:"euro"},
     {n:(L.length?Math.round(tracked*100/L.length):0)+"%", l:"Cu sursă cunoscută", e:tracked+" comenzi cu UTM / cupon", c:"k-amber", i:"megaphone", bar:(L.length?Math.round(tracked*100/L.length):0)},
   ].map(k=>`<div class="kpi ${k.c}"><div class="n">${k.n}</div><div class="l">${ic(k.i,14)}${k.l}</div>${k.e?`<div class="e">${k.e}</div>`:''}${k.bar!==undefined?`<div class="kbar"><i style="width:${k.bar}%"></i></div>`:''}</div>`).join("");
 
@@ -3916,12 +3940,12 @@ function renderMarketing(){
   const camp={};
   L.filter(r=>r.utm_campaign||r.utm_source).forEach(r=>{
     const k=(r.utm_campaign||"(fără nume)")+"|"+srcLabel(r.utm_source)+(r.utm_medium?" / "+r.utm_medium:"");
-    camp[k]=camp[k]||{n:0,c:0,rev:0}; camp[k].n++;
-    if(r.is_confirmed_sale){ camp[k].c++; camp[k].rev+=Number(r.sum_gross||0); }
+    camp[k]=camp[k]||{n:0,c:0,rev:0,eu:0}; camp[k].n++;
+    if(r.is_confirmed_sale){ camp[k].c++; camp[k].rev+=Number(r.sum_gross||0); camp[k].eu+=toEur(r.sum_gross, r.order_day); }
   });
   const cRows=Object.entries(camp).sort((a,b)=>b[1].rev-a[1].rev||b[1].n-a[1].n);
   $("#mCampaigns").innerHTML = cRows.length ? `<table class="mtable"><thead><tr><th>Campanie</th><th>Sursă / mediu</th><th>Comenzi</th><th>Încasate</th><th>Bani încasați</th></tr></thead><tbody>
-    ${cRows.map(([k,v])=>{ const [c,s]=k.split("|"); return `<tr><td class="nm">${esc(c)}</td><td>${esc(s)}</td><td>${v.n}</td><td>${v.c}</td><td class="amt">${ft(v.rev)}<span class="eu">${eur(v.rev)}</span></td></tr>`; }).join("")}
+    ${cRows.map(([k,v])=>{ const [c,s]=k.split("|"); return `<tr><td class="nm">${esc(c)}</td><td>${esc(s)}</td><td>${v.n}</td><td>${v.c}</td><td class="amt">${ft(v.rev)}<span class="eu">${eurFmt(v.eu)}</span></td></tr>`; }).join("")}
     </tbody></table>` : '<div class="empty" style="padding:20px">Nicio campanie urmărită încă.</div>';
 
   const coup=countBy(L.filter(r=>r.coupon), r=>r.coupon.trim().toUpperCase());
@@ -3949,7 +3973,7 @@ function buildMarketingCharts(L){
     data:{labels:pay.length?pay.map(x=>x[0]):["Fără date"],datasets:[{data:pay.length?pay.map(x=>x[1]):[1],backgroundColor:pay.length?PAL:["#e3e8e5"],borderColor:"#fff",borderWidth:2}]},
     options:optDonut()});
 
-  const byM={}; L.forEach(r=>{ const m=(r.order_day||"").slice(0,7); if(!m) return; byM[m]=byM[m]||{n:0,rev:0}; byM[m].n++; if(r.is_confirmed_sale) byM[m].rev+=Number(r.sum_gross||0); });
+  const byM={}; L.forEach(r=>{ const m=(r.order_day||"").slice(0,7); if(!m) return; byM[m]=byM[m]||{n:0,rev:0,eu:0}; byM[m].n++; if(r.is_confirmed_sale){ byM[m].rev+=Number(r.sum_gross||0); byM[m].eu+=toEur(r.sum_gross, r.order_day); } });
   const months=Object.keys(byM).sort();
   const mLabel=m=>{ const [y,mm]=m.split("-"); return new Date(+y,+mm-1,1).toLocaleDateString("ro-RO",{month:"short",year:"numeric"}); };
   if(cctx("mMonthly")) MCH.monthly=new Chart(cctx("mMonthly"),{
@@ -3957,7 +3981,7 @@ function buildMarketingCharts(L){
       {type:"bar",label:"Comenzi",data:months.map(m=>byM[m].n),backgroundColor:C_GREEN,borderRadius:4,maxBarThickness:46,yAxisID:"y"},
       {type:"line",label:"Bani încasați (Ft)",data:months.map(m=>byM[m].rev),borderColor:C_BLUE,backgroundColor:C_BLUE,tension:.3,yAxisID:"y1"}]},
     options:{maintainAspectRatio:false,responsive:true,plugins:{legend:{position:"bottom",labels:{boxWidth:12}},
-      tooltip:{callbacks:{label:c=>c.dataset.yAxisID==="y1"?" "+ft(c.raw)+" "+eur(c.raw):" "+c.raw+" comenzi"}}},
+      tooltip:{callbacks:{label:c=>c.dataset.yAxisID==="y1"?" "+ft(c.raw)+" "+eurFmt((byM[months[c.dataIndex]]||{}).eu||0):" "+c.raw+" comenzi"}}},
       scales:{y:{beginAtZero:true,grid:{color:C_GRID},ticks:{precision:0},title:{display:true,text:"comenzi"}},
               y1:{beginAtZero:true,position:"right",grid:{display:false},ticks:{callback:v=>Math.round(v/1000).toLocaleString("hu-HU")+"k"}},
               x:{grid:{display:false}}}}});
