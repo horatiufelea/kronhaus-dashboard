@@ -255,6 +255,10 @@
   .tprog{font-weight:600;color:#00653E;gap:6px!important}
   .tbeg{color:#2E6B4A;font-weight:500}
   .tbegbox{margin-top:12px}
+  .ltable tr.larch td{opacity:.55}
+  .ltable tr.larch .lkey::after{content:" · arhivat";font-weight:400;font-size:11px;color:var(--muted)}
+  .card.carch{opacity:.6;border-style:dashed}
+  .tdh-arch{font-size:12px;font-weight:600;padding:2px 9px;border-radius:10px;background:#E7E5E4;color:#57534E}
   .tdh-key.copyl{cursor:pointer;display:inline-flex;align-items:center;gap:4px}
   .tdh-key.copyl:hover{filter:brightness(1.15)}
   .tbegline{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
@@ -2548,7 +2552,7 @@ function attachMention(ta){
 }
 const BUCKET = "task-files";
 let PROJ=[], TASKS=[], CUR_PROJ="all", SHOW_ARCH=false, PVIEW="dash", TL_ZOOM="auto", PCH={}, CAL_M=null;
-let F = { q:"", who:"", pr:"", st:"", late:false, due:"" };
+let F = { q:"", who:"", pr:"", st:"", late:false, due:"", arch:false };
 // spațiu: „team” = categoriile comune, „me” = categoriile mele private (le vede doar proprietarul — regulă în baza de date)
 let PSPACE = (()=>{ try{ return localStorage.getItem("kh_pspace")==="me" ? "me" : "team"; }catch(e){ return "team"; } })();
 let ALLPROJ = [], ALLTASKS = [];
@@ -2575,7 +2579,7 @@ function dueMatch(t, k){
   const n = dnum(t.due_date) - dnum(today);
   return k==="today" ? n===0 : k==="d3" ? n<=3 : n<=7;
 }
-let HAS_START=null, HAS_PARENT=null, HAS_EST=null, HAS_PROG=null, HAS_BEGAN=null;
+let HAS_START=null, HAS_PARENT=null, HAS_EST=null, HAS_PROG=null, HAS_BEGAN=null, HAS_TARCH=null;
 // timp estimat: în baza de date în minute; afișat „2 h 30 min”
 const fmtEst = m => { m=+m; if(!(m>0)) return ""; const h=Math.floor(m/60), r=m%60; return (h?h+" h":"") + (h&&r?" ":"") + (r?r+" min":""); };
 const realCls = t => (t.actual_min>0 && t.estimate_min>0) ? (t.actual_min>t.estimate_min ? "over" : "under") : "";
@@ -2620,11 +2624,12 @@ async function loadProjects(){
   if(p.error||t.error){ $("#projWrap").innerHTML='<div class="empty">Eroare: '+esc((p.error||t.error).message)+'</div>'; return; }
   ALLPROJ=p.data||[]; ALLTASKS=t.data||[]; applySpace();
   if(HAS_START===null){
-    if(TASKS.length){ HAS_START=("start_date" in TASKS[0]); HAS_PARENT=("parent_id" in TASKS[0]); HAS_EST=("estimate_min" in TASKS[0]); HAS_PROG=("progress" in TASKS[0]); HAS_BEGAN=("started_at" in TASKS[0]); }
+    if(TASKS.length){ HAS_START=("start_date" in TASKS[0]); HAS_PARENT=("parent_id" in TASKS[0]); HAS_EST=("estimate_min" in TASKS[0]); HAS_PROG=("progress" in TASKS[0]); HAS_BEGAN=("started_at" in TASKS[0]); HAS_TARCH=("archived_at" in TASKS[0]); }
     else {
       const [a,b,c,d]=await Promise.all([sb.from("tasks").select("start_date").limit(1), sb.from("tasks").select("parent_id").limit(1), sb.from("tasks").select("estimate_min").limit(1), sb.from("tasks").select("progress").limit(1)]);
       HAS_START=!a.error; HAS_PARENT=!b.error; HAS_EST=!c.error; HAS_PROG=!d.error;
       HAS_BEGAN = !(await sb.from("tasks").select("started_at").limit(1)).error;
+      HAS_TARCH = !(await sb.from("tasks").select("archived_at").limit(1)).error;
     }
   }
   if(HAS_ADHOC===null){
@@ -2669,9 +2674,10 @@ function scopeTasks(){
 }
 function scopeProjects(){ return CUR_PROJ==="all" ? PROJ.filter(p=>!p.archived) : PROJ.filter(p=>p.id===CUR_PROJ); }
 /* căutare + filtre (se aplică în toate vederile) */
-function applyF(list){
+function applyF(list, incArch){
   const q=F.q.trim().toLowerCase();
   return list.filter(t=>{
+    if(t.archived_at && !F.arch && !incArch) return false;      // arhivatele: ascunse, dar intră la totaluri (incArch)
     if(F.who && t.assignee_name!==F.who && !(t.supporters||[]).includes(F.who)) return false;
     if(F.pr && (t.priority||"med")!==F.pr) return false;
     if(F.st && !stMatch(t, F.st)) return false;
@@ -2685,6 +2691,8 @@ function applyF(list){
   });
 }
 const viewTasks = () => applyF(topLevel(scopeTasks()));
+const viewTasksAll = () => applyF(topLevel(scopeTasks()), true);   // cu tot cu arhivatele — pentru timpi și progres
+const archLbl = t => t.archived_at ? "Arhivat "+new Date(t.archived_at).toLocaleDateString("ro-RO",{day:"numeric",month:"short"})+(t.archived_by_name?" · "+t.archived_by_name:"") : "";
 const stMatch = (t, k) => k==="open" ? (t.status||"todo")!=="done" : (t.status||"todo")===k;
 const filtersOn = () => !!(F.q||F.who||F.pr||F.st||F.late||F.due);
 
@@ -2745,6 +2753,7 @@ function projHeader(){
       <select id="fSt" class="${F.st?'fon':''}"><option value="">Orice stare</option>${[{k:"open",l:"Nefinalizate"},...T_STATUS].map(s=>`<option value="${s.k}" ${F.st===s.k?'selected':''}>${s.l} (${all.filter(t=>stMatch(t,s.k)).length})</option>`).join("")}</select>
       <select id="fDue" class="${F.due?'fon':''}"><option value="">Orice termen</option>${Object.entries(DUE_F).map(([k,l])=>`<option value="${k}" ${F.due===k?'selected':''}>${l} (${all.filter(t=>dueMatch(t,k)).length})</option>`).join("")}</select>
       <label class="chk"><input type="checkbox" id="fLate" ${F.late?'checked':''}> Doar întârziate</label>
+      ${HAS_TARCH?`<label class="chk" title="Taskurile „Gata” de peste 7 zile se arhivează singure; se pot arhiva și de mână"><input type="checkbox" id="fArch" ${F.arch?'checked':''}> Arată și arhivatele <span class="lmuted">(${all.filter(t=>t.archived_at).length})</span></label>`:''}
       ${filtersOn()?'<button class="btn ghost sm" id="fClear">'+ic("x",14)+'Șterge filtrele</button>':''}
     </div>`;
 }
@@ -2756,8 +2765,9 @@ function wireHeader(){
   $("#fPr").onchange=e=>{ F.pr=e.target.value; renderProjects(); };
   $("#fSt").onchange=e=>{ F.st=e.target.value; renderProjects(); };
   $("#fLate").onchange=e=>{ F.late=e.target.checked; renderProjects(); };
+  const fa=$("#fArch"); if(fa) fa.onchange=e=>{ F.arch=e.target.checked; renderProjects(); };
   $("#fDue").onchange=e=>{ F.due=e.target.value; renderProjects(); };
-  const fc=$("#fClear"); if(fc) fc.onclick=()=>{ F={q:"",who:"",pr:"",st:"",late:false,due:""}; renderProjects(); };
+  const fc=$("#fClear"); if(fc) fc.onclick=()=>{ F={q:"",who:"",pr:"",st:"",late:false,due:"",arch:false}; renderProjects(); };
   $("#addTaskTop").onclick=()=>openTask(null,{status:"todo"});
   if(!p) return;
   $("#editProj").onclick=()=>openProjModal(p);
@@ -2971,19 +2981,20 @@ function renderProjDash(){
   const open = L.filter(t=>t.status!=="done");
   const late = open.filter(isLate);
   const week = open.filter(t=>t.due_date && t.due_date>=today && dnum(t.due_date)-t0<=7);
-  const done = L.filter(t=>t.status==="done");
-  const doneWeek = done.filter(t=>t.updated_at && (Date.now()-new Date(t.updated_at))<7*864e5).length;
-  const pct = L.length ? Math.round(done.length*100/L.length) : 0;
+  const LA = viewTasksAll();                      // cu arhivatele — ca progresul să nu „scadă” când se arhivează
+  const done = LA.filter(t=>t.status==="done");
+  const doneWeek = done.filter(t=>(t.done_at||t.updated_at) && (Date.now()-new Date(t.done_at||t.updated_at))<7*864e5).length;
+  const pct = LA.length ? Math.round(done.length*100/LA.length) : 0;
 
   const kp = [
     {n:open.length, l:"Taskuri active", e:L.filter(t=>t.status==="doing").length+" în lucru acum", c:"k-blue", i:"kanban"},
     {n:late.length, l:"Întârziate", e:late.length?"termenul a trecut":"nimic întârziat ✓", c:late.length?"k-red":"k-green", i:"alert"},
     {n:week.length, l:"Termen în 7 zile", e:week.length?"de urmărit săptămâna asta":"nimic urgent", c:"k-amber", i:"calendar"},
-    {n:pct+"%", l:"Progres", e:done.length+" din "+L.length+" gata · "+doneWeek+" săpt. asta", c:"k-green", i:"check", bar:pct},
+    {n:pct+"%", l:"Progres", e:done.length+" din "+LA.length+" gata · "+doneWeek+" săpt. asta", c:"k-green", i:"check", bar:pct},
   ].map(k=>`<div class="kpi ${k.c}"><div class="n">${k.n}</div><div class="l">${ic(k.i,14)}${k.l}</div>${k.e?`<div class="e">${k.e}</div>`:''}${k.bar!==undefined?`<div class="kbar"><i style="width:${k.bar}%"></i></div>`:''}</div>`).join("");
 
   const projCards = scopeProjects().map(p=>{
-    const pt = L.filter(t=>t.project_id===p.id);
+    const pt = LA.filter(t=>t.project_id===p.id);
     const d = pt.filter(t=>t.status==="done").length;
     const pc = pt.length ? Math.round(d*100/pt.length) : 0;
     const lt = pt.filter(isLate).length;
@@ -3053,7 +3064,7 @@ function renderBoard(){
     const mv = `<span class="mv">
       <button data-mv="-1" ${si<=0?'disabled':''} title="Mută la stânga">‹</button>
       <button data-mv="1" ${si>=T_STATUS.length-1?'disabled':''} title="Mută la dreapta">›</button></span>`;
-    return `<div class="card ${t.status==='done'?'done':''}" draggable="true" data-id="${t.id}">
+    return `<div class="card ${t.status==='done'?'done':''} ${t.archived_at?'carch':''}" draggable="true" data-id="${t.id}" ${t.archived_at?`title="${esc(archLbl(t))}"`:''}>
       ${showProj?`<div class="pj"><span class="pd" style="background:${safeColor(pj.color)}"></span>${esc(pj.name)}</div>`:''}
       <div class="t">${esc(t.title)}${mv}</div>
       <div class="meta">
@@ -3174,7 +3185,7 @@ function renderList(keepScroll){
     const subs = subsOf(t), open = !!subs.length && (LOPEN.has(t.id) || (!!F.q && !LSHUT.has(t.id)));
     const late = isLate(t), nf = FILECNT[t.id]||0, pj = projOf(t);
     const doneSubs = subs.filter(x=>x.status==="done").length;
-    return `<tr data-id="${t.id}" class="${isSub?'lsub':''} ${t.status==='done'?'ldone':''}">
+    return `<tr data-id="${t.id}" class="${isSub?'lsub':''} ${t.status==='done'?'ldone':''} ${t.archived_at?'larch':''}" ${t.archived_at?`title="${esc(archLbl(t))}"`:''}>
       <td class="lwork">
         <div class="lw">
           ${isSub?`<span class="lind">${ic("sub",14)}</span>`:(subs.length?`<button class="ltog ${open?'open':''}" data-tog="${t.id}" title="${open?'Ascunde':'Arată'} subtaskurile">${ic("chevron",14)}</button>`:'<span class="ltogsp"></span>')}
@@ -3202,23 +3213,25 @@ function renderList(keepScroll){
   const th = (key,label,cls) => `<th class="${cls||''} ${LSORT.k===key?'sorted':''}" data-sort="${key}" data-c="${key}">${label}${LSORT.k===key?(LSORT.dir>0?' ↑':' ↓'):''}</th>`;
   // grupare pe categorii (acordeon); cu filtre active sau o singură categorie aleasă, grupurile se deschid singure
   const autoOpen = filtersOn() || CUR_PROJ!=="all";
+  const LA = viewTasksAll();
   const groups = scopeProjects().map(p=>{
     const items = L.filter(t=>t.project_id===p.id);
-    return { p, items, open: autoOpen ? items.length>0 || CUR_PROJ===p.id : LEXP.has(p.id) };
+    return { p, items, all: LA.filter(t=>t.project_id===p.id), open: autoOpen ? items.length>0 || CUR_PROJ===p.id : LEXP.has(p.id) };
   }).filter(g=>g.items.length || !filtersOn());
   const allOpen = groups.length && groups.every(g=>g.open);
   const grpRow = g => {
-    const n=g.items.length, d=g.items.filter(t=>t.status==="done").length, lt=g.items.filter(isLate).length, ip=g.items.filter(t=>t.status==="doing").length;
+    const G=g.all, n=G.length, d=G.filter(t=>t.status==="done").length, lt=G.filter(isLate).length, ip=G.filter(t=>t.status==="doing").length, na=G.filter(t=>t.archived_at).length;
     return `<tr class="lgrp ${g.open?'open':''}" data-grp="${g.p.id}" style="--pc:${safeColor(g.p.color)}"><td colspan="${11+(HAS_EST?2:0)+(HAS_BEGAN?1:0)}"><div class="lgh">
       <span class="ltog ${g.open?'open':''}">${ic("chevron",15)}</span><span class="pd"></span><b>${esc(g.p.name)}</b>
       <span class="lgc">${n} ${n===1?'task':'taskuri'}</span>
       ${n?`<span class="lgbar" title="${d} din ${n} gata"><i style="width:${Math.round(d*100/n)}%"></i></span><span class="lgc">${d}/${n} gata</span>`:''}
       ${ip?`<span class="lgtag t-doing">${ip} în lucru</span>`:''}
+      ${na&&!F.arch?`<span class="lgc" title="Incluse la totaluri (gata, timpi), dar ascunse din listă — bifați „Arată și arhivatele”">${na} arhivate</span>`:''}
       ${lt?`<span class="lgtag t-late">${lt} ${lt===1?'întârziat':'întârziate'}</span>`:''}
-      ${(()=>{ if(!HAS_EST) return ''; const all=g.items.reduce((a,t)=>a+(+t.estimate_min||0),0);
-        if(!all){ const r0=g.items.reduce((a,t)=>a+(+t.actual_min||0),0); return r0?`<span class="lgc">⏱ real ${fmtEst(r0)}</span>`:''; }
-        const left=g.items.reduce((a,t)=>a+estLeft(t),0);
-        const real=g.items.reduce((a,t)=>a+(+t.actual_min||0),0);
+      ${(()=>{ if(!HAS_EST) return ''; const all=G.reduce((a,t)=>a+(+t.estimate_min||0),0);
+        if(!all){ const r0=G.reduce((a,t)=>a+(+t.actual_min||0),0); return r0?`<span class="lgc">⏱ real ${fmtEst(r0)}</span>`:''; }
+        const left=G.reduce((a,t)=>a+estLeft(t),0);
+        const real=G.reduce((a,t)=>a+(+t.actual_min||0),0);
         return `<span class="lgc" title="Timp estimat: total / rămas (fără taskurile gata)">⏱ estimat ${fmtEst(all)}${left!==all?' · rămas '+(fmtEst(left)||'0'):''}</span>${real?`<span class="lgc" title="Timp real lucrat, adunat">· real ${fmtEst(real)}</span>`:''}`; })()}
       <button class="lgadd" data-addcat="${g.p.id}">+ Task</button></div></td></tr>`;
   };
@@ -3602,12 +3615,14 @@ function openTask(t, preset){
 
       <div class="actions tact">
         <button class="btn go" id="tSave">${isNew?'Adaugă taskul':'Salvează'}</button>
+        ${isNew||!HAS_TARCH?'':(t.archived_at?`<button class="btn ghost" id="tArch">${ic("refresh",14)}Scoate din arhivă</button>`:`<button class="btn ghost" id="tArch">${ic("file",14)}Arhivează</button>`)}
         ${isNew?'':'<button class="btn ghost" id="tDel" style="color:var(--err)">Șterge</button>'}
       </div>
       ${isNew?'':`<p class="dsub">Creat ${t.created_at?new Date(t.created_at).toLocaleString("ro-RO"):''}${t.created_by_name?' de '+esc(t.created_by_name):''}${t.updated_at?' · modificat '+new Date(t.updated_at).toLocaleString("ro-RO"):''}</p>`}
       <div class="err" id="tErr"></div>
     </div>`;
   document.body.append(scrim,dr);
+  if(t && t.archived_at){ const top=dr.querySelector(".tdh-top"); if(top) top.insertAdjacentHTML("beforeend", `<span class="tdh-arch">${esc(archLbl(t))}</span>`); }
   if(t && t.task_no) history.replaceState(null,"","#task/KH-"+t.task_no);
   const close=()=>{ scrim.remove(); dr.remove(); if(/^#task\//i.test(location.hash)) history.replaceState(null,"","#proiecte"); };
   const q=s=>dr.querySelector(s);
@@ -3811,6 +3826,18 @@ function openTask(t, preset){
       if(pending.length) await uploadFiles(res.data.id, pending);
     }
     close(); toast(isNew?"Task adăugat ✓":"Salvat ✓"); await loadProjects();
+  };
+  const arb=q("#tArch");
+  if(arb) arb.onclick=async()=>{
+    const toArch = !t.archived_at;
+    if(toArch && t.status!=="done" && !confirm(`${tkey(t)} nu e „Gata”. Îl arhivați oricum?\n\nDispare din liste (îl regăsiți cu „Arată și arhivatele”), dar timpii lui rămân la totaluri.`)) return;
+    const now=new Date().toISOString();
+    const rec = toArch ? { archived_at:now, archived_by_name:myFirst() } : { archived_at:null, archived_by_name:null, unarchived_at:now };
+    const { error } = await sb.from("tasks").update({ ...rec, updated_by_name:myFirst() }).eq("id", t.id);
+    if(error){ toast("Eroare: "+error.message); return; }
+    Object.assign(t, rec); close();
+    toast(toArch ? tkey(t)+" arhivat ✓ — îl găsiți cu „Arată și arhivatele”" : tkey(t)+" scos din arhivă ✓");
+    await loadProjects();
   };
   const del=q("#tDel");
   if(del) del.onclick=async()=>{
