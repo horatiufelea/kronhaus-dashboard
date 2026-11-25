@@ -3117,6 +3117,7 @@ function renderBoard(){
 /* ---------- LISTĂ (stil Jira: totul editabil direct din tabel) ---------- */
 let LSORT = { k:"no", dir:1 }, LOPEN = new Set(), LSHUT = new Set();
 let LEXP = new Set((()=>{ try{ return JSON.parse(localStorage.getItem("kh_list_open")||"[]"); }catch(e){ return []; } })());
+let LCLOSED = new Set();   // categorii închise de mână când grupurile se deschid singure (filtre / o categorie aleasă)
 const saveLEXP = ()=>{ try{ localStorage.setItem("kh_list_open", JSON.stringify([...LEXP])); }catch(e){} };
 const PRIO_ORD = { high:0, med:1, recurring:2, low:3 };
 const ST_ORD = { todo:0, doing:1, review:2, done:3 };
@@ -3216,7 +3217,7 @@ function renderList(keepScroll){
   const LA = viewTasksAll();
   const groups = scopeProjects().map(p=>{
     const items = L.filter(t=>t.project_id===p.id);
-    return { p, items, all: LA.filter(t=>t.project_id===p.id), open: autoOpen ? items.length>0 || CUR_PROJ===p.id : LEXP.has(p.id) };
+    return { p, items, all: LA.filter(t=>t.project_id===p.id), open: autoOpen ? (items.length>0 || CUR_PROJ===p.id) && !LCLOSED.has(p.id) : LEXP.has(p.id) };
   }).filter(g=>g.items.length || !filtersOn());
   const allOpen = groups.length && groups.every(g=>g.open);
   const grpRow = g => {
@@ -3249,16 +3250,19 @@ function renderList(keepScroll){
   const sh=$("#lScrollHint"); if(sh && nb) sh.style.visibility = nb.scrollWidth > nb.clientWidth+2 ? "visible" : "hidden";
   const la = $("#lAdd"); if(la) la.onclick = ()=>openTask(null,{status:"todo"});
   const W = $("#projWrap");
-  if(nb && !autoOpen){
+  if(nb){
     const tg = document.createElement("button"); tg.className = "btn ghost sm"; tg.id = "lAll";
     tg.textContent = allOpen ? "Restrânge tot" : "Desfășoară tot";
-    tg.onclick = ()=>{ if(allOpen) LEXP.clear(); else groups.forEach(g=>LEXP.add(g.p.id)); saveLEXP(); renderList(true); };
+    tg.onclick = ()=>{
+      if(autoOpen){ if(allOpen) groups.forEach(g=>LCLOSED.add(g.p.id)); else LCLOSED.clear(); renderList(true); return; }
+      if(allOpen) LEXP.clear(); else groups.forEach(g=>LEXP.add(g.p.id)); saveLEXP(); renderList(true); };
     $("#lAdd").after(tg);
   }
   W.querySelectorAll("tr.lgrp").forEach(tr=>tr.onclick=e=>{
     if(e.target.closest("[data-addcat]")) return;
-    if(autoOpen) return;   // cu filtre active grupurile rămân deschise
-    const id=tr.dataset.grp; LEXP.has(id)?LEXP.delete(id):LEXP.add(id); saveLEXP(); renderList(true);
+    const id=tr.dataset.grp;
+    if(autoOpen){ LCLOSED.has(id)?LCLOSED.delete(id):LCLOSED.add(id); renderList(true); return; }   // cu filtre: se deschid singure, dar se pot închide
+    LEXP.has(id)?LEXP.delete(id):LEXP.add(id); saveLEXP(); renderList(true);
   });
   W.querySelectorAll("[data-addcat]").forEach(b=>b.onclick=e=>{ e.stopPropagation(); openTask(null,{status:"todo", project_id:b.dataset.addcat}); });
   W.querySelectorAll("th[data-sort]").forEach(h=>h.onclick=()=>{ const k2=h.dataset.sort; LSORT = { k:k2, dir: LSORT.k===k2 ? -LSORT.dir : 1 }; renderList(true); });
